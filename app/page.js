@@ -1,24 +1,15 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import {
-  sendSignInLinkToEmail,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { auth, ALLOWED_DOMAIN, getActionCodeSettings } from "../lib/firebase";
-
-const EMAIL_STORAGE_KEY = "pipelineDashboardEmailForSignIn";
+import { signInWithCustomToken, signOut, onAuthStateChanged } from "firebase/auth";
+import { auth } from "../lib/firebase";
 
 export default function Home() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
-  const [linkSent, setLinkSent] = useState(false);
-  const [needsEmailConfirm, setNeedsEmailConfirm] = useState(false);
+  const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -28,52 +19,26 @@ export default function Home() {
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      const storedEmail = window.localStorage.getItem(EMAIL_STORAGE_KEY);
-      if (!storedEmail) {
-        setNeedsEmailConfirm(true);
+  const handleVerify = async () => {
+    setError("");
+    setVerifying(true);
+    try {
+      const res = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "인증에 실패했습니다.");
         return;
       }
-      completeSignIn(storedEmail);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const completeSignIn = async (targetEmail) => {
-    try {
-      await signInWithEmailLink(auth, targetEmail, window.location.href);
-      window.localStorage.removeItem(EMAIL_STORAGE_KEY);
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setNeedsEmailConfirm(false);
+      await signInWithCustomToken(auth, data.token);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setVerifying(false);
     }
-  };
-
-  const handleSendLink = async () => {
-    setError("");
-    if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
-      setError(`${ALLOWED_DOMAIN} 계정으로만 로그인할 수 있습니다.`);
-      return;
-    }
-    try {
-      await sendSignInLinkToEmail(auth, email, getActionCodeSettings());
-      window.localStorage.setItem(EMAIL_STORAGE_KEY, email);
-      setLinkSent(true);
-    } catch (e) {
-      setError(e.message);
-    }
-  };
-
-  const handleConfirmEmail = () => {
-    setError("");
-    if (!email.endsWith(`@${ALLOWED_DOMAIN}`)) {
-      setError(`${ALLOWED_DOMAIN} 계정으로만 로그인할 수 있습니다.`);
-      return;
-    }
-    completeSignIn(email);
   };
 
   const handleSignOut = () => signOut(auth);
@@ -88,25 +53,7 @@ export default function Home() {
     }
     return (
       <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-        <p>{user.email}님 환영합니다. 대시보드로 이동 중...</p>
-      </main>
-    );
-  }
-
-  if (needsEmailConfirm) {
-    return (
-      <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-        <h1>Pipeline Dashboard</h1>
-        <p>로그인을 완료하려면 이메일 주소를 다시 확인해주세요.</p>
-        <input
-          type="email"
-          placeholder={`you@${ALLOWED_DOMAIN}`}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 8, width: 280, marginRight: 8 }}
-        />
-        <button onClick={handleConfirmEmail}>확인</button>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        <p>인증 완료. 대시보드로 이동 중...</p>
       </main>
     );
   }
@@ -114,21 +61,21 @@ export default function Home() {
   return (
     <main style={{ padding: 40, fontFamily: "sans-serif" }}>
       <h1>Pipeline Dashboard</h1>
-      {linkSent ? (
-        <p>{email}로 로그인 링크를 보냈습니다. 메일함을 확인해주세요.</p>
-      ) : (
-        <div>
-          <input
-            type="email"
-            placeholder={`you@${ALLOWED_DOMAIN}`}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{ padding: 8, width: 280, marginRight: 8 }}
-          />
-          <button onClick={handleSendLink}>로그인 링크 받기</button>
-          {error && <p style={{ color: "red" }}>{error}</p>}
-        </div>
-      )}
+      <p style={{ marginBottom: 16 }}>승인 코드를 입력하세요.</p>
+      <input
+        type="password"
+        placeholder="승인 코드"
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleVerify();
+        }}
+        style={{ padding: 8, width: 200, marginRight: 8 }}
+      />
+      <button onClick={handleVerify} disabled={verifying}>
+        {verifying ? "확인 중..." : "확인"}
+      </button>
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </main>
   );
 }
