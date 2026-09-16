@@ -49,7 +49,7 @@ export default function Home() {
 
   if (user) {
     if (typeof window !== "undefined") {
-      window.location.href = "/dashboard.html";
+      window.location.href = "/dashboard";
     }
     return (
       <main style={{ padding: 40, fontFamily: "sans-serif" }}>
