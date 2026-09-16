@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="ko" style="visibility:hidden">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테크핀 세일즈 대시보드</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: "AIzaSyCfndFZ4zAabAJMop00-LHAaWzo7bde7K8",
+    authDomain: "sales-dashboard-3cf7b.firebaseapp.com",
+    projectId: "sales-dashboard-3cf7b",
+    storageBucket: "sales-dashboard-3cf7b.firebasestorage.app",
+    messagingSenderId: "254434887831",
+    appId: "1:254434887831:web:169cc700bbdc06f84981d2"
+  };
+  firebase.initializeApp(firebaseConfig);
+  firebase.auth().onAuthStateChanged(function(user){
+    if(!user || !user.email || !user.email.endsWith("@techfinratings.com")){
+      window.location.href = "/";
+    } else {
+      document.documentElement.style.visibility = "visible";
+    }
+  });
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @font-face {
+    font-family: 'Pretendard';
+    src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
+    font-weight: 45 920;
+  }
+  :root{
+    --navy:#0D1F4E; --navy-deep:#071230; --gold:#C8A84B; --gold-soft:#EADFC0;
+    --bg:#F4F6F9; --card:#FFFFFF; --line:#E7EAF0; --ink:#1F2937; --gray:#6B7280; --gray-soft:#9AA5B5;
+    --green:#16A34A; --green-bg:#EEFBF3; --amber:#D97706; --amber-bg:#FFF8EC; --red:#DC2626; --red-bg:#FDEEEE;
+    --blue:#2563EB; --blue-bg:#EEF3FF; --purple:#7C3AED; --purple-bg:#F5F3FF;
+  }
+  *{ font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif; box-sizing:border-box; }
+  html,body{ background:var(--bg); color:var(--ink); margin:0; height:100%; }
+  ::-webkit-scrollbar{ width:8px; height:8px; }
+  ::-webkit-scrollbar-thumb{ background:#D7DCE5; border-radius:4px; }
+
+  .sidebar{ width:224px; background:linear-gradient(180deg,var(--navy-deep),var(--navy)); color:#fff; height:100vh; position:fixed; top:0; left:0; display:flex; flex-direction:column; padding:22px 16px; z-index:20; }
+  .nav-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; font-size:13.5px; font-weight:600; color:#C7D1E3; cursor:pointer; }
+  .nav-item.active{ background:rgba(255,255,255,0.12); color:#fff; }
+  .nav-item:hover{ color:#fff; }
+
+  .main{ margin-left:224px; padding:26px 32px 60px; transition:margin-right .25s ease; min-height:100vh; }
+  .main.panel-open{ margin-right:460px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  #kpiRow{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+  @media (min-width:768px){ #kpiRow{ grid-template-columns:repeat(5,1fr); } }
+  #catGrid{ display:grid; grid-template-columns:1fr; gap:16px; }
+  @media (min-width:768px){ #catGrid{ grid-template-columns:repeat(2,1fr); } }
+  @media (min-width:1280px){ #catGrid{ grid-template-columns:repeat(3,1fr); } }
+  #orgGrid{ display:grid; grid-template-columns:1fr; gap:14px; }
+  @media (min-width:768px){ #orgGrid{ grid-template-columns:repeat(2,1fr); } }
+  @media (min-width:1280px){ #orgGrid{ grid-template-columns:repeat(3,1fr); } }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; }
+  .kpi-card{ padding:16px 18px; display:flex; flex-direction:column; gap:10px; }
+  .kpi-top{ display:flex; align-items:center; gap:12px; }
+  .kpi-num{ font-size:26px; font-weight:800; line-height:1; }
+  .kpi-label{ font-size:11.5px; color:var(--gray); margin-top:4px; font-weight:600; }
+  .kpi-icon{ width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none; }
+  .kpi-foot{ font-size:11px; padding-top:9px; border-top:1px dashed var(--line); display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .kpi-delta{ font-weight:800; }
+  .kpi-hint{ color:var(--gray-soft); }
+
+  /* toolbar row (explicit, no Tailwind dependency) */
+  .toolbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .toolbar-search{ padding:8px 14px; font-size:12.5px; border:1px solid var(--line); border-radius:12px; width:240px; background:#fff; }
+  .live-pill{ padding:8px 12px; font-size:12px; color:var(--gray); display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:12px; background:#fff; white-space:nowrap; }
+  .page-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+
+  .example-chips{ display:flex; gap:6px; flex-wrap:wrap; margin-top:9px; }
+  .example-chip{ font-size:11px; color:var(--gray); background:#fff; border:1px solid var(--line); border-radius:20px; padding:4px 10px; cursor:pointer; }
+  .example-chip:hover{ border-color:var(--gold); color:var(--navy); }
+
+  .section-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:14px; }
+  .section-title{ font-size:14.5px; font-weight:800; color:var(--navy); }
+  .section-desc{ font-size:12px; color:var(--gray); margin-top:2px; }
+  .link-btn{ font-size:11.5px; color:var(--blue); cursor:pointer; font-weight:700; white-space:nowrap; }
+
+  .donut{ width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex:none; }
+  .donut-inner{ width:60px; height:60px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800; color:var(--navy); }
+  .legend-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+
+  .org-row{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; transition:.12s; }
+  .org-row:hover{ background:#F2F4F8; }
+  .org-badge{ width:28px;height:28px;border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:#fff; flex:none; }
+
+  .cat-card{ padding:20px 22px; }
+  .cat-icon-wrap{ width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px; }
+
+  .panel{ position:fixed; top:0; right:-460px; width:440px; height:100vh; background:var(--card); box-shadow:-8px 0 24px rgba(0,0,0,0.08); transition:right .25s ease; z-index:40; display:flex; flex-direction:column; border-left:1px solid var(--line); }
+  .panel.open{ right:0; }
+  .panel-scroll{ overflow-y:auto; flex:1; }
+
+  .st-pill{ font-size:10.5px; font-weight:700; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; }
+  .st-완료{ background:var(--green-bg); color:var(--green); }
+  .st-대기{ background:var(--amber-bg); color:var(--amber); }
+  .st-액션{ background:var(--blue-bg); color:var(--blue); }
+  .st-협의{ background:var(--purple-bg); color:var(--purple); }
+  .st-DROP{ background:#EEF0F3; color:var(--gray-soft); text-decoration:line-through; }
+
+  .dday{ font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+  .dday-over{ background:var(--red-bg); color:var(--red); }
+  .dday-soon{ background:var(--amber-bg); color:var(--amber); }
+  .dday-ok{ background:#EEF0F3; color:var(--gray); }
+  .dday-none{ color:var(--gray-soft); font-size:11px; }
+
+  .risk-낮음{ background:var(--green-bg); color:var(--green); }
+  .risk-중간{ background:var(--amber-bg); color:var(--amber); }
+  .risk-높음{ background:var(--red-bg); color:var(--red); }
+
+  .tab-btn{ font-size:12px; font-weight:700; padding:10px 4px; color:var(--gray); border-bottom:2px solid transparent; cursor:pointer; white-space:nowrap; }
+  .tab-btn.active{ color:var(--navy); border-color:var(--navy); }
+  .breadcrumb{ font-size:11.5px; color:var(--gray); }
+  .breadcrumb b{ color:var(--navy); font-weight:700; }
+
+  .act-card{ border-radius:12px; padding:12px 14px; margin-bottom:9px; border:1px solid var(--line); }
+  .act-card.prev{ background:#FAFBFC; }
+  .act-card.current{ background:var(--blue-bg); border-color:#BFDBFE; }
+  .act-card.next{ background:var(--amber-bg); border-color:#FDE9C4; }
+  .act-head{ display:flex; align-items:center; justify-content:between; gap:8px; margin-bottom:5px; }
+  .act-label{ font-size:11px; font-weight:800; display:flex; align-items:center; gap:5px; }
+  .act-date{ font-size:10.5px; color:var(--gray); margin-left:auto; }
+  .act-body{ font-size:12.5px; color:var(--ink); line-height:1.5; }
+
+  .kv-row{ display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px dashed var(--line); font-size:12.5px; }
+  .kv-row:last-child{ border-bottom:none; }
+  .kv-icon{ width:18px; text-align:center; }
+  .kv-label{ color:var(--gray); width:78px; flex:none; font-weight:600; }
+  .kv-val{ flex:1; color:var(--ink); }
+
+  .timeline-item{ display:flex; align-items:flex-start; gap:10px; padding:9px 0; }
+  .timeline-dot{ width:9px;height:9px;border-radius:50%; margin-top:4px; flex:none; }
+  .file-chip{ display:flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; padding:9px 12px; margin-bottom:8px; font-size:12px; }
+
+  .backdrop{ position:fixed; inset:0; background:rgba(7,18,48,0.25); z-index:30; opacity:0; pointer-events:none; transition:.2s; }
+  .backdrop.show{ opacity:1; pointer-events:auto; }
+
+  table.simple{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.simple th{ text-align:left; font-size:10.5px; color:var(--gray); text-transform:uppercase; letter-spacing:.03em; padding:10px 12px; border-bottom:2px solid var(--line); }
+  table.simple td{ padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.simple tr:hover td{ background:#FAFBFC; }
+
+  .bar-row{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .bar-label{ width:130px; font-size:12.5px; font-weight:700; flex:none; }
+  .bar-track{ flex:1; height:10px; background:#EEF0F3; border-radius:6px; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:6px; }
+  .bar-val{ width:36px; text-align:right; font-size:12px; font-weight:700; color:var(--gray); flex:none; }
+
+  .toggle{ width:40px; height:22px; border-radius:20px; background:var(--line); position:relative; cursor:pointer; flex:none; }
+  .toggle.on{ background:var(--navy); }
+  .toggle::after{ content:''; position:absolute; width:18px;height:18px;border-radius:50%;background:#fff; top:2px; left:2px; transition:.15s; }
+  .toggle.on::after{ left:20px; }
+
+  /* ---- Stage 1: quick input ---- */
+  .quick-input-wrap{ background:linear-gradient(135deg,#FFFDF7,#FFF9EC); border:1.5px solid var(--gold-soft); border-radius:14px; padding:14px 16px; margin-bottom:18px; }
+  .quick-input-row{ display:flex; gap:10px; align-items:center; }
+  .quick-input-row input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:13px; background:#fff; }
+  .quick-input-row input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .btn-ai{ background:var(--navy); color:#fff; font-weight:700; font-size:12.5px; padding:10px 16px; border-radius:10px; border:none; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+  .btn-ai:hover{ background:#132a63; }
+  .parse-preview{ margin-top:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .parse-field{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .parse-field label{ width:78px; flex:none; font-size:11px; font-weight:700; color:var(--gray); }
+  .parse-field input, .parse-field select{ flex:1; border:1px solid var(--line); border-radius:7px; padding:6px 9px; font-size:12.5px; }
+  .spin{ display:inline-block; width:13px;height:13px;border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+
+  /* ---- Stage 2: modal ---- */
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(7,18,48,0.55); display:flex; align-items:center; justify-content:center; z-index:60; padding:20px; }
+  .modal-box{ background:var(--card); border-radius:16px; width:100%; max-width:640px; max-height:88vh; overflow-y:auto; border:1px solid var(--line); }
+  .field-label{ font-size:11px; font-weight:700; color:var(--gray); margin-bottom:5px; display:block; }
+  .field-input{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; background:#fff; color:var(--ink); }
+  .field-input:focus{ outline:2px solid var(--gold); outline-offset:1px; }
+  .btn-primary{ background:var(--navy); color:#fff; font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer; border:none; }
+  .btn-ghost{ background:transparent; color:var(--gray); font-weight:700; font-size:13px; padding:9px 16px; border-radius:10px; cursor:pointer; border:1px solid var(--line); }
+
+  /* ---- Stage 3: kakao / bell ---- */
+  .kakao-toast{ position:fixed; bottom:24px; right:24px; width:340px; background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.15); z-index:80; overflow:hidden; transform:translateY(20px); opacity:0; transition:.25s; }
+  .kakao-toast.show{ transform:translateY(0); opacity:1; }
+  .kakao-head{ background:#FEE500; padding:9px 14px; display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:800; color:#3C1E1E; }
+  .kakao-body{ padding:14px; display:flex; gap:10px; }
+  .kakao-avatar{ width:34px;height:34px;border-radius:9px;background:#3C1E1E;color:#FEE500;display:flex;align-items:center;justify-content:center;font-size:15px;flex:none; }
+  .kakao-progress{ height:3px; background:#FEE500; width:100%; transform-origin:left; }
+
+  .bell-wrap{ position:relative; }
+  .bell-badge{ position:absolute; top:-4px; right:-4px; background:var(--red); color:#fff; font-size:9px; font-weight:800; border-radius:10px; padding:1px 5px; }
+  .bell-dropdown{ position:absolute; top:44px; right:0; width:300px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,0.1); z-index:70; display:none; }
+  .bell-dropdown.show{ display:block; }
+  .bell-item{ padding:10px 14px; border-bottom:1px solid var(--line); font-size:12px; }
+  .bell-item:last-child{ border-bottom:none; }
+
+  .toast-mini{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--navy); color:#fff; padding:10px 20px; border-radius:10px; font-size:12.5px; font-weight:600; z-index:90; opacity:0; transition:.25s; }
+  .toast-mini.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .conn-pill{ font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:20px; }
+  .conn-off{ background:#EEF0F3; color:var(--gray); }
+  .conn-on{ background:var(--green-bg); color:var(--green); }
+
+  /* internal task extras */
+  .prog-bar{ height:8px; background:#EEF0F3; border-radius:5px; overflow:hidden; flex:1; }
+  .prog-fill{ height:100%; background:var(--green); border-radius:5px; transition:width .25s; }
+  .chk-item{ display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .chk-item:last-child{ border-bottom:none; }
+  .chk-box{ width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line); flex:none; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff; margin-top:1px; }
+  .chk-box.done{ background:var(--green); border-color:var(--green); }
+  .chk-label{ font-size:12.5px; flex:1; }
+  .chk-label.done{ color:var(--gray-soft); text-decoration:line-through; }
+  .internal-pct{ font-size:10.5px; font-weight:800; color:var(--green); background:var(--green-bg); padding:2px 8px; border-radius:10px; }
+
+  /* org-match validation UI */
+  .match-status{ font-size:11.5px; font-weight:700; padding:8px 10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .match-new{ background:var(--blue-bg); color:var(--blue); }
+  .match-found{ background:var(--amber-bg); color:var(--amber); }
+  .match-row{ border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:6px; cursor:pointer; }
+  .match-row:hover{ border-color:var(--gold); }
+  .match-row.selected{ border-color:var(--navy); background:#F8FAFC; }
+  .match-row .mr-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:3px; }
+  .match-row .mr-title{ font-size:12px; font-weight:700; }
+  .match-row .mr-body{ font-size:11px; color:var(--gray); }
+  .match-newservice{ border:1.5px dashed var(--gold); border-radius:10px; padding:10px 12px; cursor:pointer; font-size:12px; font-weight:700; color:var(--navy); text-align:center; }
+  .match-newservice:hover{ background:#FFFBEB; }
+  .dup-warn{ background:var(--red-bg); border:1px solid #FCA5A5; border-radius:10px; padding:10px 12px; font-size:11.5px; color:#991B1B; margin-top:8px; }
+  .dup-warn b{ text-decoration:underline; cursor:pointer; }
+
+  .diff-row{ display:flex; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:12.5px; }
+  .diff-row:last-child{ border-bottom:none; }
+  .diff-label{ width:82px; flex:none; color:var(--gray); font-weight:700; font-size:11px; padding-top:2px; }
+  .diff-old{ flex:1; color:var(--gray-soft); text-decoration:line-through; font-size:12px; }
+  .diff-new{ flex:1; color:var(--ink); font-weight:600; font-size:12px; }
+  .diff-arrow{ color:var(--gold); flex:none; }
+
+  @media (max-width:1100px){
+    .main.panel-open{ margin-right:0; }
+    .panel{ width:100%; right:-100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div style="display:flex;align-items:center;gap:11px;padding:6px 8px 26px">
+    <div style="width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;padding:5px;flex:none">
+      <img src="data:image/png;base64,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" alt="테크핀레이팅스" style="width:100%;height:100%;object-fit:contain">
+    </div>
+    <div style="min-width:0">
+      <div style="font-weight:800;font-size:14px;letter-spacing:-0.01em">테크핀레이팅스</div>
+      <div style="font-size:10px;color:#93A2C0;white-space:nowrap">Sales Dashboard · v0.4</div>
+    </div>
+  </div>
+  <div class="nav-item active" data-view="dashboard">📊 대시보드</div>
+  <div class="nav-item" data-view="pipeline">🔀 파이프라인</div>
+  <div class="nav-item" data-view="orgs">🏢 기관현황</div>
+  <div class="nav-item" data-view="report">📈 리포트</div>
+  <div class="nav-item" data-view="settings">⚙️ 설정</div>
+  <div style="margin-top:auto;padding:16px 10px;border-top:1px solid rgba(255,255,255,0.1);font-size:11px;color:#8493B5">
+    더 많은 비즈니스 기회를<br>만들어갑니다.<br><br>
+    <span style="color:#5C6E94">TechFin Ratings — From Insight to Opportunity</span>
+  </div>
+</div>
+
+<div class="main" id="main">
+
+  <!-- ============ VIEW: DASHBOARD ============ -->
+  <div class="view active" id="view-dashboard">
+    <div class="page-head">
+      <div>
+        <h1 style="font-size:22px;font-weight:800;color:var(--navy)">금융기관 세일즈 대시보드</h1>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:3px">주요 파트너와의 협업 현황을 한눈에 확인하고, 다음 액션을 놓치지 마세요. <span style="color:var(--gray-soft)">· 기준일 2026.09.16(수)</span></div>
+      </div>
+      <div class="toolbar">
+        <input class="toolbar-search" placeholder="🔍 기관명·담당자·키워드로 검색">
+        <div class="live-pill"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span> 실시간 업데이트</div>
+        <div class="bell-wrap">
+          <div class="card" id="bellBtn" style="width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;border-radius:12px">🔔<span class="bell-badge" id="bellBadge" style="display:none">0</span></div>
+          <div class="bell-dropdown" id="bellDropdown">
+            <div style="padding:12px 14px;border-bottom:1px solid var(--line);font-size:12px;font-weight:800;color:var(--navy)">예정된 리마인드 <span style="font-weight:400;color:var(--gray)">· 3일 이내</span></div>
+            <div id="bellList"></div>
+          </div>
+        </div>
+        <button class="btn-ai" id="btnAddFull">＋ 새 항목 추가</button>
+      </div>
+    </div>
+
+    <!-- Stage 1: 빠른 입력 -->
+    <div class="quick-input-wrap">
+      <div style="font-size:11.5px;font-weight:800;color:var(--gold);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">⚡ 빠른 입력 <span style="font-weight:400;color:var(--gray)">— 미팅·통화 직후 문장으로 그냥 적으세요. 기관명·다음 액션·날짜를 AI가 알아서 채웁니다</span></div>
+      <div class="quick-input-row">
+        <input id="quickInput" placeholder="예: 서울보증보험 - 계약서 초안 컨펌 완료, 다음주 화요일까지 날인본 회신 받기로 함">
+        <button class="btn-ai" id="btnQuickParse"><span id="quickBtnLabel">🤖 AI로 등록</span></button>
+      </div>
+      <div class="example-chips">
+        <span style="font-size:11px;color:var(--gray-soft);align-self:center">예시 눌러보기 →</span>
+        <span class="example-chip" data-example="KB카드 - 견적서 전달 완료, 내일 오후 실무진 미팅 예정">KB카드 견적 전달</span>
+        <span class="example-chip" data-example="카카오뱅크 - 분석데이터 1차 전달함, 이번주 금요일 피드백 회신 예정">카카오뱅크 데이터 전달</span>
+        <span class="example-chip" data-example="NICE - 상위계약 서명 완료 ▶ 9월 25일 개별계약 킥오프">NICE 계약 서명</span>
+        <span class="example-chip" data-example="우리은행 - 초기 소개 미팅 진행, 다음주 목요일 데이터 샘플 요청 받기로 함">신규 기관 (우리은행)</span>
+      </div>
+      <div id="quickPreview" style="display:none"></div>
+    </div>
+    <div id="kpiRow" class="mb-7" style="margin-bottom:26px"></div>
+    <div class="section-head">
+      <div>
+        <div class="section-title">산업군별 주요 기관</div>
+        <div class="section-desc">도넛은 진행·마감임박·지연 비율 — 기관을 클릭하면 상세 패널이 열립니다.</div>
+      </div>
+      <span class="link-btn" data-goto-view="orgs">전체 기관 보기 ›</span>
+    </div>
+    <div id="catGrid"></div>
+    <div style="margin-top:28px">
+      <div class="section-head">
+        <div>
+          <div class="section-title">🛠 내부 과제</div>
+          <div class="section-desc">외부 기관과 무관한 세일즈추진팀 자체 과제</div>
+        </div>
+      </div>
+      <div class="card" style="padding:6px" id="internalList"></div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: PIPELINE ============ -->
+  <div class="view" id="view-pipeline">
+    <div class="page-head">
+      <div>
+        <h1 style="font-size:22px;font-weight:800;color:var(--navy)">파이프라인</h1>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:3px">전체 딜을 한 줄씩 — 행을 클릭하면 해당 기관의 상세 패널이 열립니다. 채널 칩으로 KCB·NICE·직영업(TCF)을 나눠 볼 수 있어요.</div>
+      </div>
+      <button class="btn-ai" data-open-add>＋ 새 항목 추가</button>
+    </div>
+    <div class="flex flex-wrap gap-2 mb-4" id="pipelineFilters"></div>
+    <div class="card" style="overflow:auto">
+      <table class="simple">
+        <thead><tr><th>채널</th><th>기관</th><th>담당부서</th><th>서비스</th><th>상태</th><th>다음 액션</th><th>D-day</th></tr></thead>
+        <tbody id="pipelineBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: ORGS ============ -->
+  <div class="view" id="view-orgs">
+    <div class="page-head">
+      <div>
+        <h1 style="font-size:22px;font-weight:800;color:var(--navy)">기관현황</h1>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:3px">기관 단위로 담당자·최근미팅일·현재 상태를 카드로 — 카드를 클릭하면 상세 패널이 열립니다.</div>
+      </div>
+      <button class="btn-ai" data-open-add>＋ 새 항목 추가</button>
+    </div>
+    <div id="orgGrid"></div>
+  </div>
+
+  <!-- ============ VIEW: REPORT ============ -->
+  <div class="view" id="view-report">
+    <div class="page-head">
+      <div>
+        <h1 style="font-size:22px;font-weight:800;color:var(--navy)">리포트</h1>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:3px">산업군별·상태별 분포 — 지금은 샘플 통계이며 실데이터 연동 시 자동 갱신됩니다.</div>
+      </div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-5">
+      <div class="card" style="padding:22px">
+        <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:16px">산업군별 진행 건수</div>
+        <div id="reportByCategory"></div>
+      </div>
+      <div class="card" style="padding:22px">
+        <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:16px">상태별 분포</div>
+        <div id="reportByStatus"></div>
+      </div>
+    </div>
+    <div class="card mt-5" style="padding:22px">
+      <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:6px">💡 샘플 인사이트</div>
+      <div style="font-size:12.5px;color:var(--gray);line-height:1.8">
+        · 은행 채널의 진행중 비율이 가장 높음 — 다음 분기 리소스 우선 배정 후보<br>
+        · 카드사 채널은 액션 대기 건 비중이 높아 후속 커뮤니케이션 주기 단축 필요<br>
+        · DROP 사유 2건 모두 "일정 불일치" — 초기 일정 협의 프로세스 점검 권장
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: SETTINGS ============ -->
+  <div class="view" id="view-settings">
+    <div class="page-head">
+      <div>
+        <h1 style="font-size:22px;font-weight:800;color:var(--navy)">설정</h1>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:3px">알림·연동·표시 옵션 — 샘플 화면이며 실제 저장은 동작하지 않습니다.</div>
+      </div>
+    </div>
+    <div class="card" style="padding:22px;max-width:520px;margin-bottom:16px">
+      <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:14px">🔗 자동화 연동 <span style="font-size:10.5px;font-weight:700;color:var(--gold);background:#FFF8EC;padding:2px 8px;border-radius:10px;margin-left:4px">Stage 3</span></div>
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div style="width:26px;height:26px;border-radius:7px;background:#FEE500;display:flex;align-items:center;justify-content:center;font-size:13px">💬</div>
+          <div style="font-size:12.5px;font-weight:700">카카오워크</div>
+        </div>
+        <span class="conn-pill conn-off" id="kakaoStatusPill">미연동</span>
+      </div>
+      <div style="font-size:11.5px;color:var(--gray);margin-bottom:12px" id="kakaoDesc">연동하면 마감 2~3일 전 담당자에게 자동으로 리마인드 메시지를 보냅니다.</div>
+      <div class="flex gap-8" style="gap:8px">
+        <button class="btn-primary" id="btnKakaoConnect" style="font-size:12px;padding:8px 14px">연동하기</button>
+        <button class="btn-ghost" id="btnKakaoTest" style="font-size:12px;padding:8px 14px;display:none">🔔 테스트 알림 보내기</button>
+      </div>
+    </div>
+    <div class="card" style="padding:22px;max-width:520px;margin-bottom:16px">
+      <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:14px">알림</div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="font-size:12.5px">마감 임박 리마인드 (2~3일 전)</div>
+        <div class="toggle on" data-toggle></div>
+      </div>
+      <div class="flex items-center justify-between mb-4">
+        <div style="font-size:12.5px">지연 건 매일 알림</div>
+        <div class="toggle on" data-toggle></div>
+      </div>
+      <div class="flex items-center justify-between">
+        <div style="font-size:12.5px">주간 다이제스트 (매주 월요일)</div>
+        <div class="toggle" data-toggle></div>
+      </div>
+    </div>
+    <div class="card" style="padding:22px;max-width:520px;margin-bottom:16px">
+      <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:14px">표시 옵션</div>
+      <label style="font-size:11px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px">기본 정렬 기준</label>
+      <select class="card" style="width:100%;padding:8px 10px;font-size:12.5px;border:1px solid var(--line);margin-bottom:14px">
+        <option>다음 액션일 임박순</option><option>최근 업데이트순</option><option>기관명순</option>
+      </select>
+      <label style="font-size:11px;font-weight:700;color:var(--gray);display:block;margin-bottom:6px">기준일(오늘)</label>
+      <input type="date" class="card" style="padding:8px 10px;font-size:12.5px;border:1px solid var(--line)" value="2026-09-16">
+    </div>
+    <div class="card" style="padding:22px;max-width:520px">
+      <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-bottom:14px">계정</div>
+      <div class="kv-row"><div class="kv-label">이름</div><div class="kv-val">김영업 (세일즈추진팀)</div></div>
+      <div class="kv-row"><div class="kv-label">이메일</div><div class="kv-val">sales@techfinratings.com</div></div>
+      <div class="kv-row"><div class="kv-label">권한</div><div class="kv-val">전체 편집 가능</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<!-- Detail panel -->
+<div class="panel" id="panel">
+  <div style="padding:18px 22px;border-bottom:1px solid var(--line)">
+    <div class="flex items-center justify-between mb-2">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <div style="cursor:pointer;color:var(--gray);font-size:16px" id="btnClosePanel">✕</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="panelBadge" class="org-badge" style="width:40px;height:40px;font-size:14px;border-radius:11px"></div>
+      <div style="flex:1">
+        <div id="panelTitle" style="font-size:17px;font-weight:800;color:var(--navy)"></div>
+        <div id="panelSub" style="font-size:11.5px;color:var(--gray);margin-top:2px"></div>
+      </div>
+      <div id="panelDday" class="dday"></div>
+    </div>
+  </div>
+
+  <div class="panel-scroll">
+    <div style="padding:16px 22px 4px">
+      <div id="actionCards"></div>
+    </div>
+
+    <div style="padding:0 22px;border-bottom:1px solid var(--line);display:flex;gap:16px;margin-top:6px">
+      <div class="tab-btn active" data-tab="info"><span id="tabLabel-info">상세정보</span></div>
+      <div class="tab-btn" data-tab="history"><span id="tabLabel-history">액션 히스토리</span></div>
+      <div class="tab-btn" data-tab="files"><span id="tabLabel-files">관련 파일</span></div>
+      <div class="tab-btn" data-tab="related"><span id="tabLabel-related">연관 기관</span></div>
+    </div>
+
+    <div style="padding:16px 22px 30px">
+      <div id="tab-info"></div>
+      <div id="tab-history" style="display:none"></div>
+      <div id="tab-files" style="display:none"></div>
+      <div id="tab-related" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 2: Add/Edit modal -->
+<div class="modal-backdrop" id="modalBackdrop" style="display:none">
+  <div class="modal-box">
+    <div style="padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div id="modalTitle" style="font-size:15.5px;font-weight:800;color:var(--navy)">새 항목 추가</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px" id="modalHint">금액·계약일처럼 정확해야 하는 값은 여기서 입력하세요. 간단한 진행 메모는 상단 ⚡빠른 입력이 더 빠릅니다.</div>
+      </div>
+      <div style="cursor:pointer;color:var(--gray)" id="btnCloseModal">✕</div>
+    </div>
+
+    <div id="modalFieldGrid" style="padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><label class="field-label">채널</label>
+        <select id="f_ch" class="field-input"><option>KCB</option><option>NICE</option><option>TCF</option></select>
+      </div>
+      <div><label class="field-label">기관명</label><input id="f_org" class="field-input" placeholder="예: 신한카드" autocomplete="off"></div>
+      <div style="grid-column:1/-1;margin-top:-4px" id="orgMatchBox"></div>
+      <div><label class="field-label">담당부서</label><input id="f_dept" class="field-input"></div>
+      <div><label class="field-label">상태</label>
+        <select id="f_status" class="field-input">
+          <option>계약완료</option><option>진행(대기)</option><option>진행(액션)</option><option>협의(액션)</option><option>DROP</option>
+        </select>
+      </div>
+      <div style="grid-column:1/-1"><label class="field-label">서비스</label><input id="f_svc" class="field-input"></div>
+      <div style="grid-column:1/-1"><label class="field-label">최근 진행내용</label><textarea id="f_progress" class="field-input" rows="2"></textarea></div>
+      <div style="grid-column:1/-1"><label class="field-label">다음 액션</label><textarea id="f_next" class="field-input" rows="2"></textarea></div>
+      <div><label class="field-label">다음 액션일</label><input id="f_due" type="date" class="field-input"></div>
+      <div><label class="field-label">담당자(샘플)</label><input id="f_manager" class="field-input" placeholder="예: 김영업 대리"></div>
+    </div>
+
+    <div id="modalConfirmBox" style="padding:22px;display:none"></div>
+
+    <div style="padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn-ghost" id="btnModalCancel">취소</button>
+      <button class="btn-primary" id="btnModalSave">확인하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stage 3: kakao-style toast -->
+<div class="kakao-toast" id="kakaoToast">
+  <div class="kakao-head">💬 카카오워크 &nbsp;·&nbsp; 테크핀레이팅스</div>
+  <div class="kakao-body">
+    <div class="kakao-avatar">T</div>
+    <div style="flex:1">
+      <div style="font-size:12px;font-weight:800;margin-bottom:3px">테크핀 세일즈봇</div>
+      <div style="font-size:12.5px;color:var(--ink);line-height:1.5" id="kakaoMsg"></div>
+      <div style="font-size:10px;color:var(--gray-soft);margin-top:5px">방금 전</div>
+    </div>
+  </div>
+  <div class="kakao-progress" id="kakaoProgress"></div>
+</div>
+<div class="toast-mini" id="toastMini"></div>
+
+<script>
+(function(){
+  const SEED = [
+    {cat:"영업관리",ch:"TCF",org:"메인비즈협회",dept:"회원지원팀",svc:"[플랫폼] 기업MS, [보고서] 공공평가, [보고서] AI경영진단보고서",status:"계약완료",progress:"MOU 진행완료",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"신한캐피탈",dept:"리스크기획",svc:"[플랫폼] 기업DB, [플랫폼] 기업MS",status:"계약완료(청구)",progress:"계약완료 ▶ 매월 청구",next:"10월 청구",due:""},
+    {cat:"영업관리",ch:"TCF",org:"중소벤처기업진흥공단",dept:"창업지원처",svc:"[플랫폼] 기업DB",status:"계약완료(청구)",progress:"계약완료 ▶ 12월 청구",next:"12월 청구",due:""},
+    {cat:"사업제휴",ch:"KCB",org:"롯데카드",dept:"KCB 기업사업부",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)KCB협의중 ▶ 데이터 도입 의견 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"KCB",org:"신한카드",dept:"KCB 기업사업부",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)KCB협의중 ▶ 데이터 도입 의견 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"KCB",org:"하나카드",dept:"KCB 기업사업부",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)KCB협의중 ▶ 데이터 도입 의견 필요",next:"",due:""},
+    {cat:"신규사업",ch:"KCB",org:"KCB",dept:"세일즈추진팀",svc:"(상위)제휴계약",status:"진행(대기)",progress:"(회신대기)계약서 검토본 전달 ▶ 계약서 컨펌 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"KCB",org:"KCB",dept:"KCB 기업사업부",svc:"[RAW] 분기 매출·매입",status:"진행(대기)",progress:"(회신대기)기업정보 서비스 계약서 전달 ▶ 계약서 컨펌 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"카카오뱅크",dept:"NICE 정보사업실",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)NICE 협의중 ▶ 분석데이터 전달 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"토스뱅크",dept:"NICE 정보사업실",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)NICE 데이터 분석중 ▶ 데이터 도입 의견 필요",next:"",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"하나은행",dept:"NICE 정보사업실",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(대기)",progress:"(회신대기)NICE 데이터 분석중 ▶ 데이터 도입 의견 필요",next:"",due:""},
+    {cat:"신규사업",ch:"NICE",org:"NICE",dept:"세일즈추진팀",svc:"(신규)GNN 모형",status:"진행(대기)",progress:"(회신대기)GNN 스코어를 단독 상품으로 제안하는 부분과 병행 검토 ▶ BM 컨펌 필요",next:"NICE 검토결과 회신 후 진행",due:""},
+    {cat:"영업관리",ch:"TCF",org:"더존",dept:"채권추심팀",svc:"[플랫폼] 기업DB, [플랫폼] 기업MS",status:"진행(대기)",progress:"(회신대기)더존 협의중 ▶ 계약확정 필요",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"리딩에이스캐피탈",dept:"종합금융팀",svc:"[플랫폼] 기업DB, [플랫폼] 기업MS",status:"진행(대기)",progress:"(회신대기)데이터 소개 및 테스트 진행 ▶ 계약 컨펌 필요",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"서울보증보험",dept:"보상지원부",svc:"[플랫폼] SGI-MVP, [플랫폼] 기업DB",status:"진행(대기)",progress:"(회신대기)사장님 보고 진행중(금액) ▶ 계약서 작성 및 계약 컨펌 필요",next:"9월 17일 오후 3시 미팅(당사)",due:"2026-09-17"},
+    {cat:"영업관리",ch:"TCF",org:"서울보증보험",dept:"매출채권보험부",svc:"[플랫폼] SGI-MVP, [플랫폼] 기업DB",status:"진행(대기)",progress:"(회신대기)보상지원부 통합계약 및 내년도 사업계획(예산편성) 추진예정",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"신한은행",dept:"퇴직연금본부",svc:"[RAW] 퇴직연금",status:"진행(대기)",progress:"(회신대기)기업정보 서비스 계약서 전달 ▶ 계약서 컨펌 필요",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"신한투자증권",dept:"IB종금",svc:"[플랫폼] 기업DB, [플랫폼] 기업MS",status:"진행(대기)",progress:"(회신대기)기업정보 서비스 견적서 전달 ▶ 계약서 전달 필요",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"제주은행",dept:"AX사업부",svc:"[RAW] AI-CFO",status:"진행(대기)",progress:"(회신대기)기업정보 서비스 계약서 전달 ▶ 계약서 컨펌 필요",next:"",due:""},
+    {cat:"영업기획",ch:"내부",org:"-",dept:"세일즈추진팀",svc:"(내부)서비스 PRICING 재설계",status:"진행(액션)",progress:"CPS 형태 PRICING 완료",next:"그 외 PRICING 정리",due:""},
+    {cat:"운영지원",ch:"내부",org:"-",dept:"세일즈추진팀",svc:"(내부)플랫폼 고도화",status:"진행(액션)",progress:"영업현장 이슈취합 정리 시트 작성",next:"이슈취합 정리",due:""},
+    {cat:"영업기획",ch:"내부",org:"-",dept:"세일즈추진팀",svc:"(내부)계약관리 프로세스 정립",status:"진행(액션)",progress:"계약관리 폴더 작성",next:"계약관리 프로세스 정리",due:""},
+    {cat:"사업제휴",ch:"KCB",org:"KB카드",dept:"KCB 기업사업부",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(액션)",progress:"망연동 완료 | 전문설계서 초안 수신",next:"계약서 준비, KB카드 미팅(견적)",due:""},
+    {cat:"신규사업",ch:"KCB",org:"KCB",dept:"세일즈추진팀",svc:"(신규)GNN 모형 > 스코어 결합(기업연결망)",status:"진행(액션)",progress:"통합 기업연결망 스코어(KCB 인적관계망+테크핀 GNN 거래관계망 스코어 결합, 9~10월 PoC·내년 마케팅)",next:"내부 검토 후 진행",due:""},
+    {cat:"신규사업",ch:"KCB",org:"KCB",dept:"세일즈추진팀",svc:"(신규)사기거래탐지 > 시스템 결합",status:"진행(액션)",progress:"사기거래탐지 시스템(SGI 기반 테크핀 체크리스트·상호대사+KCB 연결망 데이터 결합 범용 서비스화)",next:"내부 검토 후 진행",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"케이뱅크",dept:"NICE 정보사업실",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"진행(액션)",progress:"2차 분석데이터 준비",next:"2차 분석데이터 전달",due:""},
+    {cat:"신규사업",ch:"NICE",org:"NICE",dept:"세일즈추진팀",svc:"(신규)D-PAY 인덱스 > 스코어 결합",status:"진행(액션)",progress:"신한은행 기 산출 대상(법인) 기준으로 1차 검증 후 확대",next:"신한은행 기 산출 법인사업자 대상 데이터 추출",due:""},
+    {cat:"신규사업",ch:"NICE",org:"NICE",dept:"세일즈추진팀",svc:"(신규)신설법인 모형 > 신규 비즈니스 개발",status:"진행(액션)",progress:"카드사의 신설법인 대상 한도부여 전략에서 테크핀이 경쟁력 보유 가능(고위드 모델)",next:"더존ERP·WEHAGO 이용고객 중 신설법인 비중 확인",due:""},
+    {cat:"신규사업",ch:"NICE",org:"NICE",dept:"세일즈추진팀",svc:"(상위)제휴계약",status:"진행(액션)",progress:"법무검토 후, 계약서 클린본 전달",next:"계약진행",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"NICE",dept:"NICE 정보사업실",svc:"[RAW] 재무자료전송",status:"진행(액션)",progress:"NICE: 개발일정 내년도 4월로 진행요청함",next:"개발일정 재협의(올해) 및 전송데이터 재협의 필요, 계약서 작성",due:""},
+    {cat:"영업관리",ch:"TCF",org:"신한은행",dept:"모형공학부",svc:"[CPS] 테크핀 CPS",status:"진행(액션)",progress:"CPS 데이터 검증 진행중 ▶ 9월 청구진행",next:"청구 공문 작성 후 청구진행",due:""},
+    {cat:"영업관리",ch:"TCF",org:"신한은행-금융지주",dept:"모형공학부",svc:"[CPS] 테크핀 CPS",status:"진행(액션)",progress:"분석데이터 전달 완료",next:"외장하드 수신 및 수령확인서 작성",due:"2026-09-16"},
+    {cat:"영업관리",ch:"TCF",org:"신한카드",dept:"신용리스크관리부",svc:"[RAW] 부가세(FULL)",status:"진행(액션)",progress:"(회신대기) 계약 재점검 ▶ 계약 컨펌 필요",next:"9월 16일 오전 10시 미팅(고객사)",due:"2026-09-16"},
+    {cat:"영업관리",ch:"TCF",org:"농협은행",dept:"신용리스크관리부",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"협의(액션)",progress:"데이터 소개 완료 ▶ 니즈확인 필요",next:"후속 테스트 및 니즈확인 필요",due:""},
+    {cat:"영업관리",ch:"TCF",org:"전문건설공제조합",dept:"신용관리",svc:"[플랫폼] 기업MS, [CPS] 테크핀 CPS",status:"협의(액션)",progress:"데이터 소개 완료 ▶ 진행확인 필요",next:"테스트 및 계약진행 협의 필요",due:""},
+    {cat:"영업관리",ch:"TCF",org:"전자신문사",dept:"마케팅",svc:"[플랫폼] 기업DB, [플랫폼] 기업MS",status:"협의(액션)",progress:"데이터 소개 및 테스트 완료 ▶ 니즈확인 필요",next:"계약진행 니즈확인 필요",due:""},
+    {cat:"영업관리",ch:"TCF",org:"SGI신용정보",dept:"신용관리",svc:"[플랫폼] 기업DB",status:"협의(액션)",progress:"데이터 소개 및 테스트 완료 ▶ 니즈확인 필요",next:"계약진행 니즈확인 필요",due:""},
+    {cat:"사업제휴",ch:"NICE",org:"NH카드",dept:"NICE 정보사업실",svc:"[CPS] 테크핀 CPS, [RAW] 월재무제표",status:"DROP",progress:"NICE 데이터 분석하였으나, 일정상 드랍",next:"",due:""},
+    {cat:"영업관리",ch:"TCF",org:"서울보증보험",dept:"신용평가부",svc:"[CPS] 테크핀 CPS",status:"DROP",progress:"단변량 분석(통과) | 모형적용(DROP)",next:"CPS 고도화(PD타겟)",due:""}
+  ];
+
+  const CATEGORY_DEF = [
+    {key:"card", label:"카드사", icon:"💳", color:"#2563EB", bg:"#EEF3FF", orgs:["롯데카드","신한카드","하나카드","KB카드","NH카드"]},
+    {key:"bank", label:"은행", icon:"🏦", color:"#0F766E", bg:"#ECFBF8", orgs:["카카오뱅크","토스뱅크","하나은행","케이뱅크","신한은행","신한은행-금융지주","농협은행","제주은행"]},
+    {key:"cb", label:"신용평가사 협업", icon:"🔗", color:"#7C3AED", bg:"#F5F3FF", orgs:["KCB","NICE"]},
+    {key:"ins", label:"보험·보증", icon:"🛡️", color:"#DB2777", bg:"#FDF2F8", orgs:["서울보증보험"]},
+    {key:"assoc", label:"협회·공제조합", icon:"🤝", color:"#D97706", bg:"#FFFBEB", orgs:["메인비즈협회","중소벤처기업진흥공단","전문건설공제조합","SGI신용정보"]},
+    {key:"other", label:"기타 파트너", icon:"🏢", color:"#475569", bg:"#F1F5F9", orgs:["더존","리딩에이스캐피탈","신한투자증권","전자신문사","신한캐피탈"]},
+  ];
+  function findCategory(org){ return CATEGORY_DEF.find(c => c.orgs.includes(org)) || CATEGORY_DEF[CATEGORY_DEF.length-1]; }
+
+  // mutable state: give each row an id
+  SEED.forEach((r,i)=> r.id = "r"+i);
+  let nextRowId = SEED.length;
+  let bizRows = [];
+  let internalRows = [];
+  const refDate = "2026-09-16";
+  const activityLog = {}; // org -> [{date,label,by}] most-recent-first, populated by quick-input/modal saves
+  const managerOverride = {}; // org -> manager name, set via modal
+
+  function isActive(status){ return status !== "DROP" && status.indexOf("완료")===-1; }
+  function ddayInfo(due){
+    if(!due) return {label:"—", cls:"dday-none", diff:null};
+    const diff = Math.round((new Date(due+"T00:00:00") - new Date(refDate+"T00:00:00"))/86400000);
+    if(diff < 0) return {label:`D+${Math.abs(diff)} 지연`, cls:"dday-over", diff};
+    if(diff === 0) return {label:"D-DAY", cls:"dday-over", diff};
+    if(diff <= 3) return {label:`D-${diff}`, cls:"dday-soon", diff};
+    return {label:`D-${diff}`, cls:"dday-ok", diff};
+  }
+  function statusClass(status){
+    if(status.indexOf("완료")===0) return "st-완료";
+    if(status==="진행(대기)") return "st-대기";
+    if(status==="진행(액션)") return "st-액션";
+    if(status==="협의(액션)") return "st-협의";
+    if(status==="DROP") return "st-DROP";
+    return "st-대기";
+  }
+  function initials(org){ return org.slice(0,2); }
+
+  let orgMap = {};
+  let orgs = [];
+  function rebuildIndex(){
+    bizRows = SEED.filter(r => r.ch !== "내부");
+    internalRows = SEED.filter(r => r.ch === "내부");
+    orgMap = {};
+    bizRows.forEach(r=>{
+      if(!orgMap[r.org]) orgMap[r.org] = {org:r.org, category:findCategory(r.org), rows:[]};
+      orgMap[r.org].rows.push(r);
+    });
+    orgs = Object.values(orgMap);
+  }
+  rebuildIndex();
+
+  // ---------- deterministic sample-data generator ----------
+  function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))|0; } return Math.abs(h); }
+  const MANAGERS = ["김영업 대리","이수민 매니저","박현우 과장","최지은 팀장","정다인 매니저","한소희 대리"];
+  const RISKS = ["낮음","중간","높음"];
+  const MEMO_TPL = [
+    "실무진 반응 우호적, 내부 검토 순조로움.",
+    "예산 편성 시즌과 맞물려 의사결정에 다소 시간 소요 예상.",
+    "데이터 커버리지 관련 추가 확인 요청 있었음.",
+    "CPS 모델에 대한 관심 높음. 익분기 PoC 논의 가능성 있음.",
+    "담당자 교체 이슈로 재소개 필요할 수 있음.",
+    "경쟁사(타 CB사) 대비 강점 위주로 재어필 필요."
+  ];
+  const FILE_TPL = [
+    {icon:"📄", name:"기업정보 서비스 계약서(초안).docx"},
+    {icon:"📊", name:"데이터 커버리지 분석 결과.xlsx"},
+    {icon:"📝", name:"실무 미팅 회의록.docx"},
+    {icon:"💰", name:"견적서 v1.pdf"},
+    {icon:"📑", name:"NDA 검토의견.docx"}
+  ];
+  const PAST_TPL = ["NDA 검토 완료 / 분석 요청사항 정리","1차 데이터 샘플 전달 및 피드백 수령","킥오프 미팅 진행 / 담당자 소개","초기 니즈 파악 콜 진행"];
+
+  function genSample(org){
+    const h = hashStr(org);
+    const manager = managerOverride[org] || MANAGERS[h % MANAGERS.length];
+    const risk = RISKS[h % 3 === 2 ? 2 : (h % 5 === 0 ? 2 : (h % 3))]; // 대체로 낮음/중간, 가끔 높음
+    const memo = MEMO_TPL[h % MEMO_TPL.length];
+    const revenue = (500 + (h % 20) * 250).toLocaleString() + "만원";
+    // fake dates relative to refDate
+    function shiftDate(days){
+      const d = new Date(refDate+"T00:00:00");
+      d.setDate(d.getDate()+days);
+      return d.toISOString().slice(0,10).replace(/-/g,".");
+    }
+    const lastMeeting = shiftDate(-(3 + (h % 10)));
+    const pastDate = shiftDate(-(14 + (h % 10)));
+    const pastLabel = PAST_TPL[h % PAST_TPL.length];
+    const files = [FILE_TPL[h % FILE_TPL.length], FILE_TPL[(h+1) % FILE_TPL.length]];
+    const history = [
+      {date: shiftDate(-(30 + (h%10))), label:"제안서 전달 및 1차 소개 미팅", by: MANAGERS[(h+2)%MANAGERS.length]},
+      {date: shiftDate(-(14 + (h%10))), label: pastLabel, by: manager},
+      {date: shiftDate(-(3 + (h%6))), label:"실무진 미팅 진행 (상품 구조 논의)", by: manager},
+    ];
+    const liveLog = activityLog[org] || [];
+    const fullHistory = liveLog.concat(history);
+    return {manager, risk, memo, revenue, lastMeeting, pastDate, pastLabel, files, history: fullHistory};
+  }
+
+  // ============ RENDER: DASHBOARD ============
+  function renderKpis(){
+    const totalOrgs = orgs.length;
+    const activeCount = bizRows.filter(r=>isActive(r.status)).length;
+    let soon=0, overdue=0, meetings=0;
+    bizRows.forEach(r=>{
+      if(r.due && isActive(r.status)){
+        const d = ddayInfo(r.due);
+        if(d.diff<0) overdue++; else if(d.diff<=3) soon++;
+      }
+      if(r.next && /\d+월\s*\d+일/.test(r.next)) meetings++;
+    });
+    const cards = [
+      {label:"전체 기관", val:totalOrgs, icon:"🏢", color:"#2563EB", bg:"#EEF3FF", delta:"▲ +3", deltaColor:"#16A34A", hint:"전월 대비 · 협업 진행 기관"},
+      {label:"진행중", val:activeCount, icon:"▶", color:"#16A34A", bg:"#EEFBF3", delta:"▲ +4", deltaColor:"#16A34A", hint:"전월 대비 · 완료·DROP 제외"},
+      {label:"마감임박", val:soon, icon:"⏰", color:"#D97706", bg:"#FFF8EC", delta: soon>0 ? "3일 이내" : "없음", deltaColor: soon>0 ? "#D97706" : "#16A34A", hint:"오늘 기준 액션 필요"},
+      {label:"지연", val:overdue, icon:"❗", color:"#DC2626", bg:"#FDEEEE", delta: overdue>0 ? "즉시 확인" : "지연 없음 👍", deltaColor: overdue>0 ? "#DC2626" : "#16A34A", hint:"기한 경과 미처리 건"},
+      {label:"이번주 미팅", val:meetings, icon:"📅", color:"#7C3AED", bg:"#F5F3FF", delta:"▲ +1", deltaColor:"#16A34A", hint:"전주 대비 · 외부 일정"},
+    ];
+    document.getElementById("kpiRow").innerHTML = cards.map(c=>`
+      <div class="card kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-icon" style="background:${c.bg};color:${c.color}">${c.icon}</div>
+          <div>
+            <div class="kpi-num" style="color:var(--navy)">${c.val}</div>
+            <div class="kpi-label">${c.label}</div>
+          </div>
+        </div>
+        <div class="kpi-foot">
+          <span class="kpi-delta" style="color:${c.deltaColor}">${c.delta}</span>
+          <span class="kpi-hint">${c.hint}</span>
+        </div>
+      </div>`).join("");
+  }
+
+  function donutStyle(counts){
+    const total = counts.total || 1;
+    const segs = [{v:counts.progress,c:"#16A34A"},{v:counts.soon,c:"#D97706"},{v:counts.overdue,c:"#DC2626"}];
+    let acc = 0;
+    const stops = segs.map(s=>{ const start=acc/total*360; acc+=s.v; const end=acc/total*360; return `${s.c} ${start}deg ${end}deg`; }).join(", ");
+    return `conic-gradient(${stops}, #E7EAF0 ${acc/total*360}deg 360deg)`;
+  }
+
+  function renderCategoryGrid(){
+    document.getElementById("catGrid").innerHTML = CATEGORY_DEF.map(cat=>{
+      const catOrgs = orgs.filter(o=>o.category.key===cat.key);
+      if(catOrgs.length===0) return "";
+      let progress=0, soon=0, overdue=0, total=0;
+      catOrgs.forEach(o=> o.rows.forEach(r=>{
+        total++;
+        if(!isActive(r.status)) return;
+        const d = ddayInfo(r.due);
+        if(d.diff!==null && d.diff<0) overdue++;
+        else if(d.diff!==null && d.diff<=3) soon++;
+        else progress++;
+      }));
+      const pct = total ? Math.round((progress+soon+overdue)/total*100) : 0;
+      const style = donutStyle({progress,soon,overdue,total});
+      const orgListHtml = catOrgs.slice(0,5).map(o=>{
+        const mostUrgent = o.rows.slice().sort((a,b)=>{ const da=ddayInfo(a.due).diff,db2=ddayInfo(b.due).diff; if(da===null)return 1; if(db2===null)return -1; return da-db2; })[0];
+        return `<div class="org-row" data-org="${encodeURIComponent(o.org)}">
+          <div class="org-badge" style="background:${cat.color}">${initials(o.org)}</div>
+          <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:700">${o.org}</div><div style="font-size:10.5px;color:var(--gray)">${o.rows.length}개 항목 진행</div></div>
+          <span class="st-pill ${statusClass(mostUrgent.status)}">${mostUrgent.status}</span>
+        </div>`;
+      }).join("");
+      return `<div class="card cat-card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="cat-icon-wrap" style="background:${cat.bg};color:${cat.color}">${cat.icon}</div>
+          <div><div style="font-size:14.5px;font-weight:800;color:var(--navy)">${cat.label}</div><div style="font-size:11px;color:var(--gray)">총 ${catOrgs.length}개 기관</div></div>
+        </div>
+        <div class="flex items-center gap-4 mb-4">
+          <div class="donut" style="background:${style}"><div class="donut-inner">${pct}%</div></div>
+          <div style="font-size:11.5px;line-height:1.9">
+            <div><span class="legend-dot" style="background:#16A34A"></span>진행 &nbsp;<b>${progress}</b></div>
+            <div><span class="legend-dot" style="background:#D97706"></span>마감임박 &nbsp;<b>${soon}</b></div>
+            <div><span class="legend-dot" style="background:#DC2626"></span>지연 &nbsp;<b>${overdue}</b></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:700;color:var(--gray)">주요 기업</span>
+          <span class="link-btn" data-goto-view="orgs" style="font-size:11px">전체보기 ›</span>
+        </div>
+        <div>${orgListHtml}</div>
+      </div>`;
+    }).join("");
+    bindOrgRows();
+    Array.from(document.querySelectorAll("#catGrid [data-goto-view]")).forEach(el=> el.addEventListener("click", ()=> gotoView(el.getAttribute("data-goto-view"))));
+  }
+
+  // ---------- internal task sample data ----------
+  const INTERNAL_CHECKLISTS = {
+    "(내부)서비스 PRICING 재설계": [
+      {label:"CPS 형태 프라이싱 설계 완료", done:true},
+      {label:"부가세 RAW 프라이싱 검토", done:true},
+      {label:"월재무제표 RAW 프라이싱 검토", done:false},
+      {label:"기업DB/기업MS 프라이싱 재정리", done:false},
+      {label:"최종안 내부 공유 및 확정", done:false},
+    ],
+    "(내부)플랫폼 고도화": [
+      {label:"영업현장 이슈취합 정리 시트 작성", done:true},
+      {label:"이슈 우선순위 태깅", done:false},
+      {label:"개발팀 공유 및 일정 협의", done:false},
+      {label:"1차 개선사항 배포", done:false},
+    ],
+    "(내부)계약관리 프로세스 정립": [
+      {label:"계약관리 폴더 구조 작성", done:true},
+      {label:"계약 단계별 템플릿 정리", done:false},
+      {label:"팀 공유 및 교육", done:false},
+    ],
+  };
+  const INTERNAL_META = {
+    "(내부)서비스 PRICING 재설계": {owner:"박현우 과장", start:"2026.08.18", target:"2026.09.30"},
+    "(내부)플랫폼 고도화": {owner:"이수민 매니저", start:"2026.08.25", target:"2026.10.15"},
+    "(내부)계약관리 프로세스 정립": {owner:"최지은 팀장", start:"2026.09.01", target:"2026.09.26"},
+  };
+  function internalPct(svc){
+    const items = INTERNAL_CHECKLISTS[svc] || [];
+    if(!items.length) return 0;
+    return Math.round(items.filter(i=>i.done).length / items.length * 100);
+  }
+
+  function renderInternal(){
+    document.getElementById("internalList").innerHTML = internalRows.map(r=>{
+      const pct = internalPct(r.svc);
+      return `
+      <div class="flex items-center gap-3 px-3 py-3" style="border-bottom:1px solid var(--line);cursor:pointer" data-internal="${encodeURIComponent(r.svc)}">
+        <div class="org-badge" style="background:#475569">${r.dept.slice(0,2)}</div>
+        <div style="flex:1"><div style="font-size:12.5px;font-weight:700">${r.svc}</div><div style="font-size:11px;color:var(--gray)">${r.progress}</div></div>
+        <span class="internal-pct">${pct}%</span>
+        <span class="st-pill ${statusClass(r.status)}">${r.status}</span>
+        <div style="font-size:11px;color:var(--gray);min-width:140px;text-align:right">▶ ${r.next||"-"}</div>
+      </div>`;
+    }).join("");
+    Array.from(document.querySelectorAll("[data-internal]")).forEach(el=>{
+      el.addEventListener("click", ()=> openInternalPanel(decodeURIComponent(el.getAttribute("data-internal"))));
+    });
+  }
+
+  // ============ RENDER: PIPELINE ============
+  let pipelineFilter = "전체";
+  function renderPipelineFilters(){
+    const opts = ["전체","KCB","NICE","TCF"];
+    document.getElementById("pipelineFilters").innerHTML = opts.map(o=>`
+      <div class="st-pill" data-pf="${o}" style="cursor:pointer;background:${pipelineFilter===o?'var(--navy)':'#EEF0F3'};color:${pipelineFilter===o?'#fff':'var(--gray)'};padding:6px 14px;font-size:12px">${o}</div>
+    `).join("");
+    Array.from(document.querySelectorAll("[data-pf]")).forEach(el=> el.addEventListener("click", ()=>{ pipelineFilter = el.getAttribute("data-pf"); renderPipelineFilters(); renderPipelineTable(); }));
+  }
+  function renderPipelineTable(){
+    const rows = bizRows.filter(r=> pipelineFilter==="전체" || r.ch===pipelineFilter);
+    document.getElementById("pipelineBody").innerHTML = rows.map(r=>{
+      const dd = ddayInfo(r.due);
+      return `<tr style="cursor:pointer" data-orgrow="${encodeURIComponent(r.org)}">
+        <td><span class="st-pill" style="background:#EEF0F3;color:var(--gray)">${r.ch}</span></td>
+        <td style="font-weight:700">${r.org}</td>
+        <td style="color:var(--gray)">${r.dept}</td>
+        <td style="max-width:220px">${r.svc}</td>
+        <td><span class="st-pill ${statusClass(r.status)}">${r.status}</span></td>
+        <td style="color:var(--gray);max-width:220px">${r.next||"-"}</td>
+        <td><span class="dday ${dd.cls}">${dd.label}</span></td>
+      </tr>`;
+    }).join("");
+    Array.from(document.querySelectorAll("[data-orgrow]")).forEach(el=> el.addEventListener("click", ()=> openPanel(decodeURIComponent(el.getAttribute("data-orgrow")))));
+  }
+
+  // ============ RENDER: ORGS ============
+  function renderOrgGrid(){
+    document.getElementById("orgGrid").innerHTML = orgs.map(o=>{
+      const s = genSample(o.org);
+      const mostUrgent = o.rows.slice().sort((a,b)=>{ const da=ddayInfo(a.due).diff,db2=ddayInfo(b.due).diff; if(da===null)return 1; if(db2===null)return -1; return da-db2; })[0];
+      return `<div class="card" style="padding:16px 18px;cursor:pointer" data-org2card="${encodeURIComponent(o.org)}">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="org-badge" style="background:${o.category.color};width:34px;height:34px;font-size:12px">${initials(o.org)}</div>
+          <div style="flex:1"><div style="font-size:13.5px;font-weight:800">${o.org}</div><div style="font-size:10.5px;color:var(--gray)">${o.category.label}</div></div>
+          <span class="st-pill ${statusClass(mostUrgent.status)}">${mostUrgent.status}</span>
+        </div>
+        <div style="font-size:11.5px;color:var(--gray);margin-bottom:8px">👤 ${s.manager} · 최근미팅 ${s.lastMeeting}</div>
+        <div style="font-size:11.5px;color:var(--ink)">${mostUrgent.progress}</div>
+      </div>`;
+    }).join("");
+    Array.from(document.querySelectorAll("[data-org2card]")).forEach(el=> el.addEventListener("click", ()=> openPanel(decodeURIComponent(el.getAttribute("data-org2card")))));
+  }
+
+  // ============ RENDER: REPORT ============
+  function renderReport(){
+    const catCounts = CATEGORY_DEF.map(cat=>({label:cat.label, color:cat.color, val: orgs.filter(o=>o.category.key===cat.key).reduce((a,o)=>a+o.rows.length,0)})).filter(c=>c.val>0);
+    const maxCat = Math.max(...catCounts.map(c=>c.val));
+    document.getElementById("reportByCategory").innerHTML = catCounts.map(c=>`
+      <div class="bar-row"><div class="bar-label">${c.label}</div><div class="bar-track"><div class="bar-fill" style="width:${c.val/maxCat*100}%;background:${c.color}"></div></div><div class="bar-val">${c.val}</div></div>
+    `).join("");
+
+    const statusOrder = ["계약완료","계약완료(청구)","진행(대기)","진행(액션)","협의(액션)","DROP"];
+    const statusColor = {"계약완료":"#16A34A","계약완료(청구)":"#16A34A","진행(대기)":"#D97706","진행(액션)":"#2563EB","협의(액션)":"#7C3AED","DROP":"#9AA5B5"};
+    const statusCounts = statusOrder.map(s=>({label:s, color:statusColor[s], val: bizRows.filter(r=>r.status===s).length})).filter(c=>c.val>0);
+    const maxSt = Math.max(...statusCounts.map(c=>c.val));
+    document.getElementById("reportByStatus").innerHTML = statusCounts.map(c=>`
+      <div class="bar-row"><div class="bar-label">${c.label}</div><div class="bar-track"><div class="bar-fill" style="width:${c.val/maxSt*100}%;background:${c.color}"></div></div><div class="bar-val">${c.val}</div></div>
+    `).join("");
+  }
+
+  // ============ DETAIL PANEL ============
+  let currentTab = "info";
+  let panelMode = "org"; // "org" | "internal"
+  let currentInternalTask = null;
+  function bindOrgRows(){
+    Array.from(document.querySelectorAll("[data-org]")).forEach(el=> el.addEventListener("click", ()=> openPanel(decodeURIComponent(el.getAttribute("data-org")))));
+  }
+  function setTabLabels(labels){
+    document.getElementById("tabLabel-info").textContent = labels.info;
+    document.getElementById("tabLabel-history").textContent = labels.history;
+    document.getElementById("tabLabel-files").textContent = labels.files;
+    document.getElementById("tabLabel-related").textContent = labels.related;
+  }
+
+  function openPanel(orgName){
+    panelMode = "org";
+    setTabLabels({info:"상세정보", history:"액션 히스토리", files:"관련 파일", related:"연관 기관"});
+    const o = orgMap[orgName];
+    if(!o) return;
+    const cat = o.category;
+    const s = genSample(o.org);
+    document.getElementById("breadcrumb").innerHTML = `전체 &nbsp;›&nbsp; <b>${cat.label}</b> &nbsp;›&nbsp; ${o.org}`;
+    document.getElementById("panelBadge").style.background = cat.color;
+    document.getElementById("panelBadge").textContent = initials(o.org);
+    document.getElementById("panelTitle").textContent = o.org;
+    document.getElementById("panelSub").innerHTML = `<span class="st-pill" style="background:${cat.bg};color:${cat.color}">${cat.label}</span> &nbsp;${o.rows.length}개 항목 진행 중`;
+
+    const nearest = o.rows.slice().sort((a,b)=>{ const da=ddayInfo(a.due).diff,db2=ddayInfo(b.due).diff; if(da===null)return 1; if(db2===null)return -1; return da-db2; })[0];
+    const dd = ddayInfo(nearest.due);
+    document.getElementById("panelDday").className = "dday " + dd.cls;
+    document.getElementById("panelDday").textContent = dd.label;
+
+    // 지난번/현재/다음 액션 카드 (샘플)
+    document.getElementById("actionCards").innerHTML = `
+      <div class="act-card prev">
+        <div class="act-head"><span class="act-label">📋 지난번 액션</span><span class="act-date">${s.pastDate}</span></div>
+        <div class="act-body">${s.pastLabel}</div>
+      </div>
+      <div class="act-card current">
+        <div class="act-head"><span class="act-label" style="color:var(--blue)">▶ 현재 액션</span><span class="act-date">${s.lastMeeting} ~</span></div>
+        <div class="act-body">${nearest.progress || "진행 상황 업데이트 대기"}</div>
+      </div>
+      <div class="act-card next">
+        <div class="act-head"><span class="act-label" style="color:var(--amber)">🚩 다음 액션</span><span class="act-date">${nearest.due ? nearest.due.replace(/-/g,'.') : '일정 미정'} (예정)</span></div>
+        <div class="act-body">${nearest.next || "다음 액션 미정 — 담당자 확인 필요"}</div>
+      </div>
+    `;
+
+    // 상세정보 탭
+    document.getElementById("tab-info").innerHTML = `
+      <div class="kv-row"><div class="kv-icon">👤</div><div class="kv-label">담당자</div><div class="kv-val">${s.manager}</div></div>
+      <div class="kv-row"><div class="kv-icon">📅</div><div class="kv-label">최근미팅일</div><div class="kv-val">${s.lastMeeting}</div></div>
+      <div class="kv-row"><div class="kv-icon">💰</div><div class="kv-label">예상매출</div><div class="kv-val">${s.revenue}</div></div>
+      <div class="kv-row"><div class="kv-icon">📉</div><div class="kv-label">리스크</div><div class="kv-val"><span class="st-pill risk-${s.risk}">${s.risk}</span></div></div>
+      <div class="kv-row"><div class="kv-icon">📝</div><div class="kv-label">메모</div><div class="kv-val" style="background:#FAFBFC;border:1px solid var(--line);border-radius:8px;padding:8px 10px">${s.memo}</div></div>
+      <div style="margin-top:16px">
+        <div class="flex items-center justify-between mb-2">
+          <div style="font-size:12px;font-weight:800;color:var(--navy)">주요 히스토리 (최근 3개월)</div>
+          <div style="font-size:11px;color:var(--blue);cursor:pointer" data-goto-history>전체보기 ›</div>
+        </div>
+        ${s.history.map(h=>`
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:${cat.color}"></div>
+            <div style="flex:1"><div style="font-size:12px;color:var(--ink)">${h.label}</div><div style="font-size:10.5px;color:var(--gray-soft)">${h.date}</div></div>
+            <div style="font-size:10.5px;color:var(--gray)">${h.by}</div>
+          </div>`).join("")}
+      </div>
+    `;
+    const gotoHistoryBtn = document.querySelector("[data-goto-history]");
+    if(gotoHistoryBtn) gotoHistoryBtn.addEventListener("click", ()=> switchTab("history"));
+
+    // 액션 히스토리 탭 (더 긴 리스트, 진행 항목별로도 표시)
+    document.getElementById("tab-history").innerHTML = `
+      <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:10px">전체 이력</div>
+      ${s.history.map(h=>`
+        <div class="timeline-item">
+          <div class="timeline-dot" style="background:${cat.color}"></div>
+          <div style="flex:1"><div style="font-size:12.5px;color:var(--ink)">${h.label}</div><div style="font-size:10.5px;color:var(--gray-soft)">${h.date} · ${h.by}</div></div>
+        </div>`).join("")}
+      <div style="font-size:12px;font-weight:800;color:var(--navy);margin:16px 0 10px">진행 중인 항목별 최신 상태</div>
+      ${o.rows.map(r=>`
+        <div class="act-card prev" style="margin-bottom:8px">
+          <div class="act-head"><span style="font-size:11px;font-weight:700;color:var(--gray)">${r.dept}</span><span class="st-pill ${statusClass(r.status)}" style="margin-left:auto">${r.status}</span></div>
+          <div class="act-body">${r.progress}</div>
+        </div>`).join("")}
+    `;
+
+    // 관련 파일 탭
+    document.getElementById("tab-files").innerHTML = s.files.map(f=>`
+      <div class="file-chip"><span>${f.icon}</span><span style="flex:1">${f.name}</span><span style="color:var(--blue);font-size:11px;cursor:pointer">열기</span></div>
+    `).join("") + `<div style="font-size:11px;color:var(--gray-soft);text-align:center;padding:12px 0">📌 실제 파일 연동 시 그룹웨어·드라이브 링크와 자동 매핑 예정 (현재는 샘플)</div>`;
+
+    // 연관 기관 탭
+    const related = orgs.filter(x=>x.category.key===cat.key && x.org!==o.org);
+    document.getElementById("tab-related").innerHTML = related.length ? related.map(r=>`
+      <div class="org-row" data-org2="${encodeURIComponent(r.org)}">
+        <div class="org-badge" style="background:${cat.color}">${initials(r.org)}</div>
+        <div style="flex:1"><div style="font-size:12.5px;font-weight:700">${r.org}</div><div style="font-size:10.5px;color:var(--gray)">${r.rows.length}개 항목</div></div>
+      </div>`).join("") : `<div style="font-size:12px;color:var(--gray-soft);padding:20px 0;text-align:center">같은 산업군의 다른 기관이 없습니다</div>`;
+    Array.from(document.querySelectorAll("[data-org2]")).forEach(el=> el.addEventListener("click", ()=> openPanel(decodeURIComponent(el.getAttribute("data-org2")))));
+
+    switchTab(currentTab);
+    document.getElementById("panel").classList.add("open");
+    document.getElementById("backdrop").classList.add("show");
+    document.getElementById("main").classList.add("panel-open");
+  }
+  function closePanel(){
+    document.getElementById("panel").classList.remove("open");
+    document.getElementById("backdrop").classList.remove("show");
+    document.getElementById("main").classList.remove("panel-open");
+  }
+
+  // ============ 내부 과제 상세 패널 ============
+  function openInternalPanel(svc){
+    panelMode = "internal";
+    currentInternalTask = svc;
+    setTabLabels({info:"상세정보", history:"체크리스트", files:"관련 파일", related:"관련 과제"});
+    const row = internalRows.find(r=>r.svc===svc);
+    if(!row) return;
+    const meta = INTERNAL_META[svc] || {owner:"세일즈추진팀", start:"-", target:"-"};
+    const pct = internalPct(svc);
+    const icon = "🛠";
+    const color = "#475569";
+
+    document.getElementById("breadcrumb").innerHTML = `전체 &nbsp;›&nbsp; <b>내부 과제</b> &nbsp;›&nbsp; ${svc}`;
+    document.getElementById("panelBadge").style.background = color;
+    document.getElementById("panelBadge").textContent = icon;
+    document.getElementById("panelTitle").textContent = svc;
+    document.getElementById("panelSub").innerHTML = `<span class="st-pill" style="background:#F1F5F9;color:${color}">내부 과제</span> &nbsp;담당 ${row.dept}`;
+    document.getElementById("panelDday").className = "dday dday-ok";
+    document.getElementById("panelDday").textContent = "목표 " + meta.target.slice(5).replace(".", "/");
+
+    document.getElementById("actionCards").innerHTML = `
+      <div class="act-card prev">
+        <div class="act-head"><span class="act-label">📋 착수 시점</span><span class="act-date">${meta.start}</span></div>
+        <div class="act-body">과제 킥오프 · 담당 ${meta.owner} 배정</div>
+      </div>
+      <div class="act-card current">
+        <div class="act-head"><span class="act-label" style="color:var(--blue)">▶ 현재 진행</span><span class="act-date">진행률 ${pct}%</span></div>
+        <div class="act-body">${row.progress}</div>
+      </div>
+      <div class="act-card next">
+        <div class="act-head"><span class="act-label" style="color:var(--amber)">🚩 다음 액션</span><span class="act-date">목표일 ${meta.target}</span></div>
+        <div class="act-body">${row.next || "-"}</div>
+      </div>
+    `;
+
+    // 상세정보 탭 — 담당자/기간/진행률 바
+    document.getElementById("tab-info").innerHTML = `
+      <div class="kv-row"><div class="kv-icon">👤</div><div class="kv-label">담당자</div><div class="kv-val">${meta.owner}</div></div>
+      <div class="kv-row"><div class="kv-icon">📅</div><div class="kv-label">시작일</div><div class="kv-val">${meta.start}</div></div>
+      <div class="kv-row"><div class="kv-icon">🏁</div><div class="kv-label">목표일</div><div class="kv-val">${meta.target}</div></div>
+      <div class="kv-row"><div class="kv-icon">📈</div><div class="kv-label">진행률</div>
+        <div class="kv-val" style="display:flex;align-items:center;gap:10px">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+          <span style="font-weight:800;color:var(--green);font-size:12px">${pct}%</span>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="flex items-center justify-between mb-2">
+          <div style="font-size:12px;font-weight:800;color:var(--navy)">체크리스트 미리보기</div>
+          <div style="font-size:11px;color:var(--blue);cursor:pointer" data-goto-history>전체 보기 ›</div>
+        </div>
+        ${(INTERNAL_CHECKLISTS[svc]||[]).slice(0,3).map(it=>`
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:${it.done?'#16A34A':'#D1D5DB'}"></div>
+            <div style="flex:1;font-size:12px;color:${it.done?'var(--gray-soft)':'var(--ink)'};${it.done?'text-decoration:line-through':''}">${it.label}</div>
+          </div>`).join("")}
+      </div>
+    `;
+    const gotoHistoryBtn = document.querySelector("[data-goto-history]");
+    if(gotoHistoryBtn) gotoHistoryBtn.addEventListener("click", ()=> switchTab("history"));
+
+    renderInternalChecklistTab(svc);
+
+    // 관련 파일 탭 (샘플 고정)
+    document.getElementById("tab-files").innerHTML = `
+      <div class="file-chip"><span>📊</span><span style="flex:1">${svc} - 진행현황 정리.xlsx</span><span style="color:var(--blue);font-size:11px;cursor:pointer">열기</span></div>
+      <div class="file-chip"><span>📝</span><span style="flex:1">팀 회의록 (${meta.start} 킥오프).docx</span><span style="color:var(--blue);font-size:11px;cursor:pointer">열기</span></div>
+      <div style="font-size:11px;color:var(--gray-soft);text-align:center;padding:12px 0">📌 실제 연동 시 그룹웨어 문서함과 자동 매핑 예정 (현재는 샘플)</div>
+    `;
+
+    // 관련 과제 탭 — 다른 내부 과제들
+    const others = internalRows.filter(r=>r.svc!==svc);
+    document.getElementById("tab-related").innerHTML = others.length ? others.map(r=>`
+      <div class="org-row" data-internal2="${encodeURIComponent(r.svc)}">
+        <div class="org-badge" style="background:#475569">🛠</div>
+        <div style="flex:1"><div style="font-size:12.5px;font-weight:700">${r.svc}</div><div style="font-size:10.5px;color:var(--gray)">진행률 ${internalPct(r.svc)}%</div></div>
+      </div>`).join("") : `<div style="font-size:12px;color:var(--gray-soft);padding:20px 0;text-align:center">다른 내부 과제가 없습니다</div>`;
+    Array.from(document.querySelectorAll("[data-internal2]")).forEach(el=> el.addEventListener("click", ()=> openInternalPanel(decodeURIComponent(el.getAttribute("data-internal2")))));
+
+    switchTab(currentTab);
+    document.getElementById("panel").classList.add("open");
+    document.getElementById("backdrop").classList.add("show");
+    document.getElementById("main").classList.add("panel-open");
+  }
+
+  function renderInternalChecklistTab(svc){
+    const items = INTERNAL_CHECKLISTS[svc] || [];
+    const pct = internalPct(svc);
+    document.getElementById("tab-history").innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <div style="font-size:12px;font-weight:800;color:var(--navy)">전체 체크리스트</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="prog-bar" style="width:80px"><div class="prog-fill" style="width:${pct}%"></div></div>
+          <span style="font-size:11px;font-weight:800;color:var(--green)">${pct}%</span>
+        </div>
+      </div>
+      ${items.map((it,i)=>`
+        <div class="chk-item" data-chk="${i}">
+          <div class="chk-box ${it.done?'done':''}">${it.done?'✓':''}</div>
+          <div class="chk-label ${it.done?'done':''}">${it.label}</div>
+        </div>`).join("")}
+      <div style="font-size:11px;color:var(--gray-soft);text-align:center;padding:12px 0">📌 체크박스를 클릭하면 진행률이 즉시 갱신됩니다 (샘플 — 새로고침 시 초기화)</div>
+    `;
+    Array.from(document.querySelectorAll("[data-chk]")).forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const idx = parseInt(el.getAttribute("data-chk"),10);
+        INTERNAL_CHECKLISTS[svc][idx].done = !INTERNAL_CHECKLISTS[svc][idx].done;
+        renderInternalChecklistTab(svc);
+        renderInternal(); // update % pill in list
+        if(panelMode==="internal" && currentInternalTask===svc){
+          // refresh action-card current % + info tab bar too
+          const meta = INTERNAL_META[svc] || {owner:"세일즈추진팀"};
+          const newPct = internalPct(svc);
+          document.querySelector(".act-card.current .act-date").textContent = "진행률 " + newPct + "%";
+          const bar = document.querySelector("#tab-info .prog-fill");
+          if(bar){ bar.style.width = newPct+"%"; bar.parentElement.nextElementSibling.textContent = newPct+"%"; }
+        }
+      });
+    });
+  }
+
+  function switchTab(tab){
+    currentTab = tab;
+    Array.from(document.querySelectorAll(".tab-btn")).forEach(b=> b.classList.toggle("active", b.getAttribute("data-tab")===tab));
+    ["info","history","files","related"].forEach(t=>{ document.getElementById("tab-"+t).style.display = (t===tab) ? "block":"none"; });
+  }
+  Array.from(document.querySelectorAll(".tab-btn")).forEach(b=> b.addEventListener("click", ()=> switchTab(b.getAttribute("data-tab"))));
+  document.getElementById("btnClosePanel").addEventListener("click", closePanel);
+  document.getElementById("backdrop").addEventListener("click", closePanel);
+
+  // ============ SIDEBAR NAV ============
+  Array.from(document.querySelectorAll(".nav-item")).forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const view = el.getAttribute("data-view");
+      if(!view) return;
+      Array.from(document.querySelectorAll(".nav-item")).forEach(n=>n.classList.remove("active"));
+      el.classList.add("active");
+      Array.from(document.querySelectorAll(".view")).forEach(v=>v.classList.remove("active"));
+      document.getElementById("view-"+view).classList.add("active");
+      closePanel();
+    });
+  });
+
+  // settings toggles (visual only)
+  Array.from(document.querySelectorAll("[data-toggle]")).forEach(t=>{
+    t.addEventListener("click", ()=> t.classList.toggle("on"));
+  });
+
+  function renderAll(){
+    rebuildIndex();
+    renderKpis();
+    renderCategoryGrid();
+    renderInternal();
+    renderPipelineFilters();
+    renderPipelineTable();
+    renderOrgGrid();
+    renderReport();
+    renderBell();
+  }
+
+  // ============ small toast ============
+  let toastTimer = null;
+  function showToast(msg){
+    const el = document.getElementById("toastMini");
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> el.classList.remove("show"), 2600);
+  }
+
+  // ============ Stage 3: bell dropdown ============
+  function renderBell(){
+    const items = bizRows.filter(r=>{
+      if(!isActive(r.status) || !r.due) return false;
+      const d = ddayInfo(r.due);
+      return d.diff !== null && d.diff <= 3;
+    }).sort((a,b)=> ddayInfo(a.due).diff - ddayInfo(b.due).diff);
+    document.getElementById("bellBadge").style.display = items.length ? "block" : "none";
+    document.getElementById("bellBadge").textContent = items.length;
+    document.getElementById("bellList").innerHTML = items.length ? items.map(r=>{
+      const dd = ddayInfo(r.due);
+      return `<div class="bell-item">
+        <div class="flex items-center justify-between mb-1">
+          <span style="font-weight:700">${r.org}</span>
+          <span class="dday ${dd.cls}">${dd.label}</span>
+        </div>
+        <div style="color:var(--gray);margin-bottom:6px">${r.next || r.progress}</div>
+        <div style="color:var(--blue);cursor:pointer;font-size:11px" data-send-reminder="${r.id}">🔔 지금 알림 보내기</div>
+      </div>`;
+    }).join("") : `<div style="padding:16px;text-align:center;color:var(--gray-soft);font-size:12px">임박한 항목이 없습니다</div>`;
+    Array.from(document.querySelectorAll("[data-send-reminder]")).forEach(el=>{
+      el.addEventListener("click", (e)=>{
+        e.stopPropagation();
+        const row = SEED.find(r=>r.id===el.getAttribute("data-send-reminder"));
+        if(row) sendKakaoReminder(row);
+        document.getElementById("bellDropdown").classList.remove("show");
+      });
+    });
+  }
+  document.getElementById("bellBtn").addEventListener("click", (e)=>{
+    e.stopPropagation();
+    document.getElementById("bellDropdown").classList.toggle("show");
+  });
+  document.addEventListener("click", ()=> document.getElementById("bellDropdown").classList.remove("show"));
+
+  // ============ Stage 3: kakao toast ============
+  let kakaoTimer1=null, kakaoTimer2=null;
+  function sendKakaoReminder(row){
+    const dd = ddayInfo(row.due);
+    const msg = `⏰ [${dd.label}] <b>${row.org}</b> — ${row.next || row.progress}`;
+    const el = document.getElementById("kakaoToast");
+    document.getElementById("kakaoMsg").innerHTML = msg;
+    el.classList.add("show");
+    const bar = document.getElementById("kakaoProgress");
+    bar.style.transition = "none"; bar.style.transform = "scaleX(1)";
+    requestAnimationFrame(()=>{
+      bar.style.transition = "transform 6s linear";
+      bar.style.transform = "scaleX(0)";
+    });
+    clearTimeout(kakaoTimer1); clearTimeout(kakaoTimer2);
+    kakaoTimer1 = setTimeout(()=> el.classList.remove("show"), 6000);
+  }
+
+  // ============ Stage 3: kakao connect flow ============
+  let kakaoConnected = false;
+  document.getElementById("btnKakaoConnect").addEventListener("click", function(){
+    if(kakaoConnected){
+      kakaoConnected = false;
+      document.getElementById("kakaoStatusPill").className = "conn-pill conn-off";
+      document.getElementById("kakaoStatusPill").textContent = "미연동";
+      document.getElementById("kakaoDesc").textContent = "연동하면 마감 2~3일 전 담당자에게 자동으로 리마인드 메시지를 보냅니다.";
+      this.textContent = "연동하기";
+      document.getElementById("btnKakaoTest").style.display = "none";
+      showToast("카카오워크 연동이 해제되었습니다");
+      return;
+    }
+    this.disabled = true;
+    this.innerHTML = '<span class="spin"></span> 연동 중...';
+    setTimeout(()=>{
+      kakaoConnected = true;
+      document.getElementById("kakaoStatusPill").className = "conn-pill conn-on";
+      document.getElementById("kakaoStatusPill").textContent = "연동됨";
+      document.getElementById("kakaoDesc").textContent = "✅ 테크핀레이팅스 워크스페이스에 연결되었습니다. 마감 임박 시 담당자 DM으로 자동 발송됩니다.";
+      document.getElementById("btnKakaoConnect").disabled = false;
+      document.getElementById("btnKakaoConnect").textContent = "연동 해제";
+      document.getElementById("btnKakaoTest").style.display = "inline-block";
+      showToast("✅ 카카오워크 연동 완료 (시뮬레이션)");
+    }, 1300);
+  });
+  document.getElementById("btnKakaoTest").addEventListener("click", ()=>{
+    const candidates = bizRows.filter(r=> isActive(r.status) && r.due).sort((a,b)=>ddayInfo(a.due).diff - ddayInfo(b.due).diff);
+    const pick = candidates[0] || bizRows.find(r=>isActive(r.status));
+    if(pick) sendKakaoReminder(pick);
+  });
+
+  // ============ Stage 2: add/edit modal ============
+  // ============ Stage 2: modal state ============
+  let modalStep = "edit"; // "edit" | "confirm"
+  let modalTargetRowId = null; // id of existing row being updated, or null
+  let modalPendingSaveFn = null;
+
+  function openAddModal(prefill){
+    modalStep = "edit";
+    modalTargetRowId = null;
+    document.getElementById("modalTitle").textContent = "새 항목 추가";
+    document.getElementById("modalHint").textContent = "금액·계약일처럼 정확해야 하는 값은 여기서 입력하세요. 간단한 진행 메모는 상단 ⚡빠른 입력이 더 빠릅니다.";
+    document.getElementById("f_ch").value = (prefill&&prefill.ch) || "KCB";
+    document.getElementById("f_org").value = (prefill&&prefill.org) || "";
+    document.getElementById("f_dept").value = (prefill&&prefill.dept) || "";
+    document.getElementById("f_svc").value = (prefill&&prefill.svc) || "";
+    document.getElementById("f_status").value = (prefill&&prefill.status) || "진행(액션)";
+    document.getElementById("f_progress").value = (prefill&&prefill.progress) || "";
+    document.getElementById("f_next").value = (prefill&&prefill.next) || "";
+    document.getElementById("f_due").value = (prefill&&prefill.due) || "";
+    document.getElementById("f_manager").value = (prefill&&prefill.manager) || "";
+    document.getElementById("orgMatchBox").innerHTML = "";
+    showModalStep("edit");
+    document.getElementById("modalBackdrop").style.display = "flex";
+    checkOrgMatch();
+  }
+  document.getElementById("btnAddFull").addEventListener("click", ()=> openAddModal(null));
+  Array.from(document.querySelectorAll("[data-open-add]")).forEach(b=> b.addEventListener("click", ()=> openAddModal(null)));
+  document.getElementById("btnCloseModal").addEventListener("click", ()=> document.getElementById("modalBackdrop").style.display="none");
+
+  function showModalStep(step){
+    modalStep = step;
+    document.getElementById("modalFieldGrid").style.display = step==="edit" ? "grid" : "none";
+    document.getElementById("modalConfirmBox").style.display = step==="confirm" ? "block" : "none";
+    document.getElementById("btnModalCancel").textContent = step==="edit" ? "취소" : "다시 수정";
+    document.getElementById("btnModalSave").textContent = step==="edit" ? "확인하기" : "저장 확정";
+  }
+
+  // ---- live org matching as user types ----
+  document.getElementById("f_org").addEventListener("input", checkOrgMatch);
+  function checkOrgMatch(){
+    const name = document.getElementById("f_org").value.trim();
+    const box = document.getElementById("orgMatchBox");
+    modalTargetRowId = null; // reset selection whenever org text changes
+    if(!name){ box.innerHTML = ""; return; }
+    const existing = orgMap[name];
+    if(!existing){
+      // fuzzy: suggest close existing names containing part of the typed text
+      const similar = Object.keys(orgMap).filter(o=> o.indexOf(name)>=0 || name.indexOf(o)>=0).slice(0,3);
+      box.innerHTML = `
+        <div class="match-status match-new">🆕 신규 기관으로 인식됩니다${similar.length? ' — 혹시 이 기관인가요?' : ''}</div>
+        ${similar.map(o=>`<div class="match-row" data-pick-org="${encodeURIComponent(o)}"><div class="mr-title">${o}</div><div class="mr-body">${orgMap[o].rows.length}개 항목 진행 중 — 클릭하면 이 기관으로 전환</div></div>`).join("")}
+      `;
+      Array.from(box.querySelectorAll("[data-pick-org]")).forEach(el=>{
+        el.addEventListener("click", ()=>{ document.getElementById("f_org").value = decodeURIComponent(el.getAttribute("data-pick-org")); checkOrgMatch(); });
+      });
+      return;
+    }
+    // existing org found — list its rows + "new service" option
+    const rowsHtml = existing.rows.map(r=>{
+      const dd = ddayInfo(r.due);
+      return `<div class="match-row" data-pick-row="${r.id}">
+        <div class="mr-head"><span class="mr-title">${r.dept} · ${r.svc}</span><span class="st-pill ${statusClass(r.status)}">${r.status}</span></div>
+        <div class="mr-body">${r.progress || "-"} ${r.due?`· <span class="dday ${dd.cls}" style="margin-left:4px">${dd.label}</span>`:''}</div>
+      </div>`;
+    }).join("");
+    box.innerHTML = `
+      <div class="match-status match-found">✓ 기존 기관 매칭됨 — ${existing.rows.length}개 항목 진행 중. 아래에서 업데이트할 항목을 선택하거나, 신규 서비스로 추가하세요</div>
+      ${rowsHtml}
+      <div class="match-newservice" data-pick-newservice>＋ 이 기관에 새로운 서비스로 추가 (기존 항목과 무관)</div>
+    `;
+    Array.from(box.querySelectorAll("[data-pick-row]")).forEach(el=>{
+      el.addEventListener("click", ()=>{
+        const rowId = el.getAttribute("data-pick-row");
+        const row = existing.rows.find(r=>r.id===rowId);
+        modalTargetRowId = rowId;
+        document.getElementById("f_ch").value = row.ch;
+        document.getElementById("f_dept").value = row.dept;
+        document.getElementById("f_svc").value = row.svc;
+        document.getElementById("f_status").value = row.status;
+        document.getElementById("f_progress").value = row.progress;
+        document.getElementById("f_next").value = row.next;
+        document.getElementById("f_due").value = row.due;
+        Array.from(box.querySelectorAll(".match-row")).forEach(x=>x.classList.remove("selected"));
+        el.classList.add("selected");
+        document.getElementById("modalHint").textContent = `📝 업데이트 모드 — ${existing.org} / ${row.dept} / ${row.svc} 항목을 갱신합니다`;
+      });
+    });
+    box.querySelector("[data-pick-newservice]").addEventListener("click", (e)=>{
+      modalTargetRowId = null;
+      document.getElementById("f_dept").value = "";
+      document.getElementById("f_svc").value = "";
+      document.getElementById("f_progress").value = "";
+      document.getElementById("f_next").value = "";
+      document.getElementById("f_due").value = "";
+      document.getElementById("f_status").value = "진행(액션)";
+      Array.from(box.querySelectorAll(".match-row")).forEach(x=>x.classList.remove("selected"));
+      document.getElementById("modalHint").textContent = `＋ 신규 서비스 모드 — ${existing.org}에 새 항목을 추가합니다 (기존 항목은 그대로 유지)`;
+    });
+  }
+
+  document.getElementById("btnModalCancel").addEventListener("click", ()=>{
+    if(modalStep==="confirm"){ showModalStep("edit"); return; }
+    document.getElementById("modalBackdrop").style.display = "none";
+  });
+
+  document.getElementById("btnModalSave").addEventListener("click", ()=>{
+    if(modalStep==="edit"){
+      runValidationAndConfirm();
+    } else {
+      if(modalPendingSaveFn){ modalPendingSaveFn(); }
+    }
+  });
+
+  function runValidationAndConfirm(){
+    const org = document.getElementById("f_org").value.trim();
+    if(!org){ alert("기관명을 입력해주세요."); return; }
+    const ch = document.getElementById("f_ch").value;
+    const dept = document.getElementById("f_dept").value.trim() || "세일즈추진팀";
+    const svc = document.getElementById("f_svc").value.trim() || "(신규 문의)";
+    const status = document.getElementById("f_status").value;
+    const progress = document.getElementById("f_progress").value.trim();
+    const next = document.getElementById("f_next").value.trim();
+    const due = document.getElementById("f_due").value;
+    const manager = document.getElementById("f_manager").value.trim();
+
+    const existingOrg = orgMap[org];
+
+    // duplicate check: adding as "new service" (no target row) but same dept+svc already exists under this org
+    if(!modalTargetRowId && existingOrg){
+      const dup = existingOrg.rows.find(r=> r.dept===dept && r.svc===svc);
+      if(dup){
+        renderDupWarning(org, dup, {ch,dept,svc,status,progress,next,due,manager});
+        return;
+      }
+    }
+
+    renderConfirmBox({org, ch, dept, svc, status, progress, next, due, manager, targetId: modalTargetRowId});
+  }
+
+  function renderDupWarning(org, dupRow, incoming){
+    const box = document.getElementById("orgMatchBox");
+    box.innerHTML += `
+      <div class="dup-warn">
+        ⚠️ <b data-use-dup>${dupRow.dept} · ${dupRow.svc}</b>에 이미 동일한 서비스가 등록되어 있습니다. 이중 등록을 막기 위해 새 항목 대신 <b data-use-dup>기존 항목을 업데이트</b>하시는 걸 권장합니다.
+      </div>`;
+    Array.from(box.querySelectorAll("[data-use-dup]")).forEach(el=>{
+      el.addEventListener("click", ()=>{
+        modalTargetRowId = dupRow.id;
+        document.getElementById("f_status").value = incoming.status;
+        document.getElementById("f_progress").value = incoming.progress;
+        document.getElementById("f_next").value = incoming.next;
+        document.getElementById("f_due").value = incoming.due;
+        runValidationAndConfirm();
+      });
+    });
+  }
+
+  function renderConfirmBox(data){
+    const isUpdate = !!data.targetId;
+    const oldRow = isUpdate ? SEED.find(r=>r.id===data.targetId) : null;
+    let html = "";
+    if(isUpdate){
+      html += `<div class="match-status match-found" style="margin-bottom:14px">📝 <b>${data.org}</b> / ${data.dept} · ${data.svc} — 기존 항목을 아래 내용으로 업데이트합니다. 맞는지 확인해주세요.</div>`;
+      const fields = [
+        {label:"상태", key:"status"}, {label:"진행내용", key:"progress"}, {label:"다음액션", key:"next"}, {label:"다음액션일", key:"due"}
+      ];
+      html += `<div class="card" style="padding:14px 16px;border:1px solid var(--line)">`;
+      fields.forEach(f=>{
+        const oldV = oldRow[f.key] || "-";
+        const newV = data[f.key] || "-";
+        const changed = oldV !== newV;
+        html += `<div class="diff-row">
+          <div class="diff-label">${f.label}</div>
+          ${changed ? `<div class="diff-old">${oldV}</div><div class="diff-arrow">→</div><div class="diff-new">${newV}</div>` : `<div class="diff-new" style="color:var(--gray)">${newV} <span style="color:var(--gray-soft);font-size:10.5px">(변경없음)</span></div>`}
+        </div>`;
+      });
+      html += `</div>`;
+    } else {
+      const tag = orgMap[data.org] ? "＋ 신규 서비스" : "🆕 신규 기관";
+      html += `<div class="match-status ${orgMap[data.org] ? 'match-found' : 'match-new'}" style="margin-bottom:14px">${tag} — <b>${data.org}</b> / ${data.dept} · ${data.svc} 항목을 새로 등록합니다.</div>`;
+      html += `<div class="card" style="padding:14px 16px;border:1px solid var(--line)">
+        <div class="diff-row"><div class="diff-label">채널</div><div class="diff-new">${data.ch}</div></div>
+        <div class="diff-row"><div class="diff-label">상태</div><div class="diff-new">${data.status}</div></div>
+        <div class="diff-row"><div class="diff-label">진행내용</div><div class="diff-new">${data.progress||"-"}</div></div>
+        <div class="diff-row"><div class="diff-label">다음액션</div><div class="diff-new">${data.next||"-"}</div></div>
+        <div class="diff-row"><div class="diff-label">다음액션일</div><div class="diff-new">${data.due||"-"}</div></div>
+        ${data.manager?`<div class="diff-row"><div class="diff-label">담당자</div><div class="diff-new">${data.manager}</div></div>`:""}
+      </div>`;
+    }
+    document.getElementById("modalConfirmBox").innerHTML = html;
+    showModalStep("confirm");
+
+    modalPendingSaveFn = ()=>{
+      if(isUpdate){
+        oldRow.status = data.status; oldRow.progress = data.progress; oldRow.next = data.next; oldRow.due = data.due;
+        if(data.manager) managerOverride[data.org] = data.manager;
+        if(!activityLog[data.org]) activityLog[data.org] = [];
+        activityLog[data.org].unshift({date:refDate.replace(/-/g,"."), label: data.progress || "항목 갱신", by: data.manager || "나(데모 입력)"});
+        document.getElementById("modalBackdrop").style.display = "none";
+        renderAll();
+        showToast(`✅ ${data.org} 항목이 갱신되었습니다 (중복 없이 업데이트)`);
+      } else {
+        const newRow = { id:"r"+(nextRowId++), cat:"사업제휴", ch:data.ch, org:data.org, dept:data.dept, svc:data.svc, status:data.status, progress:data.progress, next:data.next, due:data.due };
+        SEED.push(newRow);
+        if(data.manager) managerOverride[data.org] = data.manager;
+        if(!activityLog[data.org]) activityLog[data.org] = [];
+        activityLog[data.org].unshift({date:refDate.replace(/-/g,"."), label: data.progress || "항목 등록", by: data.manager || "나(데모 입력)"});
+        document.getElementById("modalBackdrop").style.display = "none";
+        renderAll();
+        showToast(`✅ ${data.org} 항목이 추가되었습니다`);
+      }
+    };
+  }
+
+  // ============ Stage 1: quick natural-language input ============
+  const WEEKDAYS = ["일","월","화","수","목","금","토"];
+  function parseDueDate(text){
+    const today = new Date(refDate+"T00:00:00");
+    if(/오늘/.test(text)) return refDate;
+    if(/내일/.test(text)) { const d=new Date(today); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); }
+    if(/모레/.test(text)) { const d=new Date(today); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); }
+    let m = text.match(/(다음주|이번주)\s*([월화수목금토일])요일/);
+    if(m){
+      const targetIdx = WEEKDAYS.indexOf(m[2]);
+      const d = new Date(today);
+      let diff = targetIdx - d.getDay();
+      if(m[1]==="다음주") diff += 7;
+      else if(diff <= 0) diff += 7;
+      d.setDate(d.getDate()+diff);
+      return d.toISOString().slice(0,10);
+    }
+    m = text.match(/(\d{1,2})월\s*(\d{1,2})일/);
+    if(m){
+      const d = new Date(2026, parseInt(m[1],10)-1, parseInt(m[2],10));
+      return d.toISOString().slice(0,10);
+    }
+    return "";
+  }
+  function parseQuickInput(text){
+    const knownOrgs = Object.keys(orgMap);
+    let matchedOrg = knownOrgs.find(o => text.indexOf(o)>=0);
+    let ch, dept, svc, status, category;
+    if(matchedOrg){
+      const existing = orgMap[matchedOrg];
+      ch = existing.rows[0].ch; dept = existing.rows[0].dept; svc = existing.rows[0].svc; status = existing.rows[0].status;
+    } else {
+      // guess a brand-new org name: text before first space or dash
+      matchedOrg = text.split(/[\s\-–—]/)[0] || "신규 기관";
+      if(/은행/.test(matchedOrg)) ch="NICE"; else if(/카드/.test(matchedOrg)) ch="KCB"; else ch="TCF";
+      dept = "세일즈추진팀"; svc = "(신규 문의)"; status = "진행(액션)";
+    }
+    let rest = text;
+    if(matchedOrg && rest.indexOf(matchedOrg)===0) rest = rest.slice(matchedOrg.length).replace(/^[\s\-–—:]+/,"");
+    let progress = rest, next = "";
+    if(rest.indexOf("▶")>=0){ const parts = rest.split("▶"); progress = parts[0].trim(); next = parts.slice(1).join("▶").trim(); }
+    else if(rest.indexOf(",")>=0){ const parts = rest.split(","); progress = parts[0].trim(); next = parts.slice(1).join(",").trim(); }
+    const due = parseDueDate(text);
+    return {org:matchedOrg, ch, dept, svc, status, progress, next, due, isNew: !orgMap[matchedOrg]};
+  }
+
+  let lastParsed = null;
+  // example chips fill the input
+  Array.from(document.querySelectorAll("[data-example]")).forEach(ch=>{
+    ch.addEventListener("click", ()=>{
+      document.getElementById("quickInput").value = ch.getAttribute("data-example");
+      document.getElementById("quickInput").focus();
+    });
+  });
+  // in-page nav shortcuts (e.g. "전체 기관 보기")
+  function gotoView(view){
+    Array.from(document.querySelectorAll(".nav-item")).forEach(n=>n.classList.toggle("active", n.getAttribute("data-view")===view));
+    Array.from(document.querySelectorAll(".view")).forEach(v=>v.classList.remove("active"));
+    document.getElementById("view-"+view).classList.add("active");
+    closePanel();
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+  Array.from(document.querySelectorAll("[data-goto-view]")).forEach(el=> el.addEventListener("click", ()=> gotoView(el.getAttribute("data-goto-view"))));
+
+  document.getElementById("btnQuickParse").addEventListener("click", function(){
+    const text = document.getElementById("quickInput").value.trim();
+    if(!text) return;
+    const label = document.getElementById("quickBtnLabel");
+    label.innerHTML = '<span class="spin"></span> AI 분석 중...';
+    this.disabled = true;
+    setTimeout(()=>{
+      lastParsed = parseQuickInput(text);
+      renderQuickPreview(lastParsed);
+      label.innerHTML = "🤖 AI로 등록";
+      this.disabled = false;
+    }, 900);
+  });
+
+  function renderQuickPreview(p){
+    const box = document.getElementById("quickPreview");
+    box.style.display = "block";
+    box.innerHTML = `
+      <div class="parse-preview">
+        <div style="font-size:11px;font-weight:800;color:var(--navy);margin-bottom:10px">🤖 AI 추출 결과 ${p.isNew ? '<span style="color:var(--amber)">(신규 기관으로 인식)</span>' : '<span style="color:var(--green)">(기존 기관 매칭)</span>'} — 확인 후 저장하세요</div>
+        <div class="parse-field"><label>기관명</label><input id="qp_org" value="${p.org}"></div>
+        <div class="parse-field"><label>채널</label>
+          <select id="qp_ch"><option ${p.ch==='KCB'?'selected':''}>KCB</option><option ${p.ch==='NICE'?'selected':''}>NICE</option><option ${p.ch==='TCF'?'selected':''}>TCF</option></select>
+        </div>
+        <div class="parse-field"><label>진행내용</label><input id="qp_progress" value="${p.progress||''}"></div>
+        <div class="parse-field"><label>다음액션</label><input id="qp_next" value="${p.next||''}"></div>
+        <div class="parse-field"><label>다음액션일</label><input type="date" id="qp_due" value="${p.due||''}"></div>
+        <div class="flex justify-end gap-2" style="gap:8px;margin-top:10px">
+          <button class="btn-ghost" id="qpCancel" style="padding:7px 14px;font-size:12px">취소</button>
+          <button class="btn-primary" id="qpSave" style="padding:7px 14px;font-size:12px">저장</button>
+        </div>
+      </div>`;
+    document.getElementById("qpCancel").addEventListener("click", ()=>{ box.style.display="none"; document.getElementById("quickInput").value=""; });
+    document.getElementById("qpSave").addEventListener("click", ()=>{
+      const org = document.getElementById("qp_org").value.trim();
+      const ch = document.getElementById("qp_ch").value;
+      const progress = document.getElementById("qp_progress").value.trim();
+      const next = document.getElementById("qp_next").value.trim();
+      const due = document.getElementById("qp_due").value;
+      if(orgMap[org]){
+        const row = orgMap[org].rows[0];
+        row.progress = progress; row.next = next; row.due = due;
+        if(row.status === "진행(대기)") row.status = "진행(액션)";
+      } else {
+        SEED.push({id:"r"+(nextRowId++), cat:"사업제휴", ch, org, dept:"세일즈추진팀", svc:"(신규 문의)", status:"진행(액션)", progress, next, due});
+      }
+      if(!activityLog[org]) activityLog[org] = [];
+      activityLog[org].unshift({date: refDate.replace(/-/g,"."), label: progress || "빠른입력으로 갱신", by: "나(데모 입력)"});
+      box.style.display = "none";
+      document.getElementById("quickInput").value = "";
+      renderAll();
+      showToast(`✅ ${org} 항목이 갱신되었습니다`);
+    });
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
