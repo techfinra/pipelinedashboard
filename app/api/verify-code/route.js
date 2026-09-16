@@ -18,16 +18,12 @@ export async function POST(request) {
   const body = await request.json().catch(() => ({}));
   const code = body.code;
 
-  if (!code || code !== process.env.ACCESS_CODE) {
+  const trimmedCode = (code || "").trim();
+  const expectedCode = (process.env.ACCESS_CODE || "").trim();
+
+  if (!trimmedCode || trimmedCode !== expectedCode) {
     return NextResponse.json(
-      {
-        error: "코드가 일치하지 않습니다.",
-        debug: {
-          hasAccessCodeEnv: process.env.ACCESS_CODE !== undefined,
-          envLength: (process.env.ACCESS_CODE || "").length,
-          inputLength: code.length,
-        },
-      },
+      { error: "코드가 일치하지 않습니다." },
       { status: 401 }
     );
   }
