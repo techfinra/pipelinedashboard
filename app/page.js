@@ -30,7 +30,10 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "인증에 실패했습니다.");
+        setError(
+          (data.error || "인증에 실패했습니다.") +
+            (data.debug ? " | debug: " + JSON.stringify(data.debug) : "")
+        );
         return;
       }
       await signInWithCustomToken(auth, data.token);
