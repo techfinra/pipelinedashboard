@@ -83,14 +83,12 @@ export default function Home() {
   }
 
   if (user) {
+    if (typeof window !== "undefined") {
+      window.location.href = "/dashboard.html";
+    }
     return (
       <main style={{ padding: 40, fontFamily: "sans-serif" }}>
-        <h1>Pipeline Dashboard</h1>
-        <p>{user.email}님 환영합니다.</p>
-        <button onClick={handleSignOut}>로그아웃</button>
-        <p style={{ marginTop: 20, color: "#888" }}>
-          대시보드 UI는 다음 단계에서 구현됩니다.
-        </p>
+        <p>{user.email}님 환영합니다. 대시보드로 이동 중...</p>
       </main>
     );
   }
