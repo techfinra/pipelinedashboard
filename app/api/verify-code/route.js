@@ -19,7 +19,17 @@ export async function POST(request) {
   const code = body.code;
 
   if (!code || code !== process.env.ACCESS_CODE) {
-    return NextResponse.json({ error: "코드가 일치하지 않습니다." }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "코드가 일치하지 않습니다.",
+        debug: {
+          hasAccessCodeEnv: process.env.ACCESS_CODE !== undefined,
+          envLength: (process.env.ACCESS_CODE || "").length,
+          inputLength: code.length,
+        },
+      },
+      { status: 401 }
+    );
   }
 
   try {
