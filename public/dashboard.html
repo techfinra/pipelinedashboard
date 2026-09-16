@@ -17,7 +17,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   firebase.auth().onAuthStateChanged(function(user){
-    if(!user || !user.email || !user.email.endsWith("@techfinratings.com")){
+    if(!user){
       window.location.href = "/";
     } else {
       document.documentElement.style.visibility = "visible";
