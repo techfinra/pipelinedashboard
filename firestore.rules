@@ -3,42 +3,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 로그인 여부 + 이메일 인증 + 사내 도메인(@techfinratings.com) 확인
-    function isTechfinUser() {
-      return request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.matches('.*@techfinratings\\.com$');
+    // 승인 코드로 발급된 Firebase 커스텀 토큰 인증 여부만 확인
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // 딜 파이프라인 데이터 (기관+부서+서비스 조합 단위)
     match /deals/{dealId} {
-      allow read, write: if isTechfinUser();
+      allow read, write: if isAuthenticated();
     }
 
-    // 액션/변경 이력 로그
     match /activityLog/{logId} {
-      allow read, write: if isTechfinUser();
+      allow read, write: if isAuthenticated();
     }
 
-    // 내부 과제
     match /internalTasks/{taskId} {
-      allow read, write: if isTechfinUser();
+      allow read, write: if isAuthenticated();
     }
 
-    // 사용자 정보 - 읽기는 사내 전체, 쓰기는 본인 문서만
     match /users/{userId} {
-      allow read: if isTechfinUser();
-      allow write: if isTechfinUser() && request.auth.uid == userId;
+      allow read, write: if isAuthenticated();
     }
 
-    // KPI 집계 캐시 (단일 summary 문서) - Vercel API Route에서 deals 쓰기 직후 재계산
     match /dashboardStats/{statId} {
-      allow read: if isTechfinUser();
-      allow write: if isTechfinUser();
+      allow read, write: if isAuthenticated();
     }
 
-    // 그 외 모든 경로는 기본 차단
     match /{document=**} {
       allow read, write: if false;
     }
