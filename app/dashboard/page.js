@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [activity, setActivity] = useState([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -43,10 +44,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (!authChecked) return;
     (async () => {
-      const snap = await getDocs(collection(db, "deals"));
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setDeals(rows);
-      setLoading(false);
+      try {
+        const snap = await getDocs(collection(db, "deals"));
+        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setDeals(rows);
+      } catch (e) {
+        setLoadError(String(e && e.message ? e.message : e));
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [authChecked]);
 
@@ -83,7 +89,14 @@ export default function Dashboard() {
   }
 
   if (!authChecked || loading) {
-    return <div style={{ padding: 40, fontFamily: "sans-serif" }}>로딩 중...</div>;
+    return (
+      <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+        로딩 중...
+        {loadError && (
+          <p style={{ color: "red", marginTop: 12 }}>에러: {loadError}</p>
+        )}
+      </div>
+    );
   }
 
   return (
