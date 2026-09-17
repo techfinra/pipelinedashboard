@@ -52,6 +52,7 @@ SO: ${fd.so || "미입력"}
 방문미팅: ${fd.visitMeetingRaw || "미입력"}
 메모: ${fd.memo || "미입력"}
 다음 액션: ${fd.nextAction || "미입력"}
+다음 액션 실행 예정일: ${fd.nextActionDate || "미입력"}
 
 [사용자 보고]
 "${text}"
@@ -87,14 +88,16 @@ SO: ${fd.so || "미입력"}
 
 11. memo (메모 추가): 문장에 향후 참고할 만한 새로운 배경정보(예산 상황, 의사결정권자, 경쟁사 언급, 내부 사정 등)가 있는데 기존 메모에는 없는 내용이면, 기존 메모 뒤에 이어붙인 전체 텍스트를 suggestedValue로 제시. 단순히 활동 로그에 이미 들어갈 내용(미팅했다, PoC 했다 정도)은 메모로 중복 제안하지 않음.
 
-12. nextAction (다음 액션): 문장에 다음 계획이 전혀 없고, 상황상 다음에 뭘 해야 할지 자연스럽게 유추 가능하면 제안.
+12. nextAction (다음 액션): 문장에 다음 계획이 전혀 없고, 상황상 다음에 뭘 해야 할지 자연스럽게 유추 가능하면 제안. 만약 그 다음 액션을 언제까지/언제 하기로 했는지 날짜가 문장에 있거나 유추 가능하면(예: "다음주까지 견적서 보내야 함", "이번달 말까지 계약 진행"), nextActionDate 항목도 별도로 함께 제안하세요(YYYY-MM-DD, 오늘 날짜 기준 계산).
+
+13. nextActionDate (다음 액션 실행 예정일): 다음 액션에 날짜/기한이 명확히 언급되면 위 12번과 별도 항목으로 제안 (다음 액션 텍스트 자체는 안 바뀌어도 날짜만 새로 언급되면 이것만 제안 가능).
 
 사용자가 "OOO 수정하려고 해", "OOO 바꿔야 하는데", "OOO 업데이트 필요" 처럼 특정 필드를 콕 집어 언급하면, 실제 새 값이 문장에 없어도 그 필드의 currentValue와 함께 제안 항목을 만들고 suggestedValue는 currentValue와 동일하게 두어 사용자가 직접 채우도록 하세요 (수정하려는 의도 자체가 신호입니다).
 
 애매하면 억지로 만들지 말고 제안하지 마세요. 근거가 명확한 것만 제안합니다 (빈 배열도 정상).
 
 아래 JSON 배열로만 답하세요 (다른 설명 없이):
-[{"field": "contactPerson|rm|so|targetProduct|expectedPerformanceRaw|contractAmount|contractGoal|contractRenewalDate|stage|probability|visitMeetingRaw|memo|nextAction 중 하나", "label": "한글 라벨", "currentValue": "현재값(짧게)", "suggestedValue": "제안값", "reason": "왜 이렇게 제안하는지 한 문장"}]`;
+[{"field": "contactPerson|rm|so|targetProduct|expectedPerformanceRaw|contractAmount|contractGoal|contractRenewalDate|stage|probability|visitMeetingRaw|memo|nextAction|nextActionDate 중 하나", "label": "한글 라벨", "currentValue": "현재값(짧게)", "suggestedValue": "제안값", "reason": "왜 이렇게 제안하는지 한 문장"}]`;
 
   try {
     const { text: raw } = await callClaude(fieldPrompt, 500);
