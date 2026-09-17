@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 
@@ -132,11 +132,19 @@ export default function Dashboard() {
   const [deals, setDeals] = useState([]);
   const [allActivity, setAllActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState("dashboard");
   const [activeGroup, setActiveGroup] = useState("전체");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loadError, setLoadError] = useState("");
+
+  const [editMode, setEditMode] = useState(false);
+  const [editNextAction, setEditNextAction] = useState("");
+  const [editMeetingDate, setEditMeetingDate] = useState("");
+  const [editMeetingNote, setEditMeetingNote] = useState("");
+  const [editMemo, setEditMemo] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -148,9 +156,7 @@ export default function Dashboard() {
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) setProfile(snap.data());
-      } catch (e) {
-        // 프로필 없어도 대시보드는 계속 진행
-      }
+      } catch (e) {}
     });
     return () => unsub();
   }, []);
@@ -173,10 +179,14 @@ export default function Dashboard() {
     })();
   }, [authChecked]);
 
-  const groups = useMemo(() => {
-    const set = new Set(deals.map((d) => (d.orgGroup || "").replace(/\n/g, " ").trim()));
-    return ["전체", ...Array.from(set).filter(Boolean)];
-  }, [deals]);
+  useEffect(() => {
+    if (!selected) return;
+    setEditMode(false);
+    setEditNextAction(selected.nextAction || "");
+    setEditMeetingDate(selected.nextMeetingDate || "");
+    setEditMeetingNote(selected.nextMeetingNote || "");
+    setEditMemo(selected.memo || "");
+  }, [selected]);
 
   const filtered = useMemo(() => {
     return deals.filter((d) => {
@@ -191,10 +201,8 @@ export default function Dashboard() {
     const now = new Date();
     const curMonth = now.getMonth() + 1;
     const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
-
     const orgSet = new Set(deals.map((d) => (d.orgName || "").trim()).filter(Boolean));
     let inProgress = 0, dueSoon = 0, delayed = 0;
-
     deals.forEach((d) => {
       if (isDone(d)) return;
       inProgress++;
@@ -203,14 +211,12 @@ export default function Dashboard() {
       if (gm === curMonth || gm === nextMonth) dueSoon++;
       else if (gm < curMonth) delayed++;
     });
-
     const mon = mondayOf(now);
     const sun = new Date(mon);
     sun.setDate(sun.getDate() + 6);
     const monStr = toYMD(mon);
     const sunStr = toYMD(sun);
     const meetingsThisWeek = allActivity.filter((a) => a.date && a.date >= monStr && a.date <= sunStr).length;
-
     return { totalOrgs: orgSet.size, inProgress, dueSoon, delayed, meetingsThisWeek };
   }, [deals, allActivity]);
 
@@ -218,14 +224,15 @@ export default function Dashboard() {
     const now = new Date();
     const curMonth = now.getMonth() + 1;
     const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
-
     const map = {};
     deals.forEach((d) => {
       const g = (d.orgGroup || "미분류").replace(/\n/g, " ").trim() || "미분류";
-      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgReps: {} };
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
       map[g][cls]++;
+      map[g].expected += d.expectedPerformance || 0;
+      map[g].contract += d.contractAmount || 0;
       const key = (d.orgName || "").trim();
       if (key) {
         const amt = d.expectedPerformance || 0;
@@ -234,17 +241,30 @@ export default function Dashboard() {
         }
       }
     });
-
     return Object.values(map)
       .map((g) => ({
         ...g,
         orgCount: g.orgs.size,
-        allOrgs: Object.entries(g.orgReps)
-          .sort((a, b) => b[1].amt - a[1].amt)
-          .map(([name, v]) => ({ name, deal: v.deal })),
+        allOrgs: Object.entries(g.orgReps).sort((a, b) => b[1].amt - a[1].amt).map(([name, v]) => ({ name, deal: v.deal })),
       }))
       .sort((a, b) => b.orgCount - a.orgCount);
   }, [deals]);
+
+  const orgRows = useMemo(() => {
+    const map = {};
+    deals.forEach((d) => {
+      const key = (d.orgName || "").trim();
+      if (!key) return;
+      if (!map[key]) map[key] = { name: key, group: (d.orgGroup || "").replace(/\n/g, " ").trim(), count: 0, expected: 0, contract: 0, bestDeal: d };
+      map[key].count++;
+      map[key].expected += d.expectedPerformance || 0;
+      map[key].contract += d.contractAmount || 0;
+      if ((d.expectedPerformance || 0) > (map[key].bestDeal.expectedPerformance || 0)) map[key].bestDeal = d;
+    });
+    return Object.values(map)
+      .filter((o) => !search || o.name.includes(search))
+      .sort((a, b) => b.expected - a.expected);
+  }, [deals, search]);
 
   async function openDeal(deal) {
     setSelected(deal);
@@ -254,6 +274,29 @@ export default function Dashboard() {
     const items = snap.docs.map((d) => d.data());
     items.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     setActivity(items);
+  }
+
+  async function handleSaveEdit() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const patch = {
+        nextAction: editNextAction,
+        nextMeetingDate: editMeetingDate,
+        nextMeetingNote: editMeetingNote,
+        memo: editMemo,
+        updatedAt: serverTimestamp(),
+      };
+      await updateDoc(doc(db, "deals", selected.id), patch);
+      const merged = { ...selected, ...patch, updatedAt: new Date() };
+      setSelected(merged);
+      setDeals((prev) => prev.map((d) => (d.id === selected.id ? merged : d)));
+      setEditMode(false);
+    } catch (e) {
+      alert("저장 실패: " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!authChecked || loading) {
@@ -279,9 +322,10 @@ export default function Dashboard() {
           {NAV_ITEMS.map((item) => (
             <div
               key={item.key}
+              onClick={() => setView(item.key)}
               className={
                 "mx-3 mb-1 px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 cursor-pointer " +
-                (item.key === "dashboard" ? "bg-white/10 text-white font-semibold" : "text-white/60 hover:bg-white/5")
+                (view === item.key ? "bg-white/10 text-white font-semibold" : "text-white/60 hover:bg-white/5")
               }
             >
               <span>{item.icon}</span>
@@ -297,13 +341,19 @@ export default function Dashboard() {
       <div className="flex-1 min-w-0">
         <header className="bg-white border-b border-[#E7EAF0] px-7 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-extrabold text-navy">금융기관 세일즈 파이프라인</h1>
+            <h1 className="text-lg font-extrabold text-navy">
+              {view === "dashboard" && "금융기관 세일즈 파이프라인"}
+              {view === "pipeline" && "파이프라인 전체 목록"}
+              {view === "orgs" && "기관현황"}
+              {view === "report" && "리포트"}
+              {view === "settings" && "설정"}
+            </h1>
             <p className="text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
           </div>
           <div className="flex items-center gap-3">
             <input
               className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-56"
-              placeholder="기관명·담당자로 검색..."
+              placeholder="기관명으로 검색..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -349,87 +399,133 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-sm font-extrabold text-navy">산업군별 주요 기관</h2>
-              <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
-            </div>
-            {activeGroup !== "전체" && (
-              <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>
-                전체 보기
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 mb-7">
-            {groupCards.map((g) => (
-              <div
-                key={g.name}
-                onClick={() => setActiveGroup(activeGroup === g.name ? "전체" : g.name)}
-                className={
-                  "bg-white rounded-2xl border p-4 cursor-pointer transition " +
-                  (activeGroup === g.name ? "border-navy ring-1 ring-navy" : "border-[#E7EAF0] hover:border-navy/40")
-                }
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="font-bold text-sm text-navy">{g.name}</div>
-                  <span className="text-gray-300">›</span>
+          {view === "dashboard" && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-sm font-extrabold text-navy">산업군별 주요 기관</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
                 </div>
-                <div className="text-[11px] text-gray-400 mb-3">총 {g.orgCount}개 기관</div>
-                <div className="flex items-center gap-3 mb-3">
-                  <Donut progress={g.progress} due={g.due} delayed={g.delayed} done={g.done} />
-                  <div className="text-[11px] space-y-1">
-                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 진행 {g.progress + g.done}</div>
-                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" /> 마감임박 {g.due}</div>
-                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
-                  </div>
-                </div>
-                <div className="text-[10px] text-gray-400 mb-1.5">주요 기업 ({g.allOrgs.length})</div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                  {g.allOrgs.map((o) => (
-                    <div
-                      key={o.name}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeal(o.deal);
-                      }}
-                      className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-2 py-1.5 cursor-pointer"
-                    >
-                      <LogoBadge name={o.name} />{o.name}
-                    </div>
-                  ))}
-                  {g.allOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
-                </div>
+                {activeGroup !== "전체" && (
+                  <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
+                )}
               </div>
-            ))}
-          </div>
 
-          <table className="deals mt-2">
-            <thead>
-              <tr>
-                <th>구분</th>
-                <th>업체명</th>
-                <th>타겟 제품</th>
-                <th>RM / SO</th>
-                <th>기대실적</th>
-                <th>계약가능성</th>
-                <th>진행단계</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((d) => (
-                <tr key={d.id} onClick={() => openDeal(d)}>
-                  <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
-                  <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
-                  <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
-                  <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
-                  <td>{formatWon(d.expectedPerformance)}</td>
-                  <td><span className={probPillClass(d.probability)}>{d.probability || "-"}</span></td>
-                  <td>{d.stage || "-"}</td>
+              <div className="grid grid-cols-3 gap-4 mb-7">
+                {groupCards.map((g) => (
+                  <div
+                    key={g.name}
+                    onClick={() => setActiveGroup(activeGroup === g.name ? "전체" : g.name)}
+                    className={
+                      "bg-white rounded-2xl border p-4 cursor-pointer transition " +
+                      (activeGroup === g.name ? "border-navy ring-1 ring-navy" : "border-[#E7EAF0] hover:border-navy/40")
+                    }
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="font-bold text-sm text-navy">{g.name}</div>
+                      <span className="text-gray-300">›</span>
+                    </div>
+                    <div className="text-[11px] text-gray-400 mb-3">총 {g.orgCount}개 기관</div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <Donut progress={g.progress} due={g.due} delayed={g.delayed} done={g.done} />
+                      <div className="text-[11px] space-y-1">
+                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 진행 {g.progress + g.done}</div>
+                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" /> 마감임박 {g.due}</div>
+                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-gray-400 mb-1.5">주요 기업 ({g.allOrgs.length})</div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                      {g.allOrgs.map((o) => (
+                        <div
+                          key={o.name}
+                          onClick={(e) => { e.stopPropagation(); openDeal(o.deal); }}
+                          className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-2 py-1.5 cursor-pointer"
+                        >
+                          <LogoBadge name={o.name} />{o.name}
+                        </div>
+                      ))}
+                      {g.allOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {(view === "dashboard" || view === "pipeline") && (
+            <table className="deals mt-2">
+              <thead>
+                <tr>
+                  <th>구분</th><th>업체명</th><th>타겟 제품</th><th>RM / SO</th>
+                  <th>기대실적</th><th>계약가능성</th><th>진행단계</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map((d) => (
+                  <tr key={d.id} onClick={() => openDeal(d)}>
+                    <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
+                    <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
+                    <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
+                    <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
+                    <td>{formatWon(d.expectedPerformance)}</td>
+                    <td><span className={probPillClass(d.probability)}>{d.probability || "-"}</span></td>
+                    <td>{d.stage || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {view === "orgs" && (
+            <table className="deals mt-2">
+              <thead>
+                <tr>
+                  <th>업체명</th><th>구분</th><th>딜 건수</th><th>기대실적 합계</th><th>계약금액 합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orgRows.map((o) => (
+                  <tr key={o.name} onClick={() => openDeal(o.bestDeal)}>
+                    <td style={{ fontWeight: 700 }}><LogoBadge name={o.name} />{o.name}</td>
+                    <td>{o.group}</td>
+                    <td>{o.count}</td>
+                    <td>{formatWon(o.expected)}</td>
+                    <td>{formatWon(o.contract)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {view === "report" && (
+            <table className="deals mt-2">
+              <thead>
+                <tr>
+                  <th>구분</th><th>기관수</th><th>진행</th><th>마감임박</th><th>지연</th><th>기대실적 합계</th><th>계약금액 합계</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupCards.map((g) => (
+                  <tr key={g.name}>
+                    <td style={{ fontWeight: 700 }}>{g.name}</td>
+                    <td>{g.orgCount}</td>
+                    <td>{g.progress + g.done}</td>
+                    <td>{g.due}</td>
+                    <td>{g.delayed}</td>
+                    <td>{formatWon(g.expected)}</td>
+                    <td>{formatWon(g.contract)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {view === "settings" && (
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-6 text-sm text-gray-500">
+              설정 화면은 준비 중입니다.
+            </div>
+          )}
         </div>
       </div>
 
@@ -438,12 +534,7 @@ export default function Dashboard() {
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
           <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
             <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9]">
-              <button
-                className="absolute top-4 right-5 text-gray-400 hover:text-navy text-lg"
-                onClick={() => setSelected(null)}
-              >
-                ✕
-              </button>
+              <button className="absolute top-4 right-5 text-gray-400 hover:text-navy text-lg" onClick={() => setSelected(null)}>✕</button>
               <div className="flex items-center gap-2 mb-1">
                 <LogoBadge name={selected.orgName} />
                 <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
@@ -451,9 +542,7 @@ export default function Dashboard() {
               <div className="text-xs text-gray-500">
                 {(selected.orgGroup || "").replace(/\n/g, " ")} · {(selected.targetProduct || "").replace(/\n/g, " ")}
               </div>
-              <span className={probPillClass(selected.probability) + " mt-2 inline-block"}>
-                {selected.probability || "가능성 미상"}
-              </span>
+              <span className={probPillClass(selected.probability) + " mt-2 inline-block"}>{selected.probability || "가능성 미상"}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
@@ -475,6 +564,63 @@ export default function Dashboard() {
             <div className="px-6 py-3 border-b border-[#E7EAF0]">
               <div className="text-[10px] text-gray-400 mb-1">방문미팅</div>
               <div className="text-xs text-gray-700">{selected.visitMeetingRaw || "-"}</div>
+            </div>
+
+            <div className="px-6 py-4 border-b border-[#E7EAF0]">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-extrabold text-navy">다음 액션 · 메모</div>
+                {!editMode && (
+                  <button className="text-[11px] text-navy underline" onClick={() => setEditMode(true)}>편집</button>
+                )}
+              </div>
+
+              {!editMode ? (
+                <div className="space-y-2 text-xs text-gray-700">
+                  <div><span className="text-gray-400">다음 액션: </span>{selected.nextAction || "미입력"}</div>
+                  <div><span className="text-gray-400">다음 미팅: </span>{selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}</div>
+                  <div><span className="text-gray-400">메모: </span>{selected.memo || "미입력"}</div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <input
+                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
+                    placeholder="다음 액션"
+                    value={editNextAction}
+                    onChange={(e) => setEditNextAction(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-1/2"
+                      value={editMeetingDate}
+                      onChange={(e) => setEditMeetingDate(e.target.value)}
+                    />
+                    <input
+                      className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-1/2"
+                      placeholder="미팅 메모"
+                      value={editMeetingNote}
+                      onChange={(e) => setEditMeetingNote(e.target.value)}
+                    />
+                  </div>
+                  <textarea
+                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
+                    placeholder="메모"
+                    rows={3}
+                    value={editMemo}
+                    onChange={(e) => setEditMemo(e.target.value)}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button className="text-[11px] text-gray-400" onClick={() => setEditMode(false)}>취소</button>
+                    <button
+                      className="text-[11px] bg-navy text-white px-3 py-1.5 rounded-lg"
+                      onClick={handleSaveEdit}
+                      disabled={saving}
+                    >
+                      {saving ? "저장 중..." : "저장"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4">
