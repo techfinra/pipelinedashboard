@@ -1292,9 +1292,10 @@ export default function Dashboard() {
                 <div className="text-[11px] font-bold text-red-600 mb-2">취소 요청으로 감지했습니다</div>
                 {!nlSelectedOrg && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
+                    <label className="text-[10px] text-gray-400 col-span-2 -mb-1">회사명 검색</label>
                     <input
                       className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
-                      placeholder="회사명 검색"
+                      placeholder="회사명 입력"
                       value={nlCompanySearch}
                       onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
                     />
@@ -1310,16 +1311,19 @@ export default function Dashboard() {
                   </div>
                 )}
                 {nlSelectedOrg && (
-                  <select
-                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
-                    value={nlOverrideDealId}
-                    onChange={(e) => setNlOverrideDealId(e.target.value)}
-                  >
-                    <option value="">-- 타겟제품 선택 --</option>
-                    {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
-                      <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
-                    ))}
-                  </select>
+                  <>
+                    <label className="text-[10px] text-gray-400 block mb-0.5">타겟제품 (취소 대상)</label>
+                    <select
+                      className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
+                      value={nlOverrideDealId}
+                      onChange={(e) => setNlOverrideDealId(e.target.value)}
+                    >
+                      <option value="">-- 타겟제품 선택 --</option>
+                      {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
+                        <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
+                      ))}
+                    </select>
+                  </>
                 )}
                 {nlOverrideDealId && (
                   nlCancelTarget ? (
@@ -1346,6 +1350,7 @@ export default function Dashboard() {
                   {nlSelectedOrg ? "AI가 회사를 찾았습니다. 타겟제품을 확인해주세요." : "회사명을 검색해서 선택해주세요."}
                 </div>
 
+                <label className="text-[10px] text-gray-400 block mb-0.5">회사명</label>
                 <input
                   className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-1.5"
                   placeholder="회사명 검색"
@@ -1371,25 +1376,32 @@ export default function Dashboard() {
 
                 {nlSelectedOrg && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
-                    <select
-                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
-                      value={nlOverrideDealId}
-                      onChange={(e) => setNlOverrideDealId(e.target.value)}
-                    >
-                      <option value="">-- 타겟제품 선택 --</option>
-                      {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
-                        <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="date"
-                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
-                      value={nlDate}
-                      onChange={(e) => setNlDate(e.target.value)}
-                    />
+                    <div className="col-span-2">
+                      <label className="text-[10px] text-gray-400 block mb-0.5">타겟제품</label>
+                      <select
+                        className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                        value={nlOverrideDealId}
+                        onChange={(e) => setNlOverrideDealId(e.target.value)}
+                      >
+                        <option value="">-- 타겟제품 선택 --</option>
+                        {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
+                          <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-400 block mb-0.5">액션 날짜</label>
+                      <input
+                        type="date"
+                        className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                        value={nlDate}
+                        onChange={(e) => setNlDate(e.target.value)}
+                      />
+                    </div>
                   </div>
                 )}
 
+                <label className="text-[10px] text-gray-400 block mb-0.5">진행이력 내용</label>
                 <textarea
                   className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
                   rows={2}
@@ -1398,21 +1410,31 @@ export default function Dashboard() {
                 />
 
                 {nlMeetingDate && (
-                  <label className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300 mb-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg px-2 py-1.5">
-                    <input type="checkbox" checked={nlApplyMeeting} onChange={(e) => setNlApplyMeeting(e.target.checked)} />
-                    다음 미팅으로 반영:
-                    <input
-                      type="date"
-                      className="text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
-                      value={nlMeetingDate}
-                      onChange={(e) => setNlMeetingDate(e.target.value)}
-                    />
-                    <input
-                      className="flex-1 text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
-                      value={nlMeetingNote}
-                      onChange={(e) => setNlMeetingNote(e.target.value)}
-                    />
-                  </label>
+                  <div className="text-[11px] text-gray-600 dark:text-gray-300 mb-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg px-2 py-1.5">
+                    <label className="flex items-center gap-1.5 mb-1.5">
+                      <input type="checkbox" checked={nlApplyMeeting} onChange={(e) => setNlApplyMeeting(e.target.checked)} />
+                      <span className="font-semibold">다음 미팅으로 반영</span>
+                    </label>
+                    <div className="flex gap-2 pl-5">
+                      <div>
+                        <label className="text-[9px] text-gray-400 block">미팅일자</label>
+                        <input
+                          type="date"
+                          className="text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                          value={nlMeetingDate}
+                          onChange={(e) => setNlMeetingDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-[9px] text-gray-400 block">메모</label>
+                        <input
+                          className="w-full text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                          value={nlMeetingNote}
+                          onChange={(e) => setNlMeetingNote(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex justify-end gap-2">
