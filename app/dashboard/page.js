@@ -373,8 +373,8 @@ export default function Dashboard() {
   const [nlDate, setNlDate] = useState("");
   const [nlActionText, setNlActionText] = useState("");
   const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
-  const [nlSuggestedNextAction, setNlSuggestedNextAction] = useState("");
-  const [nlApplySuggestion, setNlApplySuggestion] = useState(false);
+  const [nlFieldSuggestions, setNlFieldSuggestions] = useState([]);
+  const [nlApplyFields, setNlApplyFields] = useState({});
   const [nlMeetingDate, setNlMeetingDate] = useState("");
   const [nlMeetingNote, setNlMeetingNote] = useState("");
   const [nlSaving, setNlSaving] = useState(false);
@@ -866,8 +866,8 @@ export default function Dashboard() {
       setNlApplyMeeting(!!data.meetingDate);
       setNlMeetingDate(data.meetingDate || "");
       setNlMeetingNote(data.meetingNote || "");
-      setNlSuggestedNextAction(data.suggestedNextAction || "");
-      setNlApplySuggestion(false);
+      setNlFieldSuggestions(data.fieldSuggestions || []);
+      setNlApplyFields({});
 
       if (data.orgName) {
         setNlCompanySearch(data.orgName);
@@ -902,8 +902,8 @@ export default function Dashboard() {
     setNlApplyMeeting(false);
     setNlMeetingDate("");
     setNlMeetingNote("");
-    setNlSuggestedNextAction("");
-    setNlApplySuggestion(false);
+    setNlFieldSuggestions([]);
+    setNlApplyFields({});
   }
 
   async function handleConfirmNL() {
@@ -937,12 +937,13 @@ export default function Dashboard() {
         setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, nextMeetingDate: nlMeetingDate, nextMeetingNote: nlMeetingNote || "" } : d)));
       }
 
-      if (nlApplySuggestion && nlSuggestedNextAction.trim()) {
-        await updateDoc(doc(db, "deals", nlOverrideDealId), {
-          nextAction: nlSuggestedNextAction.trim(),
-          updatedAt: serverTimestamp(),
-        });
-        setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, nextAction: nlSuggestedNextAction.trim() } : d)));
+      const checkedSuggestions = nlFieldSuggestions.filter((s) => nlApplyFields[s.field]);
+      if (checkedSuggestions.length > 0) {
+        const patch = {};
+        checkedSuggestions.forEach((s) => { patch[s.field] = s.suggestedValue; });
+        patch.updatedAt = serverTimestamp();
+        await updateDoc(doc(db, "deals", nlOverrideDealId), patch);
+        setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, ...patch } : d)));
       }
 
       resetNL();
@@ -1484,20 +1485,39 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {nlSuggestedNextAction && (
-                  <div className="text-[11px] mb-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg px-2 py-1.5">
-                    <label className="flex items-center gap-1.5 mb-1.5">
-                      <input type="checkbox" checked={nlApplySuggestion} onChange={(e) => setNlApplySuggestion(e.target.checked)} />
-                      <span className="font-semibold text-pink-600 flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />AI 추천 다음 액션 <span className="text-gray-400 font-normal">(선택사항)</span>
-                      </span>
-                    </label>
-                    <input
-                      className="w-full text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 ml-5"
-                      style={{ width: "calc(100% - 20px)" }}
-                      value={nlSuggestedNextAction}
-                      onChange={(e) => setNlSuggestedNextAction(e.target.value)}
-                    />
+                {nlFieldSuggestions.length > 0 && (
+                  <div className="mb-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg px-2 py-2 space-y-2">
+                    <div className="text-[11px] font-semibold text-pink-600 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />AI가 검토해본 결과, 이런 항목도 같이 바뀌면 어떨까요? <span className="text-gray-400 font-normal">(선택사항)</span>
+                    </div>
+                    {nlFieldSuggestions.map((s, i) => (
+                      <div key={i} className="bg-white dark:bg-[#111827] rounded-lg p-2">
+                        <label className="flex items-start gap-1.5">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5"
+                            checked={!!nlApplyFields[s.field]}
+                            onChange={(e) => setNlApplyFields({ ...nlApplyFields, [s.field]: e.target.checked })}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[11px] font-semibold text-navy dark:text-gray-100">{s.label}</div>
+                            <div className="text-[10px] text-gray-400 mb-1">
+                              {s.currentValue || "미입력"} <span className="text-pink-500">→</span>{" "}
+                              <input
+                                className="text-[10px] font-semibold text-pink-600 border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] rounded px-1 py-0.5 w-40"
+                                value={s.suggestedValue}
+                                onChange={(e) => {
+                                  const updated = [...nlFieldSuggestions];
+                                  updated[i] = { ...updated[i], suggestedValue: e.target.value };
+                                  setNlFieldSuggestions(updated);
+                                }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-gray-400 italic">{s.reason}</div>
+                          </div>
+                        </label>
+                      </div>
+                    ))}
                   </div>
                 )}
 
