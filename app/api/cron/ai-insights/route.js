@@ -74,7 +74,7 @@ export async function GET(request) {
       const daysSince = last ? Math.floor((today - new Date(last.date)) / 86400000) : null;
       const stageMatch = matchKeywordStage(currentActionText);
 
-      const shouldFlag = stageMatch && daysSince !== null && daysSince >= THRESHOLD_DAYS;
+      const shouldFlag = stageMatch && daysSince !== null && daysSince >= THRESHOLD_DAYS && daysSince <= 30;
 
       if (!shouldFlag) {
         if (d.aiFlag) {
@@ -134,8 +134,57 @@ export async function GET(request) {
       }
     }
 
+    // ── 계약갱신일 AI 자동추론 (완료된 계약인데 계약갱신일이 아직 없는 딜만, 1회성) ──
+    let renewalInferred = 0;
+    for (const d of deals) {
+      if (d.probability !== "완료" || d.contractRenewalDate) continue;
+
+      const renewalPrompt = `다음은 완료된 계약 정보입니다. 이런 기업정보 데이터/플랫폼 계약은 보통 1년 단위로 갱신됩니다.
+
+업체명: ${d.orgName}
+타겟제품: ${d.targetProduct || ""}
+계약목표(완료시점 표기): "${d.contractGoal || ""}"
+오늘 날짜: ${today.toISOString().slice(0, 10)}
+
+"계약목표" 표기(예: "5월", "25년12월", "기존계약(완료)")를 바탕으로 이 계약이 언제 체결(완료)되었는지 최대한 합리적으로 추정하고, 거기에 1년을 더해 다음 계약 갱신일을 계산해주세요.
+- 연도가 명시 안 되어 있으면(예: "5월") 가장 최근에 그 달이 지난 시점으로 가정하세요.
+- "기존계약(완료)"처럼 시점 정보가 전혀 없으면 추정하지 마세요.
+- 확신이 없으면 절대 추측하지 말고 null로 답하세요.
+
+아래 JSON 형식으로만 답하세요: {"renewalDate": "YYYY-MM-DD 또는 null"}`;
+
+      try {
+        const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 100,
+            messages: [{ role: "user", content: renewalPrompt }],
+          }),
+        });
+        const aiData = await aiRes.json();
+        const raw = aiData.content?.[0]?.text || "";
+        const jsonMatch = raw.match(/\{[\s\S]*\}/);
+        const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        if (parsed?.renewalDate && /^\d{4}-\d{2}-\d{2}$/.test(parsed.renewalDate)) {
+          batch.update(db.collection("deals").doc(d.id), {
+            contractRenewalDate: parsed.renewalDate,
+            contractRenewalInferredByAI: true,
+          });
+          renewalInferred++;
+        }
+      } catch (e) {
+        // 개별 실패는 건너뜀
+      }
+    }
+
     await batch.commit();
-    return NextResponse.json({ message: "완료", flagged, cleared, aiCalled, totalDeals: deals.length });
+    return NextResponse.json({ message: "완료", flagged, cleared, aiCalled, renewalInferred, totalDeals: deals.length });
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
