@@ -394,6 +394,7 @@ export default function Dashboard() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [kpiModalKey, setKpiModalKey] = useState(null);
   const [showDroppedModal, setShowDroppedModal] = useState(false);
+  const [editNextActionDate, setEditNextActionDate] = useState("");
   const [showMemoHistory, setShowMemoHistory] = useState(false);
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [selectedOrgName, setSelectedOrgName] = useState(null);
@@ -532,6 +533,19 @@ export default function Dashboard() {
         const diffFuture = Math.floor((new Date(d.nextMeetingDate) - now) / 86400000);
         if (diffFuture >= 0 && diffFuture <= 7) { future = "actionDue"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
         else if (diffFuture > 7) { future = "actionPlanned"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
+      }
+      if (d.nextActionDate) {
+        const diffAction = Math.floor((new Date(d.nextActionDate) - now) / 86400000);
+        let actionCat = null;
+        if (diffAction >= 0 && diffAction <= 7) actionCat = "actionDue";
+        else if (diffAction > 7) actionCat = "actionPlanned";
+        if (actionCat) {
+          if (!future || (actionCat === "actionDue" && future !== "actionDue") || (actionCat === future && diffAction < Math.floor((new Date(futureDate) - now) / 86400000))) {
+            future = actionCat;
+            futureReason = "nextAction";
+            futureDate = d.nextActionDate;
+          }
+        }
       }
       if (d.contractRenewalDate) {
         const diffRenewal = Math.floor((new Date(d.contractRenewalDate) - now) / 86400000);
@@ -1332,6 +1346,8 @@ export default function Dashboard() {
                           <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">
                             {dealKpiCat[d.id]?.futureReason === "renewal"
                               ? `계약갱신 예정 · ${d.contractRenewalDate}`
+                              : dealKpiCat[d.id]?.futureReason === "nextAction"
+                              ? `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`
                               : `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`}
                           </div>
                         </div>
@@ -2266,7 +2282,7 @@ export default function Dashboard() {
               {[
                 { icon: ClipboardList, color: "bg-blue-50 text-blue-600", label: "지난번 액션", date: activity[1]?.date, text: activity[1]?.text, field: "prevAction", editable: !!activity[1] },
                 { icon: PlayCircle, color: "bg-navy/10 text-navy dark:text-gray-100", label: "현재 액션", date: activity[0]?.date, text: activity[0]?.text, field: "currentAction", editable: !!activity[0] },
-                { icon: Flag, color: "bg-orange-100 text-orange-600", label: "다음 액션", date: selected.nextAction ? "예정" : null, text: selected.nextAction, field: "nextAction", editable: true, highlight: true },
+                { icon: Flag, color: "bg-orange-100 text-orange-600", label: "다음 액션", date: selected.nextActionDate || (selected.nextAction ? "예정" : null), text: selected.nextAction, field: "nextAction", editable: true, highlight: true },
               ].map((row) => (
                 <div key={row.field} className={"rounded-xl border p-3 " + (row.highlight ? "border-orange-200 bg-orange-50" : "border-[#E7EAF0] dark:border-gray-700")}>
                   <div className="flex items-start gap-2.5">
@@ -2279,7 +2295,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
                           {row.editable && editingField !== row.field && (
-                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => startEdit(row.field, row.text)}>수정</button>
+                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || ""); }}>수정</button>
                           )}
                         </div>
                       </div>
@@ -2292,6 +2308,17 @@ export default function Dashboard() {
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                           />
+                          {row.field === "nextAction" && (
+                            <div>
+                              <label className="text-[9px] text-gray-400 block mb-0.5">실행 예정일 (지나면 알림에 표시)</label>
+                              <input
+                                type="date"
+                                className="text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
+                                value={editNextActionDate}
+                                onChange={(e) => setEditNextActionDate(e.target.value)}
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2 justify-end">
                             <button className="text-[10px] text-gray-400" onClick={cancelEdit}>취소</button>
                             <button
@@ -2299,7 +2326,7 @@ export default function Dashboard() {
                               disabled={saving}
                               onClick={() =>
                                 row.field === "nextAction"
-                                  ? saveDealField({ nextAction: editValue })
+                                  ? saveDealField({ nextAction: editValue, nextActionDate: editNextActionDate || null })
                                   : saveActivityText(activity[row.field === "prevAction" ? 1 : 0].id)
                               }
                             >
