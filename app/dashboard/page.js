@@ -324,6 +324,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [groupViewMode, setGroupViewMode] = useState("card");
+  const [listFilterGroup, setListFilterGroup] = useState("전체");
+  const [listFilterRecency, setListFilterRecency] = useState("전체");
   const [darkMode, setDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState("전체");
@@ -607,6 +610,14 @@ export default function Dashboard() {
       })
       .sort((a, b) => b.totalCount - a.totalCount);
   }, [deals, dealKpiCat]);
+
+  const allOrgFlat = useMemo(() => {
+    const rows = [];
+    groupCards.forEach((g) => {
+      g.allOrgs.forEach((o) => rows.push({ ...o, groupName: g.name }));
+    });
+    return rows;
+  }, [groupCards]);
 
   const searchMatches = useMemo(() => {
     if (!search.trim()) return [];
@@ -973,7 +984,7 @@ export default function Dashboard() {
               onClick={() => setShowNewDeal(true)}
               className="text-[11px] bg-navy text-white px-3 py-2 rounded-lg font-semibold"
             >
-              + 새 딜 등록
+              + 상세 등록
             </button>
             <button onClick={toggleDarkMode} className="text-gray-400 hover:text-navy dark:hover:text-gray-100 p-1.5">
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -1066,7 +1077,7 @@ export default function Dashboard() {
 
         <div className="p-7">
           <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
-            <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-2">✨ 자연어 입력</div>
+            <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-2">⚡ 빠른 등록</div>
             <div className="flex gap-2">
               <input
                 className="flex-1 text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
@@ -1160,13 +1171,24 @@ export default function Dashboard() {
                     <button className="text-xs text-navy dark:text-gray-100 underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
                   )}
                   <div className="flex items-center bg-[#F0F2F5] dark:bg-gray-800 rounded-lg p-1">
-                    <button className="p-1.5 rounded-md bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm"><LayoutGrid className="w-4 h-4" /></button>
-                    <button className="p-1.5 rounded-md text-gray-400"><List className="w-4 h-4" /></button>
+                    <button
+                      onClick={() => setGroupViewMode("card")}
+                      className={"p-1.5 rounded-md " + (groupViewMode === "card" ? "bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setGroupViewMode("list")}
+                      className={"p-1.5 rounded-md " + (groupViewMode === "list" ? "bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
+                    >
+                      <List className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 mb-7">
+              {groupViewMode === "card" ? (
+                <div className="grid grid-cols-3 gap-4 mb-7">
                 {groupCards.map((g) => (
                   <div
                     key={g.name}
@@ -1223,7 +1245,59 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              ) : (
+                <div className="mb-7">
+                  <div className="flex items-center gap-2 mb-3">
+                    <select
+                      className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg px-2 py-1.5"
+                      value={listFilterGroup}
+                      onChange={(e) => setListFilterGroup(e.target.value)}
+                    >
+                      <option value="전체">전체 구분</option>
+                      {GROUP_ORDER.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <select
+                      className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg px-2 py-1.5"
+                      value={listFilterRecency}
+                      onChange={(e) => setListFilterRecency(e.target.value)}
+                    >
+                      <option value="전체">전체 상태</option>
+                      <option value="active7">활발 진행</option>
+                      <option value="followUp">후속 필요</option>
+                      <option value="stale">장기 정체</option>
+                    </select>
+                  </div>
+                  <table className="deals">
+                    <thead>
+                      <tr>
+                        <th>구분</th><th>업체명</th><th>타겟제품</th><th>상태</th><th>계약가능성</th><th>RM / SO</th><th>기대실적</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allOrgFlat
+                        .filter((o) => listFilterGroup === "전체" || o.groupName === listFilterGroup)
+                        .filter((o) => listFilterRecency === "전체" || dealKpiCat[o.deal.id]?.recency === listFilterRecency)
+                        .filter((o) => !search || o.name.includes(search))
+                        .map((o) => {
+                          const cat = dealKpiCat[o.deal.id]?.recency;
+                          const info = cat ? RECENCY_LABEL[cat] : null;
+                          return (
+                            <tr key={o.groupName + o.name} onClick={() => openDeal(o.deal)}>
+                              <td>{o.groupName}</td>
+                              <td style={{ fontWeight: 700 }}><LogoBadge name={o.name} />{o.name}</td>
+                              <td>{(o.deal.targetProduct || "").replace(/\n/g, " ")}</td>
+                              <td>{info && <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + info[1]}>{info[0]}</span>}</td>
+                              <td><span className={probPillClass(o.deal.probability)}>{o.deal.probability || "-"}</span></td>
+                              <td>{[o.deal.rm, o.deal.so].filter(Boolean).join(" / ")}</td>
+                              <td>{formatWon(o.deal.expectedPerformance)}</td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
 
@@ -2004,7 +2078,7 @@ export default function Dashboard() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 pointer-events-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-extrabold text-navy dark:text-gray-100">새 딜 등록</h3>
+                <h3 className="text-base font-extrabold text-navy dark:text-gray-100">상세 등록</h3>
                 <button className="text-gray-400 text-lg" onClick={() => setShowNewDeal(false)}>✕</button>
               </div>
 
