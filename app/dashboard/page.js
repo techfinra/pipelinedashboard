@@ -5,6 +5,10 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, LineChart, Line,
+} from "recharts";
 
 function formatWon(n) {
   if (n === null || n === undefined) return "-";
@@ -400,6 +404,26 @@ export default function Dashboard() {
         return ia - ib;
       });
   }, [deals]);
+
+  const probDist = useMemo(() => {
+    const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 미상: 0 };
+    deals.forEach((d) => {
+      const p = d.probability;
+      if (p && counts[p] !== undefined) counts[p]++;
+      else counts["미상"]++;
+    });
+    return Object.entries(counts).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
+  }, [deals]);
+
+  const monthlyActivity = useMemo(() => {
+    const map = {};
+    allActivity.forEach((a) => {
+      if (!a.date) return;
+      const ym = a.date.slice(0, 7);
+      map[ym] = (map[ym] || 0) + 1;
+    });
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, count]) => ({ month, count }));
+  }, [allActivity]);
 
   const orgRows = useMemo(() => {
     const map = {};
@@ -845,26 +869,71 @@ export default function Dashboard() {
           )}
 
           {view === "report" && (
-            <table className="deals mt-2">
-              <thead>
-                <tr>
-                  <th>구분</th><th>기관수</th><th>진행</th><th>마감임박</th><th>지연</th><th>기대실적 합계</th><th>계약금액 합계</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groupCards.map((g) => (
-                  <tr key={g.name}>
-                    <td style={{ fontWeight: 700 }}>{g.name}</td>
-                    <td>{g.orgCount}</td>
-                    <td>{g.progress + g.done}</td>
-                    <td>{g.due}</td>
-                    <td>{g.delayed}</td>
-                    <td>{formatWon(g.expected)}</td>
-                    <td>{formatWon(g.contract)}</td>
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+                  <div className="text-sm font-extrabold text-navy mb-3">구분별 기대실적 합계</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={groupCards.map((g) => ({ name: g.name, 기대실적: Math.round(g.expected / 1e8 * 10) / 10 }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
+                      <YAxis tick={{ fontSize: 10 }} unit="억" />
+                      <Tooltip formatter={(v) => `${v}억원`} />
+                      <Bar dataKey="기대실적" fill="#0D1F4E" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+                  <div className="text-sm font-extrabold text-navy mb-3">계약가능성 분포</div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={probDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => `${e.name} ${e.value}`}>
+                        {probDist.map((entry, i) => (
+                          <Cell key={i} fill={["#16A34A", "#D97706", "#DC2626", "#0D1F4E", "#9CA3AF"][i % 5]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4 mb-6">
+                <div className="text-sm font-extrabold text-navy mb-3">월별 활동(진행이력) 추이</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={monthlyActivity}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
+                    <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#C8A84B" strokeWidth={2} dot={{ r: 3 }} name="활동 건수" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              <table className="deals mt-2">
+                <thead>
+                  <tr>
+                    <th>구분</th><th>기관수</th><th>진행</th><th>마감임박</th><th>지연</th><th>기대실적 합계</th><th>계약금액 합계</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {groupCards.map((g) => (
+                    <tr key={g.name}>
+                      <td style={{ fontWeight: 700 }}>{g.name}</td>
+                      <td>{g.orgCount}</td>
+                      <td>{g.progress + g.done}</td>
+                      <td>{g.due}</td>
+                      <td>{g.delayed}</td>
+                      <td>{formatWon(g.expected)}</td>
+                      <td>{formatWon(g.contract)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
 
           {view === "settings" && (
