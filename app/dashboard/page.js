@@ -120,29 +120,53 @@ function LogoBadge({ name }) {
   );
 }
 
-function Donut({ progress, due, delayed, done }) {
-  const total = progress + due + delayed + done || 1;
-  const pct = Math.round(((progress + done) / total) * 100);
-  const segs = [
-    { v: done + progress, color: "#16A34A" },
-    { v: due, color: "#D97706" },
-    { v: delayed, color: "#DC2626" },
+function GroupDonut({ progress, due, delayed }) {
+  const total = progress + due + delayed || 0;
+  const pct = total > 0 ? Math.round((progress / total) * 100) : 0;
+  const raw = [
+    { name: "진행", value: progress, color: "#16A34A" },
+    { name: "마감임박", value: due, color: "#D97706" },
+    { name: "지연", value: delayed, color: "#DC2626" },
   ];
-  let acc = 0;
-  const stops = segs.map((s) => {
-    const start = (acc / total) * 360;
-    acc += s.v;
-    const end = (acc / total) * 360;
-    return `${s.color} ${start}deg ${end}deg`;
-  });
+  const data = total > 0 ? raw.filter((d) => d.value > 0) : [{ name: "없음", value: 1, color: "#E5E7EB" }];
   return (
-    <div
-      className="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
-      style={{ background: `conic-gradient(${stops.join(",")})` }}
-    >
-      <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-xs font-extrabold text-navy">
-        {pct}%
+    <div className="relative w-[104px] h-[104px] shrink-0">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            innerRadius="70%"
+            outerRadius="100%"
+            startAngle={90}
+            endAngle={-270}
+            stroke="none"
+            paddingAngle={data.length > 1 ? 3 : 0}
+            cornerRadius={6}
+            isAnimationActive={false}
+          >
+            {data.map((d, i) => (
+              <Cell key={i} fill={d.color} />
+            ))}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-lg font-extrabold text-navy leading-none">{pct}%</span>
+        <span className="text-[9px] text-gray-400 mt-0.5">진행률</span>
       </div>
+    </div>
+  );
+}
+
+function DonutLegendRow({ color, label, value }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+        {label}
+      </span>
+      <span className="text-sm font-extrabold text-navy">{value}</span>
     </div>
   );
 }
@@ -858,12 +882,12 @@ export default function Dashboard() {
                       <span className="text-gray-300">›</span>
                     </div>
                     <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기관</div>
-                    <div className="flex items-center gap-3 mb-3">
-                      <Donut progress={g.progress} due={g.due} delayed={g.delayed} done={g.done} />
-                      <div className="text-[11px] space-y-1">
-                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 진행 {g.progress + g.done}</div>
-                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" /> 마감임박 {g.due}</div>
-                        <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
+                    <div className="flex items-center gap-1 mb-4 -ml-1">
+                      <GroupDonut progress={g.progress + g.done} due={g.due} delayed={g.delayed} />
+                      <div className="flex-1 space-y-2.5 pl-2">
+                        <DonutLegendRow color="#16A34A" label="진행" value={g.progress + g.done} />
+                        <DonutLegendRow color="#D97706" label="마감임박" value={g.due} />
+                        <DonutLegendRow color="#DC2626" label="지연" value={g.delayed} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between mb-1.5">
