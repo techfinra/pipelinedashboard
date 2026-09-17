@@ -1406,7 +1406,7 @@ export default function Dashboard() {
                 onClick={handleAnalyzeNL}
                 disabled={nlLoading}
               >
-                {nlLoading ? "분석 중..." : "분석"}
+                {nlLoading ? "분석 중..." : "입력"}
               </button>
             </div>
             {nlError && <p className="text-xs text-red-600 mt-2">{nlError}</p>}
