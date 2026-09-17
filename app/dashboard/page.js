@@ -15,7 +15,7 @@ import {
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
-  Sun, Moon, Sparkles, UserCheck, Newspaper, BookOpen, ExternalLink,
+  Sun, Moon, Sparkles, UserCheck, Newspaper, BookOpen, ExternalLink, Menu,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -335,6 +335,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [groupViewMode, setGroupViewMode] = useState("card");
   const [listFilterGroup, setListFilterGroup] = useState("전체");
   const [listFilterRecency, setListFilterRecency] = useState("전체");
@@ -1204,10 +1205,15 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#0B1220] flex">
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 bg-black/40 z-40 md:hidden" onClick={() => setMobileSidebarOpen(false)} />
+      )}
       <aside
         className={
           "shrink-0 bg-white dark:bg-[#111827] border-r border-[#ECEEF1] dark:border-gray-700 text-gray-700 dark:text-gray-300 flex flex-col relative transition-all duration-200 " +
-          (sidebarCollapsed ? "w-[68px]" : "w-60")
+          "fixed inset-y-0 left-0 z-50 md:relative md:z-auto w-64 " +
+          (mobileSidebarOpen ? "translate-x-0" : "-translate-x-full") + " md:translate-x-0 " +
+          (sidebarCollapsed ? "md:w-[68px]" : "md:w-60")
         }
       >
         <div className={"flex items-center gap-2.5 border-b border-[#ECEEF1] " + (sidebarCollapsed ? "px-4 py-5 justify-center" : "px-5 py-5")}>
@@ -1225,7 +1231,7 @@ export default function Dashboard() {
           {NAV_ITEMS.map((item) => (
             <div
               key={item.key}
-              onClick={() => setView(item.key)}
+              onClick={() => { setView(item.key); setMobileSidebarOpen(false); }}
               title={sidebarCollapsed ? item.label : undefined}
               className={
                 "mx-3 mb-1 py-2.5 rounded-lg text-sm flex items-center gap-2.5 cursor-pointer " +
@@ -1273,30 +1279,38 @@ export default function Dashboard() {
         )}
         <button
           onClick={() => setSidebarCollapsed((v) => !v)}
-          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 shadow-sm flex items-center justify-center text-gray-400 hover:text-navy"
+          className="hidden md:flex absolute -right-3 top-16 w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 shadow-sm items-center justify-center text-gray-400 hover:text-navy"
         >
           {sidebarCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
         </button>
       </aside>
 
       <div className="flex-1 min-w-0">
-        <header className="bg-white dark:bg-[#111827] border-b border-[#E7EAF0] dark:border-gray-700 px-7 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-extrabold text-navy dark:text-gray-100">
-              {view === "dashboard" && "금융기관 세일즈 파이프라인"}
-              {view === "pipeline" && "파이프라인 전체 목록"}
-              {view === "mycompanies" && "담당업체"}
-              {view === "orgs" && "기관현황"}
-              {view === "report" && "리포트"}
-              {view === "settings" && "설정"}
-            </h1>
-            <p className="text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
-          </div>
+        <header className="bg-white dark:bg-[#111827] border-b border-[#E7EAF0] dark:border-gray-700 px-4 md:px-7 py-3 md:py-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden text-gray-500 dark:text-gray-300 p-1.5 -ml-1.5"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-base md:text-lg font-extrabold text-navy dark:text-gray-100">
+                {view === "dashboard" && "금융기관 세일즈 파이프라인"}
+                {view === "pipeline" && "파이프라인 전체 목록"}
+                {view === "mycompanies" && "담당업체"}
+                {view === "orgs" && "기관현황"}
+                {view === "report" && "리포트"}
+                {view === "settings" && "설정"}
+              </h1>
+              <p className="hidden sm:block text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
               <input
-                className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg pl-8 pr-16 py-2 w-56"
+                className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg pl-8 pr-16 py-2 w-32 sm:w-56"
                 placeholder="업체명으로 검색..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
@@ -1335,14 +1349,14 @@ export default function Dashboard() {
                 </>
               )}
             </div>
-            <span className="text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
+            <span className="hidden lg:flex text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 실시간 업데이트
             </span>
             <button
               onClick={() => setShowNewDeal(true)}
-              className="text-[11px] bg-navy text-white px-3 py-2 rounded-lg font-semibold"
+              className="text-[11px] bg-navy text-white px-2.5 md:px-3 py-2 rounded-lg font-semibold whitespace-nowrap"
             >
-              + 상세 등록
+              + <span className="hidden sm:inline">상세 </span>등록
             </button>
             <button onClick={toggleDarkMode} className="text-gray-400 hover:text-navy dark:hover:text-gray-100 p-1.5">
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -1402,11 +1416,11 @@ export default function Dashboard() {
                 <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
                   {(profile?.name || "?").slice(0, 1)}
                 </div>
-                <div className="text-xs leading-tight">
+                <div className="hidden sm:block text-xs leading-tight">
                   <div className="font-semibold text-navy dark:text-gray-100">{profile?.name || "이름 미설정"}</div>
                   <div className="text-gray-400">{profile?.division || ""}</div>
                 </div>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-300" />
+                <ChevronDown className="hidden sm:block w-3.5 h-3.5 text-gray-300" />
               </div>
               {profileMenuOpen && (
                 <>
@@ -1435,7 +1449,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="p-7">
+        <div className="p-4 md:p-7">
           <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-extrabold text-navy dark:text-gray-100">⚡ 빠른 등록/취소</div>
@@ -1740,7 +1754,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-6 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-6">
             {KPI_DEFS.map((k) => (
               <div
                 key={k.key}
@@ -1793,7 +1807,7 @@ export default function Dashboard() {
               </div>
 
               {groupViewMode === "card" ? (
-                <div className="grid grid-cols-3 gap-4 mb-7">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-7">
                 {groupCards.map((g) => (
                   <div
                     key={g.name}
@@ -1873,6 +1887,7 @@ export default function Dashboard() {
                       <option value="stale">장기 정체</option>
                     </select>
                   </div>
+                  <div className="overflow-x-auto">
                   <table className="deals">
                     <thead>
                       <tr>
@@ -1901,12 +1916,14 @@ export default function Dashboard() {
                         })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </>
           )}
 
           {view === "dashboard" && (
+            <div className="overflow-x-auto">
             <table className="deals mt-2">
               <thead>
                 <tr>
@@ -1928,6 +1945,7 @@ export default function Dashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
 
           {view === "mycompanies" && (
@@ -1968,7 +1986,7 @@ export default function Dashboard() {
                     <div className="text-sm font-extrabold text-navy dark:text-gray-100">{groupName}</div>
                     <div className="text-[11px] text-gray-400">{orgs.length}개 기관</div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {orgs.map((o) => {
                       const rmSoSet = [...new Set(o.deals.flatMap((d) => [d.rm, d.so]).filter(Boolean))];
                       return (
@@ -2022,7 +2040,7 @@ export default function Dashboard() {
           )}
 
           {view === "orgs" && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {companyRows
                 .filter((o) => !search || o.name.includes(search))
                 .map((o) => (
@@ -2054,7 +2072,7 @@ export default function Dashboard() {
 
           {view === "report" && (
             <>
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
                   <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">구분별 계약금액 실적</div>
                   <ResponsiveContainer width="100%" height={260}>
