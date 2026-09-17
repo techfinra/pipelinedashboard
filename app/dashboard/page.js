@@ -118,6 +118,41 @@ function Donut({ progress, due, delayed, done }) {
   );
 }
 
+const GROUP_MAP = {
+  "신한금융그룹\n+주주": "신한금융그룹",
+  "5대 금융지주 은행\n+IBK": "은행",
+  "지방은행\n특수은행": "은행",
+  "인터넷\n은행": "은행",
+  "저축은행": "은행",
+  "코피티션": "코피티션",
+  "카드": "카드",
+  "캐피탈": "캐피탈",
+  "핀테크": "핀테크",
+  "정책지원": "정책지원",
+  "협회": "협회",
+  "VC\n(대형GP)": "VC",
+  "VC\n(중견·소)": "VC",
+  "VC\n(중견소)": "VC",
+  "VC\n(대기업)": "VC",
+  "일반기업": "일반기업",
+  "금융": "행사(오프라인)",
+  "VC\n(지원기관)": "행사(오프라인)",
+  "일반\n행사": "행사(오프라인)",
+  "홍보": "행사(오프라인)",
+  "팩토링": "팩토링",
+  "렌탈\n·리스": "렌탈·리스",
+};
+
+const GROUP_ORDER = [
+  "신한금융그룹", "은행", "코피티션", "카드", "캐피탈", "핀테크",
+  "정책지원", "협회", "VC", "일반기업", "행사(오프라인)", "팩토링", "렌탈·리스",
+];
+
+function mapGroupName(raw) {
+  const key = (raw || "").trim();
+  return GROUP_MAP[key] || (key === "" ? "미분류" : key);
+}
+
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: "🏠" },
   { key: "pipeline", label: "파이프라인", icon: "📊" },
@@ -190,7 +225,7 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => {
     return deals.filter((d) => {
-      const g = (d.orgGroup || "").replace(/\n/g, " ").trim();
+      const g = mapGroupName(d.orgGroup);
       if (activeGroup !== "전체" && g !== activeGroup) return false;
       if (search && !(d.orgName || "").includes(search)) return false;
       return true;
@@ -226,7 +261,7 @@ export default function Dashboard() {
     const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
     const map = {};
     deals.forEach((d) => {
-      const g = (d.orgGroup || "미분류").replace(/\n/g, " ").trim() || "미분류";
+      const g = mapGroupName(d.orgGroup);
       if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
@@ -247,7 +282,14 @@ export default function Dashboard() {
         orgCount: g.orgs.size,
         allOrgs: Object.entries(g.orgReps).sort((a, b) => b[1].amt - a[1].amt).map(([name, v]) => ({ name, deal: v.deal })),
       }))
-      .sort((a, b) => b.orgCount - a.orgCount);
+      .sort((a, b) => {
+        const ia = GROUP_ORDER.indexOf(a.name);
+        const ib = GROUP_ORDER.indexOf(b.name);
+        if (ia === -1 && ib === -1) return b.orgCount - a.orgCount;
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+      });
   }, [deals]);
 
   const orgRows = useMemo(() => {
@@ -255,7 +297,7 @@ export default function Dashboard() {
     deals.forEach((d) => {
       const key = (d.orgName || "").trim();
       if (!key) return;
-      if (!map[key]) map[key] = { name: key, group: (d.orgGroup || "").replace(/\n/g, " ").trim(), count: 0, expected: 0, contract: 0, bestDeal: d };
+      if (!map[key]) map[key] = { name: key, group: mapGroupName(d.orgGroup), count: 0, expected: 0, contract: 0, bestDeal: d };
       map[key].count++;
       map[key].expected += d.expectedPerformance || 0;
       map[key].contract += d.contractAmount || 0;
@@ -464,7 +506,7 @@ export default function Dashboard() {
               <tbody>
                 {filtered.map((d) => (
                   <tr key={d.id} onClick={() => openDeal(d)}>
-                    <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
+                    <td>{mapGroupName(d.orgGroup)}</td>
                     <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
                     <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
                     <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
@@ -540,7 +582,7 @@ export default function Dashboard() {
                 <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
               </div>
               <div className="text-xs text-gray-500">
-                {(selected.orgGroup || "").replace(/\n/g, " ")} · {(selected.targetProduct || "").replace(/\n/g, " ")}
+                {mapGroupName(selected.orgGroup)} · {(selected.targetProduct || "").replace(/\n/g, " ")}
               </div>
               <span className={probPillClass(selected.probability) + " mt-2 inline-block"}>{selected.probability || "가능성 미상"}</span>
             </div>
