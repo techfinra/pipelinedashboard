@@ -1646,6 +1646,7 @@ export default function Dashboard() {
                             <div className="text-[10px] text-gray-400 mb-1">
                               {s.currentValue || "미입력"} <span className="text-pink-500">→</span>{" "}
                               <input
+                                type={["nextActionDate", "contractRenewalDate"].includes(s.field) ? "date" : "text"}
                                 className="text-[10px] font-semibold text-pink-600 border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] rounded px-1 py-0.5 w-40"
                                 value={s.suggestedValue}
                                 onChange={(e) => {
