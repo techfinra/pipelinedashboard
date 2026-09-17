@@ -374,6 +374,7 @@ export default function Dashboard() {
   const [nlCompanySearch, setNlCompanySearch] = useState("");
   const [nlSelectedOrg, setNlSelectedOrg] = useState("");
   const [nlOverrideDealId, setNlOverrideDealId] = useState("");
+  const [nlDealAutoGuessed, setNlDealAutoGuessed] = useState(false);
   const [nlDate, setNlDate] = useState("");
   const [nlActionText, setNlActionText] = useState("");
   const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
@@ -964,12 +965,14 @@ export default function Dashboard() {
         const exists = companyRows.find((o) => o.name === data.orgName);
         if (exists) {
           setNlSelectedOrg(data.orgName);
-          const resolvedDealId = data.dealId || (exists.deals.length === 1 ? exists.deals[0].id : "");
+          // 제품이 특정 안 돼도 일단 첫 제품을 기본 선택 — 그래야 담당자/진행단계 등 라벨 추천이 바로 뜸(사용자가 원하면 드롭다운에서 바꾸면 됨)
+          const resolvedDealId = data.dealId || exists.deals[0].id;
           setNlOverrideDealId(resolvedDealId);
-          if (resolvedDealId) nlLastFieldFetchKey.current = resolvedDealId + "|" + nlText;
+          setNlDealAutoGuessed(!data.dealId);
         } else {
           setNlSelectedOrg("");
           setNlOverrideDealId("");
+          setNlDealAutoGuessed(false);
         }
       } else {
         setNlCompanySearch("");
@@ -1000,6 +1003,7 @@ export default function Dashboard() {
     setNlRelatedFileLabel("");
     setNlApplyRelatedFile(false);
     nlLastFieldFetchKey.current = "";
+    setNlDealAutoGuessed(false);
   }
 
   async function handleConfirmNL() {
@@ -1528,11 +1532,14 @@ export default function Dashboard() {
                 {nlSelectedOrg && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <div className="col-span-2">
-                      <label className="text-[10px] text-gray-400 block mb-0.5">타겟제품</label>
+                      <label className="text-[10px] text-gray-400 block mb-0.5">
+                        타겟제품
+                        {nlDealAutoGuessed && <span className="text-orange-500 font-normal ml-1">(제품이 특정 안 돼서 임의로 골라뒀어요 — 맞는지 확인해주세요)</span>}
+                      </label>
                       <select
-                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2"
+                        className={"w-full text-xs border rounded-lg px-2 py-2 " + (nlDealAutoGuessed ? "border-orange-300 dark:border-orange-800" : "border-[#E7EAF0] dark:border-gray-700")}
                         value={nlOverrideDealId}
-                        onChange={(e) => setNlOverrideDealId(e.target.value)}
+                        onChange={(e) => { setNlOverrideDealId(e.target.value); setNlDealAutoGuessed(false); }}
                       >
                         <option value="">-- 타겟제품 선택 --</option>
                         {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
