@@ -360,6 +360,7 @@ export default function Dashboard() {
     firstActionText: "",
   });
   const [creatingDeal, setCreatingDeal] = useState(false);
+  const [newDealCustomProduct, setNewDealCustomProduct] = useState(false);
 
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
@@ -627,6 +628,10 @@ export default function Dashboard() {
       .sort((a, b) => b.totalCount - a.totalCount);
   }, [deals, dealKpiCat]);
 
+  const uniqueTargetProducts = useMemo(() => {
+    return [...new Set(deals.map((d) => (d.targetProduct || "").replace(/\n/g, " ").trim()).filter(Boolean))].sort();
+  }, [deals]);
+
   const allOrgFlat = useMemo(() => {
     const rows = [];
     groupCards.forEach((g) => {
@@ -793,6 +798,7 @@ export default function Dashboard() {
         setAllActivity((prev) => [...prev, { dealId: ref.id, date: newDeal.firstActionDate || null, text: newDeal.firstActionText.trim() }]);
       }
       setShowNewDeal(false);
+      setNewDealCustomProduct(false);
       setNewDeal({
         orgGroup: GROUP_ORDER[0], orgName: "", targetProduct: "", contactPerson: "", rm: "", so: "",
         expectedPerformanceRaw: "", contractGoal: "", probability: "중", stage: "1단계",
@@ -869,16 +875,22 @@ export default function Dashboard() {
     }
     setNlSaving(true);
     try {
+      const appliedMeeting = nlApplyMeeting && nlMeetingDate;
       const newLogRef = await addDoc(collection(db, "activityLog"), {
         dealId: nlOverrideDealId,
         date: nlDate || null,
         text: nlActionText,
         source: "quick-input",
+        appliedMeetingDate: appliedMeeting ? nlMeetingDate : null,
+        appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
         createdAt: serverTimestamp(),
       });
-      setAllActivity((prev) => [...prev, { id: newLogRef.id, dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText, source: "quick-input" }]);
+      setAllActivity((prev) => [...prev, {
+        id: newLogRef.id, dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText, source: "quick-input",
+        appliedMeetingDate: appliedMeeting ? nlMeetingDate : null, appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
+      }]);
 
-      if (nlApplyMeeting && nlMeetingDate) {
+      if (appliedMeeting) {
         await updateDoc(doc(db, "deals", nlOverrideDealId), {
           nextMeetingDate: nlMeetingDate,
           nextMeetingNote: nlMeetingNote || "",
@@ -895,11 +907,23 @@ export default function Dashboard() {
     }
   }
 
+  // 빠른등록 이력 취소 시, 그 등록이 같이 세팅한 "다음 미팅"도 (그 뒤로 더 안 바뀌었다면) 같이 되돌림
+  async function revertQuickEntry(entry) {
+    await deleteDoc(doc(db, "activityLog", entry.id));
+    if (entry.appliedMeetingDate) {
+      const dealNow = deals.find((d) => d.id === entry.dealId);
+      if (dealNow && dealNow.nextMeetingDate === entry.appliedMeetingDate && (dealNow.nextMeetingNote || "") === (entry.appliedMeetingNote || "")) {
+        await updateDoc(doc(db, "deals", entry.dealId), { nextMeetingDate: "", nextMeetingNote: "" });
+        setDeals((prev) => prev.map((d) => (d.id === entry.dealId ? { ...d, nextMeetingDate: "", nextMeetingNote: "" } : d)));
+      }
+    }
+    setAllActivity((prev) => prev.filter((a) => a.id !== entry.id));
+  }
+
   async function handleCancelViaNL() {
     setNlSaving(true);
     try {
-      await deleteDoc(doc(db, "activityLog", nlCancelTarget.id));
-      setAllActivity((prev) => prev.filter((a) => a !== nlCancelTarget && !(a.dealId === nlCancelTarget.dealId && a.text === nlCancelTarget.text && a.date === nlCancelTarget.date)));
+      await revertQuickEntry(nlCancelTarget);
       resetNL();
     } catch (e) {
       setNlError("취소 실패: " + (e.message || e));
@@ -910,8 +934,7 @@ export default function Dashboard() {
 
   async function deleteQuickEntry(entry) {
     try {
-      await deleteDoc(doc(db, "activityLog", entry.id));
-      setAllActivity((prev) => prev.filter((a) => a.id !== entry.id));
+      await revertQuickEntry(entry);
       setNlConfirmDeleteId(null);
     } catch (e) {
       alert("취소 실패: " + (e.message || e));
@@ -2385,7 +2408,42 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">타겟 제품</label>
-                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.targetProduct} onChange={(e) => setNewDeal({ ...newDeal, targetProduct: e.target.value })} />
+                  {!newDealCustomProduct ? (
+                    <select
+                      className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2"
+                      value={newDeal.targetProduct}
+                      onChange={(e) => {
+                        if (e.target.value === "__custom__") {
+                          setNewDealCustomProduct(true);
+                          setNewDeal({ ...newDeal, targetProduct: "" });
+                        } else {
+                          setNewDeal({ ...newDeal, targetProduct: e.target.value });
+                        }
+                      }}
+                    >
+                      <option value="">-- 선택 --</option>
+                      {uniqueTargetProducts.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                      <option value="__custom__">+ 직접 입력...</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-1.5">
+                      <input
+                        className="flex-1 border border-[#E7EAF0] rounded-lg px-3 py-2"
+                        placeholder="새 타겟제품명 입력"
+                        value={newDeal.targetProduct}
+                        onChange={(e) => setNewDeal({ ...newDeal, targetProduct: e.target.value })}
+                        autoFocus
+                      />
+                      <button
+                        className="text-[11px] text-gray-400 px-2"
+                        onClick={() => { setNewDealCustomProduct(false); setNewDeal({ ...newDeal, targetProduct: "" }); }}
+                      >
+                        목록에서 선택
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
