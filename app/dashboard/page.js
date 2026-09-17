@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -628,7 +627,6 @@ export default function Dashboard() {
 
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
-  const [uploadingFile, setUploadingFile] = useState(false);
   const [addingLink, setAddingLink] = useState(false);
 
   async function handleAddLink() {
@@ -638,25 +636,6 @@ export default function Dashboard() {
     setNewLinkLabel("");
     setNewLinkUrl("");
     setAddingLink(false);
-  }
-
-  async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadingFile(true);
-    try {
-      const path = `deal-files/${selected.id}/${Date.now()}_${file.name}`;
-      const r = storageRef(storage, path);
-      await uploadBytes(r, file);
-      const url = await getDownloadURL(r);
-      const updated = [...(selected.relatedFiles || []), { label: file.name, url }];
-      await saveDealField({ relatedFiles: updated });
-    } catch (err) {
-      alert("업로드 실패: " + (err.message || err) + " (Firebase Storage가 활성화되어 있는지 확인해주세요)");
-    } finally {
-      setUploadingFile(false);
-      e.target.value = "";
-    }
   }
 
   async function handleCreateDeal() {
@@ -1531,11 +1510,6 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-
-                    <label className="block text-[11px] text-navy underline cursor-pointer">
-                      {uploadingFile ? "업로드 중..." : "+ 파일 업로드"}
-                      <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
-                    </label>
                   </div>
                 </div>
               )}
