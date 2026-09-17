@@ -1,3 +1,5 @@
+import "./globals.css";
+
 export const metadata = {
   title: "Pipeline Dashboard",
   description: "테크핀레이팅스 세일즈 파이프라인 대시보드",
