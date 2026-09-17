@@ -913,6 +913,7 @@ export default function Dashboard() {
   }
 
   const nlLastFieldFetchKey = useRef("");
+  const [nlFieldLoading, setNlFieldLoading] = useState(false);
 
   useEffect(() => {
     if (!nlResult || nlResult.intent === "cancel") return;
@@ -920,6 +921,7 @@ export default function Dashboard() {
     const key = nlOverrideDealId + "|" + nlText;
     if (nlLastFieldFetchKey.current === key) return;
     nlLastFieldFetchKey.current = key;
+    setNlFieldLoading(true);
     (async () => {
       try {
         const res = await fetch("/api/parse-nl", {
@@ -929,7 +931,10 @@ export default function Dashboard() {
         });
         const data = await res.json();
         if (res.ok) setNlFieldSuggestions(data.fieldSuggestions || []);
-      } catch (e) {}
+      } catch (e) {
+      } finally {
+        setNlFieldLoading(false);
+      }
     })();
   }, [nlOverrideDealId, nlText, nlResult]);
 
@@ -1595,7 +1600,13 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {nlFieldSuggestions.length > 0 && (
+                {nlFieldLoading && (
+                  <div className="mb-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg px-2 py-2 flex items-center gap-1.5 text-[11px] text-pink-600">
+                    <Sparkles className="w-3 h-3 animate-pulse" />AI가 라벨 추천 검토 중...
+                  </div>
+                )}
+
+                {!nlFieldLoading && nlFieldSuggestions.length > 0 && (
                   <div className="mb-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg px-2 py-2 space-y-2">
                     <div className="text-[11px] font-semibold text-pink-600 flex items-center gap-1">
                       <Sparkles className="w-3 h-3" />AI가 검토해본 결과, 이런 항목도 같이 바뀌면 어떨까요? <span className="text-gray-400 font-normal">(선택사항)</span>
