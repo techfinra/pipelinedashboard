@@ -88,6 +88,10 @@ export async function GET(request) {
       if (d.aiFlag && d.aiInsightForAction === currentActionText) {
         continue;
       }
+      // 담당자가 같은 액션 내용에 대해 이미 해제(dismiss)했으면 재생성 안함 (액션 내용이 바뀌면 다시 판단)
+      if (d.aiDismissedForAction === currentActionText) {
+        continue;
+      }
 
       const prompt = `당신은 B2B 데이터 세일즈 담당자를 돕는 어시스턴트입니다.
 아래는 한 영업 딜의 최근 액션 내용과 경과일수입니다.
