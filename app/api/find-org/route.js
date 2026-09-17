@@ -16,14 +16,17 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
   const expected = (process.env.ACCESS_CODE || "").trim();
-  const q = searchParams.get("q") || "";
+  const id = searchParams.get("id");
+  const org = searchParams.get("org");
+  const group = searchParams.get("group");
   if (!code || code !== expected) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
 
   const app = getAdminApp();
   const db = admin.firestore(app);
-  const snap = await db.collection("deals").get();
-  const matches = snap.docs
-    .map((d) => ({ id: d.id, orgName: d.data().orgName, orgGroup: d.data().orgGroup, targetProduct: d.data().targetProduct }))
-    .filter((d) => (d.orgName || "").includes(q));
-  return NextResponse.json({ matches });
+  const patch = {};
+  if (org) patch.orgName = org;
+  if (group) patch.orgGroup = group;
+  await db.collection("deals").doc(id).update(patch);
+  return NextResponse.json({ message: "완료", patch });
 }
