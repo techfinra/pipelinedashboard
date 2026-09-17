@@ -163,14 +163,12 @@ ${dealList}
     const urlMatch = text.match(/https?:\/\/[^\s]+/);
     const relatedFileUrl = urlMatch ? urlMatch[0] : null;
     let relatedFileLabel = null;
-    if (relatedFileUrl) {
-      if (text.includes("회의록")) relatedFileLabel = "회의록";
-      else if (text.includes("제안서")) relatedFileLabel = "제안서";
-      else if (text.includes("견적서")) relatedFileLabel = "견적서";
-      else if (text.includes("계약서")) relatedFileLabel = "계약서";
-      else if (text.includes("자료")) relatedFileLabel = "참고자료";
-      else relatedFileLabel = "첨부자료";
-    }
+    if (text.includes("회의록")) relatedFileLabel = "회의록";
+    else if (text.includes("제안서")) relatedFileLabel = "제안서";
+    else if (text.includes("견적서")) relatedFileLabel = "견적서";
+    else if (text.includes("계약서")) relatedFileLabel = "계약서";
+    else if (text.includes("자료")) relatedFileLabel = "참고자료";
+    else if (relatedFileUrl) relatedFileLabel = "첨부자료";
 
     let fieldSuggestions = [];
     if (matchedDeal && parsed.intent !== "cancel") {
