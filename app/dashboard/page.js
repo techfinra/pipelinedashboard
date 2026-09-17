@@ -258,6 +258,15 @@ export default function Dashboard() {
   });
   const [creatingDeal, setCreatingDeal] = useState(false);
 
+  const [nlText, setNlText] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlResult, setNlResult] = useState(null);
+  const [nlOverrideDealId, setNlOverrideDealId] = useState("");
+  const [nlDate, setNlDate] = useState("");
+  const [nlActionText, setNlActionText] = useState("");
+  const [nlSaving, setNlSaving] = useState(false);
+  const [nlError, setNlError] = useState("");
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
@@ -515,6 +524,58 @@ export default function Dashboard() {
     }
   }
 
+  async function handleAnalyzeNL() {
+    setNlError("");
+    if (!nlText.trim()) return;
+    setNlLoading(true);
+    try {
+      const res = await fetch("/api/parse-nl", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: nlText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNlError(data.error || "분석 실패");
+        return;
+      }
+      setNlResult(data);
+      setNlOverrideDealId(data.dealId || "");
+      setNlDate(data.date || "");
+      setNlActionText(data.actionText || "");
+    } catch (e) {
+      setNlError(String(e.message || e));
+    } finally {
+      setNlLoading(false);
+    }
+  }
+
+  async function handleConfirmNL() {
+    if (!nlOverrideDealId) {
+      setNlError("연결할 딜을 선택해주세요.");
+      return;
+    }
+    setNlSaving(true);
+    try {
+      await addDoc(collection(db, "activityLog"), {
+        dealId: nlOverrideDealId,
+        date: nlDate || null,
+        text: nlActionText,
+        createdAt: serverTimestamp(),
+      });
+      setAllActivity((prev) => [...prev, { dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText }]);
+      setNlText("");
+      setNlResult(null);
+      setNlOverrideDealId("");
+      setNlDate("");
+      setNlActionText("");
+    } catch (e) {
+      setNlError("저장 실패: " + (e.message || e));
+    } finally {
+      setNlSaving(false);
+    }
+  }
+
   if (!authChecked || loading) {
     return (
       <div className="p-10 font-sans">
@@ -598,6 +659,65 @@ export default function Dashboard() {
         </header>
 
         <div className="p-7">
+          <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4 mb-6">
+            <div className="text-sm font-extrabold text-navy mb-2">✨ 자연어 입력</div>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
+                placeholder="예: 9월 20일 신한카드 미팅해서 계약서 전달함"
+                value={nlText}
+                onChange={(e) => setNlText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleAnalyzeNL(); }}
+              />
+              <button
+                className="text-xs bg-navy text-white px-4 py-2 rounded-lg font-semibold"
+                onClick={handleAnalyzeNL}
+                disabled={nlLoading}
+              >
+                {nlLoading ? "분석 중..." : "분석"}
+              </button>
+            </div>
+            {nlError && <p className="text-xs text-red-600 mt-2">{nlError}</p>}
+
+            {nlResult && (
+              <div className="mt-3 border border-[#E7EAF0] rounded-xl p-3 bg-[#F8FAFC]">
+                <div className="text-[11px] text-gray-400 mb-2">
+                  {nlResult.dealId ? "AI가 딜을 찾았습니다. 확인 후 저장하세요." : "일치하는 딜을 못 찾았습니다. 직접 선택해주세요."}
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <select
+                    className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
+                    value={nlOverrideDealId}
+                    onChange={(e) => setNlOverrideDealId(e.target.value)}
+                  >
+                    <option value="">-- 딜 선택 --</option>
+                    {deals.map((d) => (
+                      <option key={d.id} value={d.id}>{d.orgName} - {d.targetProduct}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                    value={nlDate}
+                    onChange={(e) => setNlDate(e.target.value)}
+                  />
+                </div>
+                <textarea
+                  className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
+                  rows={2}
+                  value={nlActionText}
+                  onChange={(e) => setNlActionText(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <button className="text-xs text-gray-400" onClick={() => setNlResult(null)}>취소</button>
+                  <button className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg" onClick={handleConfirmNL} disabled={nlSaving}>
+                    {nlSaving ? "저장 중..." : "진행이력에 추가"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-5 gap-3.5 mb-6">
             {[
               { key: "active7", value: kpis.active7, color: "text-green-600", ring: "ring-green-500", label: "🟢 활발 진행", meta: "최근 7일" },
