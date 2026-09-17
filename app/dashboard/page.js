@@ -153,6 +153,45 @@ function mapGroupName(raw) {
   return GROUP_MAP[key] || (key === "" ? "미분류" : key);
 }
 
+function EditableLine({ label, meta, value, editing, editable, multiline, editValue, setEditValue, onEdit, onCancel, onSave, saving }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <span className="text-gray-400">{label}{meta ? ` (${meta})` : ""}</span>
+        {editable && !editing && (
+          <button className="text-navy underline" onClick={onEdit}>수정</button>
+        )}
+      </div>
+      {!editing ? (
+        <div className="text-gray-700 mt-0.5 whitespace-pre-wrap">{value || "미입력"}</div>
+      ) : (
+        <div className="mt-1 space-y-1.5">
+          {multiline ? (
+            <textarea
+              className="w-full border border-[#E7EAF0] rounded-lg px-2 py-1.5 text-xs"
+              rows={3}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+            />
+          ) : (
+            <input
+              className="w-full border border-[#E7EAF0] rounded-lg px-2 py-1.5 text-xs"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+            />
+          )}
+          <div className="flex gap-2 justify-end">
+            <button className="text-gray-400" onClick={onCancel}>취소</button>
+            <button className="bg-navy text-white px-2.5 py-1 rounded-lg" onClick={onSave} disabled={saving}>
+              {saving ? "저장 중..." : "저장"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: "🏠" },
   { key: "pipeline", label: "파이프라인", icon: "📊" },
@@ -175,10 +214,10 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState("");
 
   const [editMode, setEditMode] = useState(false);
-  const [editNextAction, setEditNextAction] = useState("");
+  const [editingField, setEditingField] = useState(null);
+  const [editValue, setEditValue] = useState("");
   const [editMeetingDate, setEditMeetingDate] = useState("");
   const [editMeetingNote, setEditMeetingNote] = useState("");
-  const [editMemo, setEditMemo] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -216,11 +255,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!selected) return;
-    setEditMode(false);
-    setEditNextAction(selected.nextAction || "");
+    setEditingField(null);
     setEditMeetingDate(selected.nextMeetingDate || "");
     setEditMeetingNote(selected.nextMeetingNote || "");
-    setEditMemo(selected.memo || "");
   }, [selected]);
 
   const filtered = useMemo(() => {
@@ -313,32 +350,50 @@ export default function Dashboard() {
     setActivity([]);
     const q = query(collection(db, "activityLog"), where("dealId", "==", deal.id));
     const snap = await getDocs(q);
-    const items = snap.docs.map((d) => d.data());
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     items.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     setActivity(items);
   }
 
-  async function handleSaveEdit() {
-    if (!selected) return;
+  function startEdit(field, initialValue) {
+    setEditingField(field);
+    setEditValue(initialValue || "");
+  }
+  function cancelEdit() {
+    setEditingField(null);
+  }
+
+  async function saveDealField(patch) {
     setSaving(true);
     try {
-      const patch = {
-        nextAction: editNextAction,
-        nextMeetingDate: editMeetingDate,
-        nextMeetingNote: editMeetingNote,
-        memo: editMemo,
-        updatedAt: serverTimestamp(),
-      };
-      await updateDoc(doc(db, "deals", selected.id), patch);
+      await updateDoc(doc(db, "deals", selected.id), { ...patch, updatedAt: serverTimestamp() });
       const merged = { ...selected, ...patch, updatedAt: new Date() };
       setSelected(merged);
       setDeals((prev) => prev.map((d) => (d.id === selected.id ? merged : d)));
-      setEditMode(false);
+      setEditingField(null);
     } catch (e) {
       alert("저장 실패: " + (e.message || e));
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveActivityText(activityId) {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, "activityLog", activityId), { text: editValue });
+      setActivity((prev) => prev.map((a) => (a.id === activityId ? { ...a, text: editValue } : a)));
+      setEditingField(null);
+    } catch (e) {
+      alert("저장 실패: " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveMeeting() {
+    await saveDealField({ nextMeetingDate: editMeetingDate, nextMeetingNote: editMeetingNote });
+    setEditingField(null);
   }
 
   if (!authChecked || loading) {
@@ -609,60 +664,94 @@ export default function Dashboard() {
             </div>
 
             <div className="px-6 py-4 border-b border-[#E7EAF0]">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-xs font-extrabold text-navy">다음 액션 · 메모</div>
-                {!editMode && (
-                  <button className="text-[11px] text-navy underline" onClick={() => setEditMode(true)}>편집</button>
-                )}
-              </div>
+              <div className="text-xs font-extrabold text-navy mb-2">액션 · 메모</div>
+              <div className="space-y-3 text-xs">
 
-              {!editMode ? (
-                <div className="space-y-2 text-xs text-gray-700">
-                  <div><span className="text-gray-400">다음 액션: </span>{selected.nextAction || "미입력"}</div>
-                  <div><span className="text-gray-400">다음 미팅: </span>{selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}</div>
-                  <div><span className="text-gray-400">메모: </span>{selected.memo || "미입력"}</div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <input
-                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
-                    placeholder="다음 액션"
-                    value={editNextAction}
-                    onChange={(e) => setEditNextAction(e.target.value)}
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-1/2"
-                      value={editMeetingDate}
-                      onChange={(e) => setEditMeetingDate(e.target.value)}
-                    />
-                    <input
-                      className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-1/2"
-                      placeholder="미팅 메모"
-                      value={editMeetingNote}
-                      onChange={(e) => setEditMeetingNote(e.target.value)}
-                    />
+                {/* 이전 액션 */}
+                <EditableLine
+                  label="이전 액션"
+                  meta={activity[1]?.date}
+                  value={activity[1]?.text}
+                  editing={editingField === "prevAction"}
+                  editable={!!activity[1]}
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  onEdit={() => startEdit("prevAction", activity[1]?.text)}
+                  onCancel={cancelEdit}
+                  onSave={() => saveActivityText(activity[1].id)}
+                  saving={saving}
+                />
+
+                {/* 현재 액션 */}
+                <EditableLine
+                  label="현재 액션"
+                  meta={activity[0]?.date}
+                  value={activity[0]?.text}
+                  editing={editingField === "currentAction"}
+                  editable={!!activity[0]}
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  onEdit={() => startEdit("currentAction", activity[0]?.text)}
+                  onCancel={cancelEdit}
+                  onSave={() => saveActivityText(activity[0].id)}
+                  saving={saving}
+                />
+
+                {/* 다음 액션 */}
+                <EditableLine
+                  label="다음 액션"
+                  value={selected.nextAction}
+                  editing={editingField === "nextAction"}
+                  editable
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  onEdit={() => startEdit("nextAction", selected.nextAction)}
+                  onCancel={cancelEdit}
+                  onSave={() => saveDealField({ nextAction: editValue })}
+                  saving={saving}
+                />
+
+                {/* 다음 미팅 */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">다음 미팅</span>
+                    {editingField !== "meeting" && (
+                      <button className="text-navy underline" onClick={() => setEditingField("meeting")}>수정</button>
+                    )}
                   </div>
-                  <textarea
-                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
-                    placeholder="메모"
-                    rows={3}
-                    value={editMemo}
-                    onChange={(e) => setEditMemo(e.target.value)}
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <button className="text-[11px] text-gray-400" onClick={() => setEditMode(false)}>취소</button>
-                    <button
-                      className="text-[11px] bg-navy text-white px-3 py-1.5 rounded-lg"
-                      onClick={handleSaveEdit}
-                      disabled={saving}
-                    >
-                      {saving ? "저장 중..." : "저장"}
-                    </button>
-                  </div>
+                  {editingField !== "meeting" ? (
+                    <div className="text-gray-700 mt-0.5">
+                      {selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}
+                    </div>
+                  ) : (
+                    <div className="mt-1 space-y-1.5">
+                      <div className="flex gap-1.5">
+                        <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" value={editMeetingDate} onChange={(e) => setEditMeetingDate(e.target.value)} />
+                        <input className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" placeholder="메모" value={editMeetingNote} onChange={(e) => setEditMeetingNote(e.target.value)} />
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <button className="text-gray-400" onClick={() => setEditingField(null)}>취소</button>
+                        <button className="bg-navy text-white px-2.5 py-1 rounded-lg" onClick={saveMeeting} disabled={saving}>{saving ? "저장 중..." : "저장"}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* 메모 */}
+                <EditableLine
+                  label="메모"
+                  value={selected.memo}
+                  editing={editingField === "memo"}
+                  editable
+                  multiline
+                  editValue={editValue}
+                  setEditValue={setEditValue}
+                  onEdit={() => startEdit("memo", selected.memo)}
+                  onCancel={cancelEdit}
+                  onSave={() => saveDealField({ memo: editValue })}
+                  saving={saving}
+                />
+              </div>
             </div>
 
             <div className="px-6 py-4">
