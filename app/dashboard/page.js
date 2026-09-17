@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 
@@ -24,6 +24,25 @@ function parseGoalMonth(text) {
   if (!text) return null;
   const m = text.match(/(\d{1,2})\s*월/);
   return m ? parseInt(m[1], 10) : null;
+}
+
+function parseAmountKR(text) {
+  if (!text) return null;
+  const t = text.trim();
+  if (t === "" || t === "-") return null;
+  if (t.includes("무상")) return 0;
+  const plain = t.replace(/,/g, "");
+  if (/^\d+원?$/.test(plain)) return parseInt(plain.replace("원", ""), 10);
+  let total = 0, matched = false;
+  const re = /([\d.]+)\s*(억|천만|백만|만)/g;
+  let m;
+  while ((m = re.exec(t))) {
+    matched = true;
+    const n = parseFloat(m[1]);
+    const mult = { "억": 1e8, "천만": 1e7, "백만": 1e6, "만": 1e4 }[m[2]];
+    total += n * mult;
+  }
+  return matched ? Math.round(total) : null;
 }
 
 function isDone(deal) {
@@ -220,6 +239,24 @@ export default function Dashboard() {
   const [editMeetingDate, setEditMeetingDate] = useState("");
   const [editMeetingNote, setEditMeetingNote] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [showNewDeal, setShowNewDeal] = useState(false);
+  const [newDeal, setNewDeal] = useState({
+    orgGroup: GROUP_ORDER[0],
+    orgName: "",
+    targetProduct: "",
+    contactPerson: "",
+    rm: "",
+    so: "",
+    expectedPerformanceRaw: "",
+    contractGoal: "",
+    probability: "중",
+    stage: "1단계",
+    visitMeetingRaw: "",
+    firstActionDate: "",
+    firstActionText: "",
+  });
+  const [creatingDeal, setCreatingDeal] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -422,6 +459,62 @@ export default function Dashboard() {
     setEditingField(null);
   }
 
+  async function handleCreateDeal() {
+    if (!newDeal.orgName.trim()) {
+      alert("업체명을 입력해주세요.");
+      return;
+    }
+    setCreatingDeal(true);
+    try {
+      const dealPayload = {
+        orgGroup: newDeal.orgGroup,
+        orgName: newDeal.orgName.trim(),
+        targetProduct: newDeal.targetProduct.trim(),
+        contactPerson: newDeal.contactPerson.trim(),
+        rm: newDeal.rm.trim(),
+        so: newDeal.so.trim(),
+        expectedPerformance: parseAmountKR(newDeal.expectedPerformanceRaw),
+        expectedPerformanceRaw: newDeal.expectedPerformanceRaw.trim(),
+        contractGoal: newDeal.contractGoal.trim(),
+        probability: newDeal.probability,
+        stage: newDeal.stage,
+        visitMeetingRaw: newDeal.visitMeetingRaw.trim(),
+        contractAmount: null,
+        nextAction: "",
+        nextMeetingDate: "",
+        nextMeetingNote: "",
+        memo: "",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const ref = await addDoc(collection(db, "deals"), dealPayload);
+
+      if (newDeal.firstActionText.trim()) {
+        await addDoc(collection(db, "activityLog"), {
+          dealId: ref.id,
+          date: newDeal.firstActionDate || null,
+          text: newDeal.firstActionText.trim(),
+          createdAt: serverTimestamp(),
+        });
+      }
+
+      setDeals((prev) => [...prev, { id: ref.id, ...dealPayload }]);
+      if (newDeal.firstActionText.trim()) {
+        setAllActivity((prev) => [...prev, { dealId: ref.id, date: newDeal.firstActionDate || null, text: newDeal.firstActionText.trim() }]);
+      }
+      setShowNewDeal(false);
+      setNewDeal({
+        orgGroup: GROUP_ORDER[0], orgName: "", targetProduct: "", contactPerson: "", rm: "", so: "",
+        expectedPerformanceRaw: "", contractGoal: "", probability: "중", stage: "1단계",
+        visitMeetingRaw: "", firstActionDate: "", firstActionText: "",
+      });
+    } catch (e) {
+      alert("등록 실패: " + (e.message || e));
+    } finally {
+      setCreatingDeal(false);
+    }
+  }
+
   if (!authChecked || loading) {
     return (
       <div className="p-10 font-sans">
@@ -483,6 +576,12 @@ export default function Dashboard() {
             <span className="text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 실시간 업데이트
             </span>
+            <button
+              onClick={() => setShowNewDeal(true)}
+              className="text-[11px] bg-navy text-white px-3 py-2 rounded-lg font-semibold"
+            >
+              + 새 딜 등록
+            </button>
             <div className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0]">
               <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
                 {(profile?.name || "?").slice(0, 1)}
@@ -808,6 +907,101 @@ export default function Dashboard() {
                   </div>
                 ))}
                 {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {showNewDeal && (
+        <>
+          <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setShowNewDeal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 pointer-events-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-extrabold text-navy">새 딜 등록</h3>
+                <button className="text-gray-400 text-lg" onClick={() => setShowNewDeal(false)}>✕</button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="text-gray-400 block mb-1">구분</label>
+                  <select
+                    className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2"
+                    value={newDeal.orgGroup}
+                    onChange={(e) => setNewDeal({ ...newDeal, orgGroup: e.target.value })}
+                  >
+                    {GROUP_ORDER.map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">업체명 *</label>
+                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.orgName} onChange={(e) => setNewDeal({ ...newDeal, orgName: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">타겟 제품</label>
+                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.targetProduct} onChange={(e) => setNewDeal({ ...newDeal, targetProduct: e.target.value })} />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-gray-400 block mb-1">담당자</label>
+                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.contactPerson} onChange={(e) => setNewDeal({ ...newDeal, contactPerson: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 block mb-1">RM</label>
+                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.rm} onChange={(e) => setNewDeal({ ...newDeal, rm: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 block mb-1">SO</label>
+                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.so} onChange={(e) => setNewDeal({ ...newDeal, so: e.target.value })} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">기대실적 (예: 3.1억원, 3000만원)</label>
+                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.expectedPerformanceRaw} onChange={(e) => setNewDeal({ ...newDeal, expectedPerformanceRaw: e.target.value })} />
+                  {newDeal.expectedPerformanceRaw && (
+                    <div className="text-[10px] text-gray-400 mt-1">
+                      인식된 금액: {parseAmountKR(newDeal.expectedPerformanceRaw) !== null ? formatWon(parseAmountKR(newDeal.expectedPerformanceRaw)) : "인식 안됨(그냥 텍스트로만 저장)"}
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-gray-400 block mb-1">계약목표</label>
+                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" placeholder="예: 12월" value={newDeal.contractGoal} onChange={(e) => setNewDeal({ ...newDeal, contractGoal: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-gray-400 block mb-1">계약가능성</label>
+                    <select className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.probability} onChange={(e) => setNewDeal({ ...newDeal, probability: e.target.value })}>
+                      {["상", "중", "하", "완료"].map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 block mb-1">진행단계</label>
+                    <select className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.stage} onChange={(e) => setNewDeal({ ...newDeal, stage: e.target.value })}>
+                      {["1단계", "2단계", "3단계", "4단계"].map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-400 block mb-1">방문미팅</label>
+                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.visitMeetingRaw} onChange={(e) => setNewDeal({ ...newDeal, visitMeetingRaw: e.target.value })} />
+                </div>
+
+                <div className="pt-2 border-t border-[#E7EAF0]">
+                  <label className="text-gray-400 block mb-1">최초 액션 (선택 — 입력하면 진행이력에 자동 추가)</label>
+                  <div className="flex gap-2">
+                    <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-2 w-1/3" value={newDeal.firstActionDate} onChange={(e) => setNewDeal({ ...newDeal, firstActionDate: e.target.value })} />
+                    <input className="border border-[#E7EAF0] rounded-lg px-2 py-2 flex-1" placeholder="예: 킥오프 미팅 진행" value={newDeal.firstActionText} onChange={(e) => setNewDeal({ ...newDeal, firstActionText: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-5">
+                <button className="text-gray-400 text-xs" onClick={() => setShowNewDeal(false)}>취소</button>
+                <button className="bg-navy text-white text-xs px-4 py-2 rounded-lg" onClick={handleCreateDeal} disabled={creatingDeal}>
+                  {creatingDeal ? "등록 중..." : "등록"}
+                </button>
               </div>
             </div>
           </div>
