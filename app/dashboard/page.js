@@ -1217,7 +1217,7 @@ export default function Dashboard() {
       {selected && (
         <>
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
-          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl flex flex-col">
+          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
             <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
               <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelected(null)}>
                 <X className="w-4 h-4" />
@@ -1395,7 +1395,7 @@ export default function Dashboard() {
             </div>
 
             {/* 탭 */}
-            <div className="flex border-b border-[#E7EAF0] shrink-0 px-2">
+            <div className="flex border-b border-[#E7EAF0] px-2 sticky top-0 bg-white z-10">
               {[
                 { key: "info", label: "상세정보" },
                 { key: "history", label: "액션 히스토리" },
@@ -1415,7 +1415,7 @@ export default function Dashboard() {
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div>
               {detailTab === "info" && (
                 <>
                   <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
