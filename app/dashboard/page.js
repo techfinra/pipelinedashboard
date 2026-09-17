@@ -1253,6 +1253,9 @@ export default function Dashboard() {
                       return info ? <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + info[1]}>{info[0]}</span> : null;
                     })()}
                   </div>
+                  <div className="text-xs text-gray-500 mt-1.5 font-medium">
+                    {(selected.targetProduct || "").replace(/\n/g, " ") || "타겟제품 미입력"}
+                  </div>
                 </div>
                 {(() => {
                   const dd = ddayFromGoal(selected.contractGoal);
@@ -1348,6 +1351,7 @@ export default function Dashboard() {
               {detailTab === "info" && (
                 <>
                   <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
+                    <GridCell icon={Layers} label="타겟제품" field="targetProduct" displayValue={(selected.targetProduct || "").replace(/\n/g, " ") || "-"} />
                     <GridCell icon={User} label="담당자" field="contactPerson" displayValue={selected.contactPerson || "-"} />
                     <GridCell icon={Users} label="RM" field="rm" displayValue={selected.rm || "-"} />
                     <GridCell icon={Users} label="SO" field="so" displayValue={selected.so || "-"} />
