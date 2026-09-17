@@ -208,6 +208,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
   const [activeGroup, setActiveGroup] = useState("전체");
+  const [activeKpi, setActiveKpi] = useState(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [activity, setActivity] = useState([]);
@@ -260,15 +261,6 @@ export default function Dashboard() {
     setEditMeetingNote(selected.nextMeetingNote || "");
   }, [selected]);
 
-  const filtered = useMemo(() => {
-    return deals.filter((d) => {
-      const g = mapGroupName(d.orgGroup);
-      if (activeGroup !== "전체" && g !== activeGroup) return false;
-      if (search && !(d.orgName || "").includes(search)) return false;
-      return true;
-    });
-  }, [deals, activeGroup, search]);
-
   const lastActionByDeal = useMemo(() => {
     const map = {};
     allActivity.forEach((a) => {
@@ -278,30 +270,53 @@ export default function Dashboard() {
     return map;
   }, [allActivity]);
 
-  const kpis = useMemo(() => {
+  const dealKpiCat = useMemo(() => {
     const now = new Date();
-    let active7 = 0, followUp = 0, stale = 0, actionDue = 0, actionPlanned = 0;
-
+    const map = {};
     deals.forEach((d) => {
       const lastDate = lastActionByDeal[d.id];
+      let recency;
       if (lastDate) {
         const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
-        if (diffDays <= 7) active7++;
-        else if (diffDays <= 30) followUp++;
-        else stale++;
+        recency = diffDays <= 7 ? "active7" : diffDays <= 30 ? "followUp" : "stale";
       } else {
-        stale++;
+        recency = "stale";
       }
-
+      let future = null;
       if (d.nextMeetingDate) {
         const diffFuture = Math.floor((new Date(d.nextMeetingDate) - now) / 86400000);
-        if (diffFuture >= 0 && diffFuture <= 7) actionDue++;
-        else if (diffFuture > 7) actionPlanned++;
+        if (diffFuture >= 0 && diffFuture <= 7) future = "actionDue";
+        else if (diffFuture > 7) future = "actionPlanned";
       }
+      map[d.id] = { recency, future };
     });
-
-    return { active7, followUp, stale, actionDue, actionPlanned };
+    return map;
   }, [deals, lastActionByDeal]);
+
+  const filtered = useMemo(() => {
+    return deals.filter((d) => {
+      const g = mapGroupName(d.orgGroup);
+      if (activeGroup !== "전체" && g !== activeGroup) return false;
+      if (search && !(d.orgName || "").includes(search)) return false;
+      if (activeKpi) {
+        const cat = dealKpiCat[d.id] || {};
+        if (cat.recency !== activeKpi && cat.future !== activeKpi) return false;
+      }
+      return true;
+    });
+  }, [deals, activeGroup, search, activeKpi, dealKpiCat]);
+
+  const kpis = useMemo(() => {
+    let active7 = 0, followUp = 0, stale = 0, actionDue = 0, actionPlanned = 0;
+    Object.values(dealKpiCat).forEach((c) => {
+      if (c.recency === "active7") active7++;
+      else if (c.recency === "followUp") followUp++;
+      else stale++;
+      if (c.future === "actionDue") actionDue++;
+      else if (c.future === "actionPlanned") actionPlanned++;
+    });
+    return { active7, followUp, stale, actionDue, actionPlanned };
+  }, [dealKpiCat]);
 
   const groupCards = useMemo(() => {
     const now = new Date();
@@ -485,27 +500,31 @@ export default function Dashboard() {
 
         <div className="p-7">
           <div className="grid grid-cols-5 gap-3.5 mb-6">
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-green-600">{kpis.active7}</div>
-              <div className="text-xs text-gray-500 mt-1">🟢 활발 진행 <span className="text-gray-300">(최근 7일)</span></div>
-            </div>
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-blue-600">{kpis.followUp}</div>
-              <div className="text-xs text-gray-500 mt-1">🔵 후속 필요 <span className="text-gray-300">(8~30일)</span></div>
-            </div>
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-red-600">{kpis.stale}</div>
-              <div className="text-xs text-gray-500 mt-1">🔴 장기 정체 <span className="text-gray-300">(30일 초과)</span></div>
-            </div>
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-orange-500">{kpis.actionDue}</div>
-              <div className="text-xs text-gray-500 mt-1">🟠 액션 도래 <span className="text-gray-300">(7일 이내)</span></div>
-            </div>
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-purple-600">{kpis.actionPlanned}</div>
-              <div className="text-xs text-gray-500 mt-1">🟣 액션 예정 <span className="text-gray-300">(8일 이후)</span></div>
-            </div>
+            {[
+              { key: "active7", value: kpis.active7, color: "text-green-600", ring: "ring-green-500", label: "🟢 활발 진행", meta: "최근 7일" },
+              { key: "followUp", value: kpis.followUp, color: "text-blue-600", ring: "ring-blue-500", label: "🔵 후속 필요", meta: "8~30일" },
+              { key: "stale", value: kpis.stale, color: "text-red-600", ring: "ring-red-500", label: "🔴 장기 정체", meta: "30일 초과" },
+              { key: "actionDue", value: kpis.actionDue, color: "text-orange-500", ring: "ring-orange-400", label: "🟠 액션 도래", meta: "7일 이내" },
+              { key: "actionPlanned", value: kpis.actionPlanned, color: "text-purple-600", ring: "ring-purple-500", label: "🟣 액션 예정", meta: "8일 이후" },
+            ].map((k) => (
+              <div
+                key={k.key}
+                onClick={() => setActiveKpi(activeKpi === k.key ? null : k.key)}
+                className={
+                  "bg-white border rounded-2xl p-4 cursor-pointer transition " +
+                  (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] hover:border-navy/40")
+                }
+              >
+                <div className={"text-2xl font-extrabold " + k.color}>{k.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{k.label} <span className="text-gray-300">({k.meta})</span></div>
+              </div>
+            ))}
           </div>
+          {activeKpi && (
+            <div className="mb-4 -mt-3">
+              <button className="text-xs text-navy underline" onClick={() => setActiveKpi(null)}>KPI 필터 해제</button>
+            </div>
+          )}
 
           {view === "dashboard" && (
             <>
