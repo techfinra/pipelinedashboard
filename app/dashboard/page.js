@@ -15,6 +15,7 @@ import {
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
+  Sun, Moon,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -153,7 +154,7 @@ function GroupDonut({ active7, followUp, stale }) {
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-2xl font-extrabold text-navy leading-none">{pct}%</span>
+        <span className="text-2xl font-extrabold text-navy dark:text-gray-100 leading-none">{pct}%</span>
         <span className="text-[9px] text-gray-400 mt-1">활발 진행률</span>
       </div>
     </div>
@@ -167,7 +168,7 @@ function DonutLegendRow({ color, label, value }) {
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
         {label}
       </span>
-      <span className="text-base font-extrabold text-navy">{value}</span>
+      <span className="text-base font-extrabold text-navy dark:text-gray-100">{value}</span>
     </div>
   );
 }
@@ -213,7 +214,7 @@ function EditableLine({ label, meta, value, editing, editable, multiline, highli
       <div className="flex items-center justify-between">
         <span className="text-gray-400 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}{meta ? ` (${meta})` : ""}</span>
         {editable && !editing && (
-          <button className="text-navy underline" onClick={onEdit}>수정</button>
+          <button className="text-navy dark:text-gray-100 underline" onClick={onEdit}>수정</button>
         )}
       </div>
       {!editing ? (
@@ -324,6 +325,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState("전체");
   const [activeKpi, setActiveKpi] = useState(null);
   const [search, setSearch] = useState("");
@@ -371,6 +374,22 @@ export default function Dashboard() {
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
   const [activeProductCat, setActiveProductCat] = useState(null);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && window.localStorage.getItem("pd-theme");
+    const isDark = saved === "dark";
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
+  function toggleDarkMode() {
+    setDarkMode((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle("dark", next);
+      window.localStorage.setItem("pd-theme", next ? "dark" : "light");
+      return next;
+    });
+  }
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -590,6 +609,11 @@ export default function Dashboard() {
       .sort((a, b) => b.totalCount - a.totalCount);
   }, [deals, dealKpiCat]);
 
+  const searchMatches = useMemo(() => {
+    if (!search.trim()) return [];
+    return companyRows.filter((o) => o.name.includes(search.trim())).slice(0, 8);
+  }, [search, companyRows]);
+
   const actionDueDeals = useMemo(() => {
     return deals
       .filter((d) => dealKpiCat[d.id]?.future === "actionDue")
@@ -801,17 +825,17 @@ export default function Dashboard() {
   function GridCell({ icon: Icon, label, field, displayValue }) {
     const editing = editingField === field;
     return (
-      <div className="bg-white px-4 py-3 group">
+      <div className="bg-white dark:bg-[#111827] px-4 py-3 group">
         <div className="text-[10px] text-gray-400 mb-0.5 flex items-center justify-between">
           <span className="flex items-center gap-1"><Icon className="w-3 h-3" />{label}</span>
           {!editing && (
-            <button className="text-navy opacity-0 group-hover:opacity-100 transition text-[10px]" onClick={() => startEdit(field, selected[field])}>
+            <button className="text-navy dark:text-gray-100 opacity-0 group-hover:opacity-100 transition text-[10px]" onClick={() => startEdit(field, selected[field])}>
               수정
             </button>
           )}
         </div>
         {!editing ? (
-          <div className="text-xs font-semibold text-navy break-words">{displayValue}</div>
+          <div className="text-xs font-semibold text-navy dark:text-gray-100 break-words">{displayValue}</div>
         ) : (
           <div className="space-y-1">
             <input
@@ -840,10 +864,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] flex">
+    <div className="min-h-screen bg-[#F4F6F9] dark:bg-[#0B1220] flex">
       <aside
         className={
-          "shrink-0 bg-white border-r border-[#ECEEF1] text-gray-700 flex flex-col relative transition-all duration-200 " +
+          "shrink-0 bg-white dark:bg-[#111827] border-r border-[#ECEEF1] dark:border-gray-700 text-gray-700 dark:text-gray-300 flex flex-col relative transition-all duration-200 " +
           (sidebarCollapsed ? "w-[68px]" : "w-60")
         }
       >
@@ -853,7 +877,7 @@ export default function Dashboard() {
           </div>
           {!sidebarCollapsed && (
             <div>
-              <div className="font-bold text-sm leading-tight text-gray-900">TechFin Pipeline</div>
+              <div className="font-bold text-sm leading-tight text-gray-900 dark:text-gray-100">TechFin Pipeline</div>
               <div className="text-[10px] text-gray-400 leading-tight">Sales Growth Together</div>
             </div>
           )}
@@ -867,7 +891,7 @@ export default function Dashboard() {
               className={
                 "mx-3 mb-1 py-2.5 rounded-lg text-sm flex items-center gap-2.5 cursor-pointer " +
                 (sidebarCollapsed ? "justify-center px-0" : "px-3") + " " +
-                (view === item.key ? "bg-[#F1F3F6] text-gray-900 font-semibold" : "text-gray-500 hover:bg-[#F8F9FB]")
+                (view === item.key ? "bg-[#F1F3F6] dark:bg-gray-700 text-gray-900 dark:text-white font-semibold" : "text-gray-500 dark:text-gray-400 hover:bg-[#F8F9FB] dark:hover:bg-gray-800")
               }
             >
               <item.icon className="w-4 h-4 shrink-0" strokeWidth={2} />
@@ -876,7 +900,7 @@ export default function Dashboard() {
           ))}
         </nav>
         {!sidebarCollapsed && (
-          <div className="p-4 text-[11px] text-gray-400 border-t border-[#ECEEF1]">
+          <div className="p-4 text-[11px] text-gray-400 border-t border-[#ECEEF1] dark:border-gray-700">
             TechFin Ratings<br />세일즈추진팀
           </div>
         )}
@@ -889,9 +913,9 @@ export default function Dashboard() {
       </aside>
 
       <div className="flex-1 min-w-0">
-        <header className="bg-white border-b border-[#E7EAF0] px-7 py-4 flex items-center justify-between">
+        <header className="bg-white dark:bg-[#111827] border-b border-[#E7EAF0] dark:border-gray-700 px-7 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-extrabold text-navy">
+            <h1 className="text-lg font-extrabold text-navy dark:text-gray-100">
               {view === "dashboard" && "금융기관 세일즈 파이프라인"}
               {view === "pipeline" && "파이프라인 전체 목록"}
               {view === "orgs" && "기관현황"}
@@ -902,13 +926,46 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
               <input
-                className="text-xs border border-[#E7EAF0] rounded-lg pl-8 pr-3 py-2 w-56"
-                placeholder="기관명으로 검색..."
+                className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg pl-8 pr-16 py-2 w-56"
+                placeholder="업체명으로 검색..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchMatches[0]) {
+                    openDeal(searchMatches[0].deals[0]);
+                    setSearchOpen(false);
+                  }
+                }}
               />
+              <button
+                onClick={() => { if (searchMatches[0]) { openDeal(searchMatches[0].deals[0]); setSearchOpen(false); } }}
+                className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy text-white text-[10px] px-2 py-1.5 rounded-md"
+              >
+                검색
+              </button>
+              {searchOpen && search && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setSearchOpen(false)} />
+                  <div className="absolute left-0 top-11 w-full bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden max-h-72 overflow-y-auto">
+                    {searchMatches.map((o) => (
+                      <div
+                        key={o.name}
+                        onClick={() => { openDeal(o.deals[0]); setSearchOpen(false); }}
+                        className="flex items-center px-3 py-2.5 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer text-xs font-semibold text-navy dark:text-gray-100"
+                      >
+                        <LogoBadge name={o.name} />{o.name}
+                        <span className="text-gray-400 font-normal ml-1.5">{o.group}</span>
+                      </div>
+                    ))}
+                    {searchMatches.length === 0 && (
+                      <div className="px-3 py-4 text-center text-[11px] text-gray-300">일치하는 업체가 없습니다.</div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
             <span className="text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 실시간 업데이트
@@ -918,6 +975,9 @@ export default function Dashboard() {
               className="text-[11px] bg-navy text-white px-3 py-2 rounded-lg font-semibold"
             >
               + 새 딜 등록
+            </button>
+            <button onClick={toggleDarkMode} className="text-gray-400 hover:text-navy dark:hover:text-gray-100 p-1.5">
+              {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <div className="relative">
               <button
@@ -934,9 +994,9 @@ export default function Dashboard() {
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 top-10 w-72 bg-white border border-[#E7EAF0] rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 top-10 w-72 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
                     <div className="px-4 py-3 border-b border-[#E7EAF0] flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-navy">🟠 액션 도래 (7일 이내)</span>
+                      <span className="text-xs font-extrabold text-navy dark:text-gray-100">🟠 액션 도래 (7일 이내)</span>
                       <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
                     </div>
                     <div className="max-h-72 overflow-y-auto">
@@ -946,7 +1006,7 @@ export default function Dashboard() {
                           onClick={() => { openDeal(d); setNotifOpen(false); }}
                           className="px-4 py-2.5 border-b border-[#F4F6F9] hover:bg-[#F8FAFC] cursor-pointer"
                         >
-                          <div className="flex items-center text-xs font-semibold text-navy">
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={d.orgName} />{d.orgName}
                           </div>
                           <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">
@@ -973,7 +1033,7 @@ export default function Dashboard() {
                   {(profile?.name || "?").slice(0, 1)}
                 </div>
                 <div className="text-xs leading-tight">
-                  <div className="font-semibold text-navy">{profile?.name || "이름 미설정"}</div>
+                  <div className="font-semibold text-navy dark:text-gray-100">{profile?.name || "이름 미설정"}</div>
                   <div className="text-gray-400">{profile?.division || ""}</div>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-gray-300" />
@@ -1006,8 +1066,8 @@ export default function Dashboard() {
         </header>
 
         <div className="p-7">
-          <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4 mb-6">
-            <div className="text-sm font-extrabold text-navy mb-2">✨ 자연어 입력</div>
+          <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
+            <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-2">✨ 자연어 입력</div>
             <div className="flex gap-2">
               <input
                 className="flex-1 text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
@@ -1072,7 +1132,7 @@ export default function Dashboard() {
                 onClick={() => setKpiModalKey(k.key)}
                 className={
                   "bg-white border rounded-2xl p-4 cursor-pointer transition " +
-                  (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] hover:border-navy/40")
+                  (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] dark:border-gray-700 hover:border-navy/40")
                 }
               >
                 <div className={"w-9 h-9 rounded-xl flex items-center justify-center mb-2 " + k.bg}>
@@ -1085,7 +1145,7 @@ export default function Dashboard() {
           </div>
           {activeKpi && (
             <div className="mb-4 -mt-3">
-              <button className="text-xs text-navy underline" onClick={() => setActiveKpi(null)}>KPI 필터 해제</button>
+              <button className="text-xs text-navy dark:text-gray-100 underline" onClick={() => setActiveKpi(null)}>KPI 필터 해제</button>
             </div>
           )}
 
@@ -1093,15 +1153,15 @@ export default function Dashboard() {
             <>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-sm font-extrabold text-navy">산업군별 주요 기관</h2>
+                  <h2 className="text-sm font-extrabold text-navy dark:text-gray-100">산업군별 주요 기관</h2>
                   <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {activeGroup !== "전체" && (
-                    <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
+                    <button className="text-xs text-navy dark:text-gray-100 underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
                   )}
-                  <div className="flex items-center bg-[#F0F2F5] rounded-lg p-1">
-                    <button className="p-1.5 rounded-md bg-white text-navy shadow-sm"><LayoutGrid className="w-4 h-4" /></button>
+                  <div className="flex items-center bg-[#F0F2F5] dark:bg-gray-800 rounded-lg p-1">
+                    <button className="p-1.5 rounded-md bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm"><LayoutGrid className="w-4 h-4" /></button>
                     <button className="p-1.5 rounded-md text-gray-400"><List className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -1113,16 +1173,16 @@ export default function Dashboard() {
                     key={g.name}
                     onClick={() => setActiveGroup(activeGroup === g.name ? "전체" : g.name)}
                     className={
-                      "bg-white rounded-2xl border p-4 cursor-pointer transition " +
-                      (activeGroup === g.name ? "border-navy ring-1 ring-navy" : "border-[#E7EAF0] hover:border-navy/40")
+                      "bg-white dark:bg-[#111827] rounded-2xl border p-4 cursor-pointer transition " +
+                      (activeGroup === g.name ? "border-navy ring-1 ring-navy" : "border-[#E7EAF0] dark:border-gray-700 hover:border-navy/40")
                     }
                   >
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center shrink-0">
-                          <GroupIcon name={g.name} className="w-4 h-4 text-navy" />
+                          <GroupIcon name={g.name} className="w-4 h-4 text-navy dark:text-gray-100" />
                         </div>
-                        <div className="font-bold text-sm text-navy">{g.name}</div>
+                        <div className="font-bold text-sm text-navy dark:text-gray-100">{g.name}</div>
                       </div>
                       <span className="text-gray-300">›</span>
                     </div>
@@ -1137,14 +1197,14 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="text-[10px] text-gray-400">주요 기업 ({g.allOrgs.length})</div>
-                      <span className="text-[10px] text-navy">전체보기 ›</span>
+                      <span className="text-[10px] text-navy dark:text-gray-100">전체보기 ›</span>
                     </div>
                     <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                       {g.allOrgs.map((o) => (
                         <div
                           key={o.name}
                           onClick={(e) => { e.stopPropagation(); openDeal(o.deal); }}
-                          className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-2 py-1.5 cursor-pointer"
+                          className="flex items-center text-xs bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-2 py-1.5 cursor-pointer"
                         >
                           <LogoBadge name={o.name} />{o.name}
                         </div>
@@ -1192,7 +1252,7 @@ export default function Dashboard() {
                     className="bg-white border border-[#E7EAF0] rounded-xl p-4 cursor-pointer hover:border-navy/40"
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center text-sm font-bold text-navy">
+                      <div className="flex items-center text-sm font-bold text-navy dark:text-gray-100">
                         <LogoBadge name={o.name} />{o.name}
                       </div>
                       <span className={"text-[10px] px-2 py-0.5 rounded-md font-semibold " + RECENCY_LABEL[o.dominant][1]}>
@@ -1215,8 +1275,8 @@ export default function Dashboard() {
           {view === "report" && (
             <>
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-                  <div className="text-sm font-extrabold text-navy mb-3">구분별 계약금액 실적</div>
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">구분별 계약금액 실적</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <BarChart data={groupCards.map((g) => ({ name: g.name, 계약금액: Math.round(g.contract / 1e8 * 100) / 100 }))}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
@@ -1234,8 +1294,8 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-                  <div className="text-sm font-extrabold text-navy mb-3">계약가능성 분포</div>
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">계약가능성 분포</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
                       <Pie
@@ -1260,8 +1320,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4 mb-6">
-                <div className="text-sm font-extrabold text-navy mb-3">월별 활동(진행이력) 추이</div>
+              <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
+                <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">월별 활동(진행이력) 추이</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart
                     data={monthlyActivity}
@@ -1301,7 +1361,7 @@ export default function Dashboard() {
           )}
 
           {view === "settings" && (
-            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-6 text-sm text-gray-500">
+            <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-6 text-sm text-gray-500">
               설정 화면은 준비 중입니다.
             </div>
           )}
@@ -1311,7 +1371,7 @@ export default function Dashboard() {
       {selected && (
         <>
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
-          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
+          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white dark:bg-[#111827] z-40 overflow-y-auto shadow-2xl">
             <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
               <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelected(null)}>
                 <X className="w-4 h-4" />
@@ -1319,7 +1379,7 @@ export default function Dashboard() {
               <div className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
                 {panelOrigin ? (
                   <button
-                    className="text-navy font-semibold hover:underline flex items-center gap-1"
+                    className="text-navy dark:text-gray-100 font-semibold hover:underline flex items-center gap-1"
                     onClick={() => { setSelected(null); setSelectedOrgName(panelOrigin); }}
                   >
                     ‹ {panelOrigin}
@@ -1331,14 +1391,14 @@ export default function Dashboard() {
                   </>
                 )}
                 <span>›</span>
-                <span className="text-navy font-semibold">{(selected.targetProduct || selected.orgName).replace(/\n/g, " ")}</span>
+                <span className="text-navy dark:text-gray-100 font-semibold">{(selected.targetProduct || selected.orgName).replace(/\n/g, " ")}</span>
               </div>
 
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <LogoBadge name={selected.orgName} />
-                    <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
+                    <h2 className="text-lg font-extrabold text-navy dark:text-gray-100">{selected.orgName}</h2>
                     <button onClick={() => toggleFavorite(selected.orgName)}>
                       <Star
                         className={"w-4 h-4 " + (favorites.includes(selected.orgName) ? "text-amber-400 fill-amber-400" : "text-gray-300")}
@@ -1389,7 +1449,7 @@ export default function Dashboard() {
               const itemsInCat = companyDeals.filter((d) => classifyTargetProduct(d.targetProduct) === activeProductCat);
               return (
                 <div className="px-6 py-4 border-b border-[#E7EAF0] shrink-0">
-                  <div className="text-xs font-extrabold text-navy mb-2">타겟제품 ({companyDeals.length})</div>
+                  <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-2">타겟제품 ({companyDeals.length})</div>
                   <div className="flex gap-2 mb-2">
                     {catList.map(([cat, v]) => (
                       <button
@@ -1416,11 +1476,11 @@ export default function Dashboard() {
                             onClick={() => openDeal(d)}
                             className={
                               "border rounded-lg px-3 py-2 cursor-pointer " +
-                              (isCurrent ? "border-navy bg-navy/5" : "border-[#E7EAF0] hover:border-navy/40")
+                              (isCurrent ? "border-navy bg-navy/5" : "border-[#E7EAF0] dark:border-gray-700 hover:border-navy/40")
                             }
                           >
                             <div className="flex items-center justify-between">
-                              <span className="text-xs font-semibold text-navy">
+                              <span className="text-xs font-semibold text-navy dark:text-gray-100">
                                 {(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}
                               </span>
                               {recInfo && (
@@ -1443,7 +1503,7 @@ export default function Dashboard() {
             <div className="px-6 py-4 border-b border-[#E7EAF0] space-y-2 shrink-0">
               {[
                 { icon: ClipboardList, color: "bg-blue-50 text-blue-600", label: "지난번 액션", date: activity[1]?.date, text: activity[1]?.text, field: "prevAction", editable: !!activity[1] },
-                { icon: PlayCircle, color: "bg-navy/10 text-navy", label: "현재 액션", date: activity[0]?.date, text: activity[0]?.text, field: "currentAction", editable: !!activity[0] },
+                { icon: PlayCircle, color: "bg-navy/10 text-navy dark:text-gray-100", label: "현재 액션", date: activity[0]?.date, text: activity[0]?.text, field: "currentAction", editable: !!activity[0] },
                 { icon: Flag, color: "bg-orange-100 text-orange-600", label: "다음 액션", date: selected.nextAction ? "예정" : null, text: selected.nextAction, field: "nextAction", editable: true, highlight: true },
               ].map((row) => (
                 <div key={row.field} className={"rounded-xl border p-3 " + (row.highlight ? "border-orange-200 bg-orange-50" : "border-[#E7EAF0]")}>
@@ -1457,7 +1517,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
                           {row.editable && editingField !== row.field && (
-                            <button className="text-[10px] text-navy underline" onClick={() => startEdit(row.field, row.text)}>수정</button>
+                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => startEdit(row.field, row.text)}>수정</button>
                           )}
                         </div>
                       </div>
@@ -1493,7 +1553,7 @@ export default function Dashboard() {
             </div>
 
             {/* 탭 */}
-            <div className="flex border-b border-[#E7EAF0] px-2 sticky top-0 bg-white z-10">
+            <div className="flex border-b border-[#E7EAF0] dark:border-gray-700 px-2 sticky top-0 bg-white dark:bg-[#111827] z-10">
               {[
                 { key: "info", label: "상세정보" },
                 { key: "history", label: "액션 히스토리" },
@@ -1505,7 +1565,7 @@ export default function Dashboard() {
                   onClick={() => setDetailTab(t.key)}
                   className={
                     "px-3 py-2.5 text-xs font-semibold border-b-2 -mb-px " +
-                    (detailTab === t.key ? "text-navy border-navy" : "text-gray-400 border-transparent")
+                    (detailTab === t.key ? "text-navy dark:text-gray-100 border-navy" : "text-gray-400 border-transparent")
                   }
                 >
                   {t.label}
@@ -1516,7 +1576,7 @@ export default function Dashboard() {
             <div>
               {detailTab === "info" && (
                 <>
-                  <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
+                  <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] dark:bg-gray-700 border-b border-[#E7EAF0] dark:border-gray-700">
                     <GridCell icon={Layers} label="타겟제품" field="targetProduct" displayValue={(selected.targetProduct || "").replace(/\n/g, " ") || "-"} />
                     <GridCell icon={User} label="담당자" field="contactPerson" displayValue={selected.contactPerson || "-"} />
                     <GridCell icon={Users} label="RM" field="rm" displayValue={selected.rm || "-"} />
@@ -1526,10 +1586,10 @@ export default function Dashboard() {
                     <GridCell icon={CalendarClock} label="계약목표" field="contractGoal" displayValue={selected.contractGoal || "-"} />
                     <GridCell icon={CalendarClock} label="계약갱신일" field="contractRenewalDate" displayValue={selected.contractRenewalDate || "-"} />
 
-                    <div className="bg-white px-4 py-3">
+                    <div className="bg-white dark:bg-[#111827] px-4 py-3">
                       <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><Layers className="w-3 h-3" />진행단계</div>
                       <select
-                        className="text-xs font-semibold text-navy border-none bg-transparent -ml-0.5 focus:outline-none focus:ring-1 focus:ring-navy rounded"
+                        className="text-xs font-semibold text-navy dark:text-gray-100 border-none bg-transparent -ml-0.5 focus:outline-none focus:ring-1 focus:ring-navy rounded"
                         value={selected.stage || ""}
                         onChange={(e) => saveDealField({ stage: e.target.value })}
                       >
@@ -1580,7 +1640,7 @@ export default function Dashboard() {
                         <div className="text-xs text-gray-700">
                           {selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}
                         </div>
-                        <button className="text-[10px] text-navy underline" onClick={() => setEditingField("meeting")}>수정</button>
+                        <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => setEditingField("meeting")}>수정</button>
                       </div>
                     ) : (
                       <div className="space-y-1.5">
@@ -1598,8 +1658,8 @@ export default function Dashboard() {
 
                   <div className="px-6 py-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="text-xs font-extrabold text-navy">주요 히스토리 (최근 3건)</div>
-                      <button className="text-[10px] text-navy" onClick={() => setDetailTab("history")}>전체보기 ›</button>
+                      <div className="text-xs font-extrabold text-navy dark:text-gray-100">주요 히스토리 (최근 3건)</div>
+                      <button className="text-[10px] text-navy dark:text-gray-100" onClick={() => setDetailTab("history")}>전체보기 ›</button>
                     </div>
                     <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
                       {activity.slice(0, 3).map((a, i) => (
@@ -1617,7 +1677,7 @@ export default function Dashboard() {
 
               {detailTab === "history" && (
                 <div className="px-6 py-4">
-                  <div className="text-xs font-extrabold text-navy mb-3">액션 히스토리 ({activity.length})</div>
+                  <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-3">액션 히스토리 ({activity.length})</div>
                   <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
                     {activity.map((a, i) => (
                       <div key={i} className="relative">
@@ -1633,13 +1693,13 @@ export default function Dashboard() {
 
               {detailTab === "files" && (
                 <div className="px-6 py-4">
-                  <div className="text-xs font-extrabold text-navy mb-3">관련파일 ({(selected.relatedFiles || []).length})</div>
+                  <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-3">관련파일 ({(selected.relatedFiles || []).length})</div>
                   <div className="space-y-1.5 mb-3">
                     {(selected.relatedFiles || []).map((f, i) => {
                       const label = typeof f === "string" ? f : f.label;
                       const url = typeof f === "string" ? null : f.url;
                       const content = (
-                        <div className="text-xs text-gray-700 bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 break-words flex items-center gap-2">
+                        <div className="text-xs text-gray-700 bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 break-words flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
                         </div>
                       );
@@ -1659,7 +1719,7 @@ export default function Dashboard() {
 
                   <div className="border-t border-[#E7EAF0] pt-3 space-y-2">
                     {!addingLink ? (
-                      <button className="text-[11px] text-navy underline" onClick={() => setAddingLink(true)}>+ 링크 추가</button>
+                      <button className="text-[11px] text-navy dark:text-gray-100 underline" onClick={() => setAddingLink(true)}>+ 링크 추가</button>
                     ) : (
                       <div className="space-y-1.5">
                         <input
@@ -1692,7 +1752,7 @@ export default function Dashboard() {
                     if (sameCompany.length === 0) return null;
                     return (
                       <div>
-                        <div className="text-xs font-extrabold text-navy mb-2">같은 회사 (다른 부서·담당)</div>
+                        <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-2">같은 회사 (다른 부서·담당)</div>
                         <div className="space-y-1.5">
                           {sameCompany.map((d) => (
                             <div
@@ -1716,7 +1776,7 @@ export default function Dashboard() {
                   })()}
 
                   <div>
-                    <div className="text-xs font-extrabold text-navy mb-2">같은 구분 ({mapGroupName(selected.orgGroup)})</div>
+                    <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-2">같은 구분 ({mapGroupName(selected.orgGroup)})</div>
                     <div className="space-y-1.5">
                       {(groupCards.find((g) => g.name === mapGroupName(selected.orgGroup))?.allOrgs || [])
                         .filter((o) => o.name !== selected.orgName)
@@ -1724,7 +1784,7 @@ export default function Dashboard() {
                           <div
                             key={o.name}
                             onClick={() => openDeal(o.deal)}
-                            className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 cursor-pointer"
+                            className="flex items-center text-xs bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 cursor-pointer"
                           >
                             <LogoBadge name={o.name} />{o.name}
                           </div>
@@ -1763,9 +1823,9 @@ export default function Dashboard() {
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setReportModal(null)} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-              <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
-                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
-                  <span className="text-sm font-extrabold text-navy">{title}</span>
+              <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
+                  <span className="text-sm font-extrabold text-navy dark:text-gray-100">{title}</span>
                   <button className="text-gray-400 hover:text-navy" onClick={() => setReportModal(null)}>
                     <X className="w-4 h-4" />
                   </button>
@@ -1781,7 +1841,7 @@ export default function Dashboard() {
                           className="px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-navy flex items-center">
+                            <span className="text-xs font-semibold text-navy dark:text-gray-100 flex items-center">
                               {a.deal && <LogoBadge name={a.deal.orgName} />}
                               {a.deal ? a.deal.orgName : "(삭제된 딜)"}
                             </span>
@@ -1796,12 +1856,12 @@ export default function Dashboard() {
                           onClick={() => { openDeal(d); setReportModal(null); }}
                           className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
                         >
-                          <div className="flex items-center text-xs font-semibold text-navy">
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={d.orgName} />{d.orgName}
                             <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                           </div>
                           {reportModal.type === "group" && (
-                            <span className="text-[10px] text-navy font-bold shrink-0 ml-2">{formatWon(d.contractAmount)}</span>
+                            <span className="text-[10px] text-navy dark:text-gray-100 font-bold shrink-0 ml-2">{formatWon(d.contractAmount)}</span>
                           )}
                         </div>
                       ))}
@@ -1822,11 +1882,11 @@ export default function Dashboard() {
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setProfileModalKey(null)} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-              <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
-                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
+              <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
                   <div className="flex items-center gap-2">
                     {isFav ? <Star className="w-4 h-4 text-amber-400" /> : <Flag className="w-4 h-4 text-orange-500" />}
-                    <span className="text-sm font-extrabold text-navy">{title}</span>
+                    <span className="text-sm font-extrabold text-navy dark:text-gray-100">{title}</span>
                   </div>
                   <button className="text-gray-400 hover:text-navy" onClick={() => setProfileModalKey(null)}>
                     <X className="w-4 h-4" />
@@ -1842,7 +1902,7 @@ export default function Dashboard() {
                           onClick={() => { openDeal(o.deals[0]); setProfileModalKey(null); }}
                           className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
                         >
-                          <div className="flex items-center text-xs font-semibold text-navy">
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={o.name} />{o.name}
                           </div>
                           <span className={"text-[10px] px-1.5 py-0.5 rounded-md font-semibold " + RECENCY_LABEL[o.dominant][1]}>
@@ -1861,7 +1921,7 @@ export default function Dashboard() {
                           onClick={() => { openDeal(d); setProfileModalKey(null); }}
                           className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
                         >
-                          <div className="flex items-center text-xs font-semibold text-navy">
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={d.orgName} />{d.orgName}
                             <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                           </div>
@@ -1892,11 +1952,11 @@ export default function Dashboard() {
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-              <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
-                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
+              <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
                   <div className="flex items-center gap-2">
                     <def.icon className={"w-4 h-4 " + def.color} />
-                    <span className="text-sm font-extrabold text-navy">{def.label}</span>
+                    <span className="text-sm font-extrabold text-navy dark:text-gray-100">{def.label}</span>
                     <span className="text-xs text-gray-400">({def.meta})</span>
                   </div>
                   <button className="text-gray-400 hover:text-navy" onClick={() => setKpiModalKey(null)}>
@@ -1911,7 +1971,7 @@ export default function Dashboard() {
                       onClick={() => { openDeal(d); setKpiModalKey(null); }}
                       className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
                     >
-                      <div className="flex items-center text-xs font-semibold text-navy">
+                      <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                         <LogoBadge name={d.orgName} />{d.orgName}
                         <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                       </div>
@@ -1932,9 +1992,9 @@ export default function Dashboard() {
         <>
           <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setShowNewDeal(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 pointer-events-auto">
+            <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto p-6 pointer-events-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-extrabold text-navy">새 딜 등록</h3>
+                <h3 className="text-base font-extrabold text-navy dark:text-gray-100">새 딜 등록</h3>
                 <button className="text-gray-400 text-lg" onClick={() => setShowNewDeal(false)}>✕</button>
               </div>
 
