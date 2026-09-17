@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 
@@ -20,45 +20,43 @@ function probPillClass(p) {
   return "pill pill-default";
 }
 
+function parseGoalMonth(text) {
+  if (!text) return null;
+  const m = text.match(/(\d{1,2})\s*월/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function isDone(deal) {
+  return (deal.stage || "").includes("4") || deal.probability === "완료";
+}
+
+function mondayOf(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+function toYMD(d) {
+  return d.toISOString().slice(0, 10);
+}
+
 const LOGO_DOMAINS = {
-  "KB국민은행": "kbstar.com",
-  "KB국민카드(KCB)": "kbcard.com",
-  "KB국민카드(직영업)": "kbcard.com",
-  "KB캐피탈": "kbcapital.com",
-  "신한은행": "shinhan.com",
-  "신한카드": "shinhancard.com",
-  "신한캐피탈": "shinhancapital.com",
-  "신한투자증권": "shinhansec.com",
-  "신한지주": "shinhangroup.com",
-  "하나은행(NICE)": "hanabank.com",
-  "하나은행(직영업)": "hanabank.com",
-  "하나카드": "hanacard.co.kr",
-  "하나캐피탈": "hanacapital.co.kr",
-  "우리은행": "wooribank.com",
-  "우리카드": "wooricard.com",
-  "NH농협은행": "nonghyup.com",
-  "NH농협캐피탈": "nhcapital.co.kr",
-  "IBK기업은행": "ibk.co.kr",
-  "부산은행": "busanbank.co.kr",
-  "제주은행": "jejubank.co.kr",
-  "수협은행": "suhyup-bank.com",
-  "카카오뱅크(NICE)": "kakaobank.com",
-  "카카오뱅크(직영업)": "kakaobank.com",
-  "토스뱅크(NICE)": "tossbank.com",
-  "토스뱅크(직영업)": "tossbank.com",
-  "비바리퍼블리카": "toss.im",
-  "토스페이먼츠": "tosspayments.com",
-  "케이뱅크(NICE)": "kbanknow.com",
-  "케이뱅크(직영업)": "kbanknow.com",
-  "KCB": "koreacb.com",
-  "나이스평가정보": "nice.co.kr",
-  "SGI서울보증": "sgic.co.kr",
-  "신용보증기금": "kodit.co.kr",
-  "더존": "douzone.com",
-  "더존비즈온": "douzone.com",
-  "전자신문사": "etnews.com",
-  "한국수출입은행": "koreaexim.go.kr",
-  "리드코프": "leadcorp.co.kr",
+  "KB국민은행": "kbstar.com", "KB국민카드(KCB)": "kbcard.com", "KB국민카드(직영업)": "kbcard.com",
+  "KB캐피탈": "kbcapital.com", "신한은행": "shinhan.com", "신한카드": "shinhancard.com",
+  "신한캐피탈": "shinhancapital.com", "신한투자증권": "shinhansec.com", "신한지주": "shinhangroup.com",
+  "하나은행(NICE)": "hanabank.com", "하나은행(직영업)": "hanabank.com", "하나카드": "hanacard.co.kr",
+  "하나캐피탈": "hanacapital.co.kr", "우리은행": "wooribank.com", "우리카드": "wooricard.com",
+  "NH농협은행": "nonghyup.com", "NH농협캐피탈": "nhcapital.co.kr", "IBK기업은행": "ibk.co.kr",
+  "부산은행": "busanbank.co.kr", "제주은행": "jejubank.co.kr", "수협은행": "suhyup-bank.com",
+  "카카오뱅크(NICE)": "kakaobank.com", "카카오뱅크(직영업)": "kakaobank.com",
+  "토스뱅크(NICE)": "tossbank.com", "토스뱅크(직영업)": "tossbank.com",
+  "비바리퍼블리카": "toss.im", "토스페이먼츠": "tosspayments.com",
+  "케이뱅크(NICE)": "kbanknow.com", "케이뱅크(직영업)": "kbanknow.com",
+  "KCB": "koreacb.com", "나이스평가정보": "nice.co.kr", "SGI서울보증": "sgic.co.kr",
+  "신용보증기금": "kodit.co.kr", "더존": "douzone.com", "더존비즈온": "douzone.com",
+  "전자신문사": "etnews.com", "한국수출입은행": "koreaexim.go.kr", "리드코프": "leadcorp.co.kr",
   "BNK캐피탈": "bnkcapital.co.kr",
 };
 
@@ -71,27 +69,31 @@ function LogoBadge({ name }) {
         src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
         alt=""
         onError={() => setBroken(true)}
-        style={{ width: 22, height: 22, borderRadius: 5, marginRight: 6, verticalAlign: "middle" }}
+        className="w-[22px] h-[22px] rounded-[5px] mr-1.5 inline-block align-middle"
       />
     );
   }
   const initials = (name || "-").trim().slice(0, 2);
   return (
-    <span
-      style={{
-        display: "inline-flex", width: 22, height: 22, borderRadius: 5, marginRight: 6,
-        background: "#0D1F4E", color: "#fff", fontSize: 9, fontWeight: 700,
-        alignItems: "center", justifyContent: "center", verticalAlign: "middle",
-      }}
-    >
+    <span className="inline-flex w-[22px] h-[22px] rounded-[5px] mr-1.5 bg-navy text-white text-[9px] font-bold items-center justify-center align-middle">
       {initials}
     </span>
   );
 }
 
+const NAV_ITEMS = [
+  { key: "dashboard", label: "대시보드", icon: "🏠" },
+  { key: "pipeline", label: "파이프라인", icon: "📊" },
+  { key: "orgs", label: "기관현황", icon: "🏢" },
+  { key: "report", label: "리포트", icon: "📈" },
+  { key: "settings", label: "설정", icon: "⚙️" },
+];
+
 export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [allActivity, setAllActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeGroup, setActiveGroup] = useState("전체");
   const [search, setSearch] = useState("");
@@ -100,12 +102,18 @@ export default function Dashboard() {
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = "/";
         return;
       }
       setAuthChecked(true);
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) setProfile(snap.data());
+      } catch (e) {
+        // 프로필 없어도 대시보드는 계속 진행
+      }
     });
     return () => unsub();
   }, []);
@@ -114,9 +122,12 @@ export default function Dashboard() {
     if (!authChecked) return;
     (async () => {
       try {
-        const snap = await getDocs(collection(db, "deals"));
-        const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        setDeals(rows);
+        const [dealsSnap, activitySnap] = await Promise.all([
+          getDocs(collection(db, "deals")),
+          getDocs(collection(db, "activityLog")),
+        ]);
+        setDeals(dealsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setAllActivity(activitySnap.docs.map((d) => d.data()));
       } catch (e) {
         setLoadError(String(e && e.message ? e.message : e));
       } finally {
@@ -140,12 +151,31 @@ export default function Dashboard() {
   }, [deals, activeGroup, search]);
 
   const kpis = useMemo(() => {
-    const totalDeals = deals.length;
-    const totalExpected = deals.reduce((a, d) => a + (d.expectedPerformance || 0), 0);
-    const totalContract = deals.reduce((a, d) => a + (d.contractAmount || 0), 0);
-    const stage4 = deals.filter((d) => (d.stage || "").includes("4")).length;
-    return { totalDeals, totalExpected, totalContract, stage4 };
-  }, [deals]);
+    const now = new Date();
+    const curMonth = now.getMonth() + 1;
+    const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
+
+    const orgSet = new Set(deals.map((d) => (d.orgName || "").trim()).filter(Boolean));
+    let inProgress = 0, dueSoon = 0, delayed = 0;
+
+    deals.forEach((d) => {
+      if (isDone(d)) return;
+      inProgress++;
+      const gm = parseGoalMonth(d.contractGoal);
+      if (gm === null) return;
+      if (gm === curMonth || gm === nextMonth) dueSoon++;
+      else if (gm < curMonth) delayed++;
+    });
+
+    const mon = mondayOf(now);
+    const sun = new Date(mon);
+    sun.setDate(sun.getDate() + 6);
+    const monStr = toYMD(mon);
+    const sunStr = toYMD(sun);
+    const meetingsThisWeek = allActivity.filter((a) => a.date && a.date >= monStr && a.date <= sunStr).length;
+
+    return { totalOrgs: orgSet.size, inProgress, dueSoon, delayed, meetingsThisWeek };
+  }, [deals, allActivity]);
 
   async function openDeal(deal) {
     setSelected(deal);
@@ -159,87 +189,136 @@ export default function Dashboard() {
 
   if (!authChecked || loading) {
     return (
-      <div style={{ padding: 40, fontFamily: "sans-serif" }}>
+      <div className="p-10 font-sans">
         로딩 중...
-        {loadError && (
-          <p style={{ color: "red", marginTop: 12 }}>에러: {loadError}</p>
-        )}
+        {loadError && <p className="text-red-600 mt-3">에러: {loadError}</p>}
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="dash-header">
-        <h1>테크핀레이팅스 세일즈 파이프라인</h1>
-        <button onClick={() => signOut(auth)}>로그아웃</button>
-      </div>
-
-      <div className="dash-body">
-        <div className="kpi-row">
-          <div className="kpi-card">
-            <div className="kpi-num">{kpis.totalDeals}</div>
-            <div className="kpi-label">전체 딜 건수</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-num">{formatWon(kpis.totalExpected)}</div>
-            <div className="kpi-label">기대실적 합계</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-num">{formatWon(kpis.totalContract)}</div>
-            <div className="kpi-label">계약금액 합계 (텍스트 추출분)</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-num">{kpis.stage4}</div>
-            <div className="kpi-label">4단계(계약·운영) 건수</div>
+    <div className="min-h-screen bg-[#F4F6F9] flex">
+      <aside className="w-60 shrink-0 bg-gradient-to-b from-navy-deep to-navy text-white flex flex-col">
+        <div className="px-6 py-5 flex items-center gap-2 border-b border-white/10">
+          <span className="text-gold text-xl">◆</span>
+          <div>
+            <div className="font-bold text-sm leading-tight">TechFin Pipeline</div>
+            <div className="text-[10px] text-white/50 leading-tight">Sales Growth Together</div>
           </div>
         </div>
-
-        <div className="group-row">
-          {groups.map((g) => (
+        <nav className="flex-1 py-4">
+          {NAV_ITEMS.map((item) => (
             <div
-              key={g}
-              className={"group-chip" + (activeGroup === g ? " active" : "")}
-              onClick={() => setActiveGroup(g)}
+              key={item.key}
+              className={
+                "mx-3 mb-1 px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 cursor-pointer " +
+                (item.key === "dashboard" ? "bg-white/10 text-white font-semibold" : "text-white/60 hover:bg-white/5")
+              }
             >
-              {g}
+              <span>{item.icon}</span>
+              {item.label}
             </div>
           ))}
+        </nav>
+        <div className="p-4 text-[11px] text-white/40 border-t border-white/10">
+          TechFin Ratings<br />세일즈추진팀
         </div>
+      </aside>
 
-        <input
-          className="search-input"
-          placeholder="업체명 검색"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="flex-1 min-w-0">
+        <header className="bg-white border-b border-[#E7EAF0] px-7 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-extrabold text-navy">금융기관 세일즈 파이프라인</h1>
+            <p className="text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-56"
+              placeholder="기관명·담당자로 검색..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <span className="text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 실시간 업데이트
+            </span>
+            <div className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0]">
+              <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
+                {(profile?.name || "?").slice(0, 1)}
+              </div>
+              <div className="text-xs leading-tight">
+                <div className="font-semibold text-navy">{profile?.name || "이름 미설정"}</div>
+                <div className="text-gray-400">{profile?.division || ""}</div>
+              </div>
+            </div>
+            <button onClick={() => signOut(auth)} className="text-[11px] text-gray-400 hover:text-navy ml-2">
+              로그아웃
+            </button>
+          </div>
+        </header>
 
-        <table className="deals">
-          <thead>
-            <tr>
-              <th>구분</th>
-              <th>업체명</th>
-              <th>타겟 제품</th>
-              <th>RM / SO</th>
-              <th>기대실적</th>
-              <th>계약가능성</th>
-              <th>진행단계</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((d) => (
-              <tr key={d.id} onClick={() => openDeal(d)}>
-                <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
-                <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
-                <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
-                <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
-                <td>{formatWon(d.expectedPerformance)}</td>
-                <td><span className={probPillClass(d.probability)}>{d.probability || "-"}</span></td>
-                <td>{d.stage || "-"}</td>
-              </tr>
+        <div className="p-7">
+          <div className="grid grid-cols-5 gap-3.5 mb-6">
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+              <div className="text-2xl font-extrabold text-navy">{kpis.totalOrgs}</div>
+              <div className="text-xs text-gray-500 mt-1">전체 기관</div>
+            </div>
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+              <div className="text-2xl font-extrabold text-green-600">{kpis.inProgress}</div>
+              <div className="text-xs text-gray-500 mt-1">진행중</div>
+            </div>
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+              <div className="text-2xl font-extrabold text-amber-500">{kpis.dueSoon}</div>
+              <div className="text-xs text-gray-500 mt-1">마감임박</div>
+            </div>
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+              <div className="text-2xl font-extrabold text-red-600">{kpis.delayed}</div>
+              <div className="text-xs text-gray-500 mt-1">지연</div>
+            </div>
+            <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
+              <div className="text-2xl font-extrabold text-navy">{kpis.meetingsThisWeek}</div>
+              <div className="text-xs text-gray-500 mt-1">이번주 활동</div>
+            </div>
+          </div>
+
+          <div className="group-row">
+            {groups.map((g) => (
+              <div
+                key={g}
+                className={"group-chip" + (activeGroup === g ? " active" : "")}
+                onClick={() => setActiveGroup(g)}
+              >
+                {g}
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+
+          <table className="deals mt-2">
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>업체명</th>
+                <th>타겟 제품</th>
+                <th>RM / SO</th>
+                <th>기대실적</th>
+                <th>계약가능성</th>
+                <th>진행단계</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((d) => (
+                <tr key={d.id} onClick={() => openDeal(d)}>
+                  <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
+                  <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
+                  <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
+                  <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
+                  <td>{formatWon(d.expectedPerformance)}</td>
+                  <td><span className={probPillClass(d.probability)}>{d.probability || "-"}</span></td>
+                  <td>{d.stage || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {selected && (
