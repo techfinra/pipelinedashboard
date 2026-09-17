@@ -1145,14 +1145,14 @@ export default function Dashboard() {
             <>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-                  <div className="text-sm font-extrabold text-navy mb-3">구분별 기대실적 합계</div>
+                  <div className="text-sm font-extrabold text-navy mb-3">구분별 계약금액 실적</div>
                   <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={groupCards.map((g) => ({ name: g.name, 기대실적: Math.round(g.expected / 1e8 * 10) / 10 }))}>
+                    <BarChart data={groupCards.map((g) => ({ name: g.name, 계약금액: Math.round(g.contract / 1e8 * 100) / 100 }))}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
                       <YAxis tick={{ fontSize: 10 }} unit="억" />
                       <Tooltip formatter={(v) => `${v}억원`} />
-                      <Bar dataKey="기대실적" fill="#0D1F4E" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="계약금액" fill="#0D1F4E" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
