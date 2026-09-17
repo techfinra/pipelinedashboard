@@ -164,7 +164,7 @@ function GroupDonut({ active7, followUp, stale }) {
 function DonutLegendRow({ color, label, value }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
         {label}
       </span>
@@ -218,19 +218,19 @@ function EditableLine({ label, meta, value, editing, editable, multiline, highli
         )}
       </div>
       {!editing ? (
-        <div className="text-gray-700 mt-0.5 whitespace-pre-wrap">{value || "미입력"}</div>
+        <div className="text-gray-700 dark:text-gray-300 mt-0.5 whitespace-pre-wrap">{value || "미입력"}</div>
       ) : (
         <div className="mt-1 space-y-1.5">
           {multiline ? (
             <textarea
-              className="w-full border border-[#E7EAF0] rounded-lg px-2 py-1.5 text-xs"
+              className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs"
               rows={3}
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
             />
           ) : (
             <input
-              className="w-full border border-[#E7EAF0] rounded-lg px-2 py-1.5 text-xs"
+              className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
             />
@@ -374,6 +374,8 @@ export default function Dashboard() {
   const [nlDate, setNlDate] = useState("");
   const [nlActionText, setNlActionText] = useState("");
   const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
+  const [nlSuggestedNextAction, setNlSuggestedNextAction] = useState("");
+  const [nlApplySuggestion, setNlApplySuggestion] = useState(false);
   const [nlMeetingDate, setNlMeetingDate] = useState("");
   const [nlMeetingNote, setNlMeetingNote] = useState("");
   const [nlSaving, setNlSaving] = useState(false);
@@ -854,6 +856,8 @@ export default function Dashboard() {
       setNlApplyMeeting(!!data.meetingDate);
       setNlMeetingDate(data.meetingDate || "");
       setNlMeetingNote(data.meetingNote || "");
+      setNlSuggestedNextAction(data.suggestedNextAction || "");
+      setNlApplySuggestion(false);
 
       if (data.orgName) {
         setNlCompanySearch(data.orgName);
@@ -888,6 +892,8 @@ export default function Dashboard() {
     setNlApplyMeeting(false);
     setNlMeetingDate("");
     setNlMeetingNote("");
+    setNlSuggestedNextAction("");
+    setNlApplySuggestion(false);
   }
 
   async function handleConfirmNL() {
@@ -919,6 +925,14 @@ export default function Dashboard() {
           updatedAt: serverTimestamp(),
         });
         setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, nextMeetingDate: nlMeetingDate, nextMeetingNote: nlMeetingNote || "" } : d)));
+      }
+
+      if (nlApplySuggestion && nlSuggestedNextAction.trim()) {
+        await updateDoc(doc(db, "deals", nlOverrideDealId), {
+          nextAction: nlSuggestedNextAction.trim(),
+          updatedAt: serverTimestamp(),
+        });
+        setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, nextAction: nlSuggestedNextAction.trim() } : d)));
       }
 
       resetNL();
@@ -993,7 +1007,7 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-1">
             <input
-              className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1"
+              className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               autoFocus
@@ -1060,7 +1074,7 @@ export default function Dashboard() {
         )}
         <button
           onClick={() => setSidebarCollapsed((v) => !v)}
-          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-white border border-[#E7EAF0] shadow-sm flex items-center justify-center text-gray-400 hover:text-navy"
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 shadow-sm flex items-center justify-center text-gray-400 hover:text-navy"
         >
           {sidebarCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
         </button>
@@ -1159,7 +1173,7 @@ export default function Dashboard() {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
                   <div className="absolute right-0 top-10 w-72 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
-                    <div className="px-4 py-3 border-b border-[#E7EAF0] flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
                       <span className="text-xs font-extrabold text-navy dark:text-gray-100">🟠 액션 도래 (7일 이내)</span>
                       <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
                     </div>
@@ -1184,7 +1198,7 @@ export default function Dashboard() {
                         <div className="px-4 py-4 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
                       )}
                     </div>
-                    <div className="px-4 py-3 border-b border-t border-[#E7EAF0] flex items-center justify-between">
+                    <div className="px-4 py-3 border-b border-t border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
                       <span className="text-xs font-extrabold text-pink-600 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />다음 액션 추천 (AI기반)</span>
                       <span className="text-[10px] text-gray-400">{aiFlaggedDeals.length}건</span>
                     </div>
@@ -1219,7 +1233,7 @@ export default function Dashboard() {
             <div className="relative">
               <div
                 onClick={() => setProfileMenuOpen((v) => !v)}
-                className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0] cursor-pointer"
+                className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0] dark:border-gray-700 cursor-pointer"
               >
                 <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
                   {(profile?.name || "?").slice(0, 1)}
@@ -1233,17 +1247,17 @@ export default function Dashboard() {
               {profileMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
-                  <div className="absolute right-0 top-11 w-56 bg-white border border-[#E7EAF0] rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                  <div className="absolute right-0 top-11 w-56 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden py-1">
                     <button
                       onClick={() => { setProfileModalKey("favorites"); setProfileMenuOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 hover:bg-[#F8FAFC]"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-[#F8FAFC]"
                     >
                       <span className="flex items-center gap-2"><Star className="w-3.5 h-3.5" />내 관심업체</span>
                       <span className="text-gray-400">{favorites.length}</span>
                     </button>
                     <button
                       onClick={() => { setProfileModalKey("actionNeeded"); setProfileMenuOpen(false); }}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 hover:bg-[#F8FAFC]"
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-[#F8FAFC]"
                     >
                       <span className="flex items-center gap-2"><Flag className="w-3.5 h-3.5" />액션 필요 ({myActionNeededDeals.length})</span>
                     </button>
@@ -1326,7 +1340,7 @@ export default function Dashboard() {
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <label className="text-[10px] text-gray-400 col-span-2 -mb-1">회사명 검색</label>
                     <input
-                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
+                      className="text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 col-span-2"
                       placeholder="회사명 입력"
                       value={nlCompanySearch}
                       onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
@@ -1334,7 +1348,7 @@ export default function Dashboard() {
                     {nlCompanySearch && companyRows.filter((o) => o.name.includes(nlCompanySearch)).slice(0, 6).map((o) => (
                       <button
                         key={o.name}
-                        className="text-xs text-left px-2 py-1.5 rounded-lg bg-white border border-[#E7EAF0] col-span-2"
+                        className="text-xs text-left px-2 py-1.5 rounded-lg bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 col-span-2"
                         onClick={() => { setNlSelectedOrg(o.name); setNlOverrideDealId(o.deals.length === 1 ? o.deals[0].id : ""); }}
                       >
                         {o.name}
@@ -1346,7 +1360,7 @@ export default function Dashboard() {
                   <>
                     <label className="text-[10px] text-gray-400 block mb-0.5">타겟제품 (취소 대상)</label>
                     <select
-                      className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
+                      className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 mb-2"
                       value={nlOverrideDealId}
                       onChange={(e) => setNlOverrideDealId(e.target.value)}
                     >
@@ -1361,7 +1375,7 @@ export default function Dashboard() {
                   nlCancelTarget ? (
                     <div className="bg-white dark:bg-[#111827] rounded-lg p-2 mb-2">
                       <div className="text-[10px] text-gray-400 mb-0.5">{nlCancelTarget.date}</div>
-                      <div className="text-xs text-gray-700 dark:text-gray-200">{nlCancelTarget.text}</div>
+                      <div className="text-xs text-gray-700 dark:text-gray-300 dark:text-gray-200">{nlCancelTarget.text}</div>
                     </div>
                   ) : (
                     <div className="text-xs text-gray-400 mb-2">이 딜에 빠른등록으로 추가한 최근 이력이 없습니다.</div>
@@ -1384,7 +1398,7 @@ export default function Dashboard() {
 
                 <label className="text-[10px] text-gray-400 block mb-0.5">회사명</label>
                 <input
-                  className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-1.5"
+                  className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 mb-1.5"
                   placeholder="회사명 검색"
                   value={nlCompanySearch}
                   onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
@@ -1411,7 +1425,7 @@ export default function Dashboard() {
                     <div className="col-span-2">
                       <label className="text-[10px] text-gray-400 block mb-0.5">타겟제품</label>
                       <select
-                        className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2"
                         value={nlOverrideDealId}
                         onChange={(e) => setNlOverrideDealId(e.target.value)}
                       >
@@ -1425,7 +1439,7 @@ export default function Dashboard() {
                       <label className="text-[10px] text-gray-400 block mb-0.5">액션 날짜</label>
                       <input
                         type="date"
-                        className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2"
                         value={nlDate}
                         onChange={(e) => setNlDate(e.target.value)}
                       />
@@ -1435,7 +1449,7 @@ export default function Dashboard() {
 
                 <label className="text-[10px] text-gray-400 block mb-0.5">진행이력 내용</label>
                 <textarea
-                  className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
+                  className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 mb-2"
                   rows={2}
                   value={nlActionText}
                   onChange={(e) => setNlActionText(e.target.value)}
@@ -1452,7 +1466,7 @@ export default function Dashboard() {
                         <label className="text-[9px] text-gray-400 block">미팅일자</label>
                         <input
                           type="date"
-                          className="text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                          className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 rounded px-1 py-0.5"
                           value={nlMeetingDate}
                           onChange={(e) => setNlMeetingDate(e.target.value)}
                         />
@@ -1460,12 +1474,29 @@ export default function Dashboard() {
                       <div className="flex-1">
                         <label className="text-[9px] text-gray-400 block">메모</label>
                         <input
-                          className="w-full text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                          className="w-full text-[11px] border border-[#E7EAF0] dark:border-gray-700 rounded px-1 py-0.5"
                           value={nlMeetingNote}
                           onChange={(e) => setNlMeetingNote(e.target.value)}
                         />
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {nlSuggestedNextAction && (
+                  <div className="text-[11px] mb-2 bg-pink-50 dark:bg-pink-950/30 rounded-lg px-2 py-1.5">
+                    <label className="flex items-center gap-1.5 mb-1.5">
+                      <input type="checkbox" checked={nlApplySuggestion} onChange={(e) => setNlApplySuggestion(e.target.checked)} />
+                      <span className="font-semibold text-pink-600 flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />AI 추천 다음 액션 <span className="text-gray-400 font-normal">(선택사항)</span>
+                      </span>
+                    </label>
+                    <input
+                      className="w-full text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 ml-5"
+                      style={{ width: "calc(100% - 20px)" }}
+                      value={nlSuggestedNextAction}
+                      onChange={(e) => setNlSuggestedNextAction(e.target.value)}
+                    />
                   </div>
                 )}
 
@@ -1485,7 +1516,7 @@ export default function Dashboard() {
                 key={k.key}
                 onClick={() => setKpiModalKey(k.key)}
                 className={
-                  "bg-white border rounded-2xl p-4 cursor-pointer transition " +
+                  "bg-white dark:bg-[#111827] border rounded-2xl p-4 cursor-pointer transition " +
                   (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] dark:border-gray-700 hover:border-navy/40")
                 }
               >
@@ -1517,13 +1548,13 @@ export default function Dashboard() {
                   <div className="flex items-center bg-[#F0F2F5] dark:bg-gray-800 rounded-lg p-1">
                     <button
                       onClick={() => setGroupViewMode("card")}
-                      className={"p-1.5 rounded-md " + (groupViewMode === "card" ? "bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
+                      className={"p-1.5 rounded-md " + (groupViewMode === "card" ? "bg-white dark:bg-[#111827] dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
                     >
                       <LayoutGrid className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setGroupViewMode("list")}
-                      className={"p-1.5 rounded-md " + (groupViewMode === "list" ? "bg-white dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
+                      className={"p-1.5 rounded-md " + (groupViewMode === "list" ? "bg-white dark:bg-[#111827] dark:bg-gray-700 text-navy dark:text-gray-100 shadow-sm" : "text-gray-400")}
                     >
                       <List className="w-4 h-4" />
                     </button>
@@ -1746,7 +1777,7 @@ export default function Dashboard() {
                   <div
                     key={o.name}
                     onClick={() => openDeal(o.deals[0])}
-                    className="bg-white border border-[#E7EAF0] rounded-xl p-4 cursor-pointer hover:border-navy/40"
+                    className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-navy/40"
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center text-sm font-bold text-navy dark:text-gray-100">
@@ -1759,7 +1790,7 @@ export default function Dashboard() {
                     <div className="text-[11px] text-gray-400 mb-2 ml-[28px]">{o.group}</div>
                     <div className="flex items-center gap-1.5 ml-[28px]">
                       {Object.entries(o.counts).filter(([, v]) => v > 0).map(([cat, v]) => (
-                        <span key={cat} className="text-[10px] bg-[#F0F2F5] text-gray-600 px-2 py-1 rounded-md font-semibold">
+                        <span key={cat} className="text-[10px] bg-[#F0F2F5] text-gray-600 dark:text-gray-300 px-2 py-1 rounded-md font-semibold">
                           {cat} {v}
                         </span>
                       ))}
@@ -1869,7 +1900,7 @@ export default function Dashboard() {
         <>
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
           <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white dark:bg-[#111827] z-40 overflow-y-auto shadow-2xl">
-            <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
+            <div className="px-6 py-5 border-b border-[#E7EAF0] dark:border-gray-700 relative bg-gradient-to-br from-white to-[#F4F6F9] dark:from-[#111827] dark:to-[#0B1220] shrink-0">
               <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelected(null)}>
                 <X className="w-4 h-4" />
               </button>
@@ -1956,7 +1987,7 @@ export default function Dashboard() {
               if (catList.length === 0) return null;
               const itemsInCat = companyDeals.filter((d) => classifyTargetProduct(d.targetProduct) === activeProductCat);
               return (
-                <div className="px-6 py-4 border-b border-[#E7EAF0] shrink-0">
+                <div className="px-6 py-4 border-b border-[#E7EAF0] dark:border-gray-700 shrink-0">
                   <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-2">타겟제품 ({companyDeals.length})</div>
                   <div className="flex gap-2 mb-2">
                     {catList.map(([cat, v]) => (
@@ -1965,7 +1996,7 @@ export default function Dashboard() {
                         onClick={() => setActiveProductCat(cat)}
                         className={
                           "text-xs px-3 py-1.5 rounded-lg font-semibold border " +
-                          (activeProductCat === cat ? "bg-navy text-white border-navy" : "bg-white text-gray-500 border-[#E7EAF0]")
+                          (activeProductCat === cat ? "bg-navy text-white border-navy" : "bg-white dark:bg-[#111827] text-gray-500 border-[#E7EAF0] dark:border-gray-700")
                         }
                       >
                         {cat} ({v})
@@ -2008,13 +2039,13 @@ export default function Dashboard() {
             })()}
 
             {/* 액션 3종 카드 */}
-            <div className="px-6 py-4 border-b border-[#E7EAF0] space-y-2 shrink-0">
+            <div className="px-6 py-4 border-b border-[#E7EAF0] dark:border-gray-700 space-y-2 shrink-0">
               {[
                 { icon: ClipboardList, color: "bg-blue-50 text-blue-600", label: "지난번 액션", date: activity[1]?.date, text: activity[1]?.text, field: "prevAction", editable: !!activity[1] },
                 { icon: PlayCircle, color: "bg-navy/10 text-navy dark:text-gray-100", label: "현재 액션", date: activity[0]?.date, text: activity[0]?.text, field: "currentAction", editable: !!activity[0] },
                 { icon: Flag, color: "bg-orange-100 text-orange-600", label: "다음 액션", date: selected.nextAction ? "예정" : null, text: selected.nextAction, field: "nextAction", editable: true, highlight: true },
               ].map((row) => (
-                <div key={row.field} className={"rounded-xl border p-3 " + (row.highlight ? "border-orange-200 bg-orange-50" : "border-[#E7EAF0]")}>
+                <div key={row.field} className={"rounded-xl border p-3 " + (row.highlight ? "border-orange-200 bg-orange-50" : "border-[#E7EAF0] dark:border-gray-700")}>
                   <div className="flex items-start gap-2.5">
                     <div className={"w-7 h-7 rounded-lg flex items-center justify-center shrink-0 " + row.color}>
                       <row.icon className="w-3.5 h-3.5" />
@@ -2030,11 +2061,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                       {editingField !== row.field ? (
-                        <div className="text-xs text-gray-700 mt-0.5">{row.text || "미입력"}</div>
+                        <div className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{row.text || "미입력"}</div>
                       ) : (
                         <div className="mt-1.5 space-y-1.5">
                           <input
-                            className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                            className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                           />
@@ -2112,10 +2143,10 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="px-6 py-3 border-b border-[#E7EAF0]">
+                  <div className="px-6 py-3 border-b border-[#E7EAF0] dark:border-gray-700">
                     <div className="text-[10px] text-gray-400 mb-1 flex items-center gap-1"><Percent className="w-3 h-3" />계약가능성</div>
                     <select
-                      className="text-xs font-semibold border border-[#E7EAF0] rounded-lg px-2 py-1"
+                      className="text-xs font-semibold border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1"
                       value={selected.probability || ""}
                       onChange={(e) => saveDealField({ probability: e.target.value })}
                     >
@@ -2124,12 +2155,12 @@ export default function Dashboard() {
                     </select>
                   </div>
 
-                  <div className="px-6 py-3 border-b border-[#E7EAF0]">
+                  <div className="px-6 py-3 border-b border-[#E7EAF0] dark:border-gray-700">
                     <div className="text-[10px] text-gray-400 mb-1">방문미팅</div>
-                    <div className="text-xs text-gray-700">{selected.visitMeetingRaw || "-"}</div>
+                    <div className="text-xs text-gray-700 dark:text-gray-300">{selected.visitMeetingRaw || "-"}</div>
                   </div>
 
-                  <div className="px-6 py-4 border-b border-[#E7EAF0]">
+                  <div className="px-6 py-4 border-b border-[#E7EAF0] dark:border-gray-700">
                     <EditableLine
                       label="메모"
                       icon={FileText}
@@ -2146,11 +2177,11 @@ export default function Dashboard() {
                     />
                   </div>
 
-                  <div className="px-6 py-4 border-b border-[#E7EAF0]">
+                  <div className="px-6 py-4 border-b border-[#E7EAF0] dark:border-gray-700">
                     <div className="text-[10px] text-gray-400 mb-1">다음 미팅</div>
                     {editingField !== "meeting" ? (
                       <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-700">
+                        <div className="text-xs text-gray-700 dark:text-gray-300">
                           {selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}
                         </div>
                         <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => setEditingField("meeting")}>수정</button>
@@ -2158,8 +2189,8 @@ export default function Dashboard() {
                     ) : (
                       <div className="space-y-1.5">
                         <div className="flex gap-1.5">
-                          <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" value={editMeetingDate} onChange={(e) => setEditMeetingDate(e.target.value)} />
-                          <input className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" placeholder="메모" value={editMeetingNote} onChange={(e) => setEditMeetingNote(e.target.value)} />
+                          <input type="date" className="border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5 w-1/2 text-xs" value={editMeetingDate} onChange={(e) => setEditMeetingDate(e.target.value)} />
+                          <input className="border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5 w-1/2 text-xs" placeholder="메모" value={editMeetingNote} onChange={(e) => setEditMeetingNote(e.target.value)} />
                         </div>
                         <div className="flex gap-2 justify-end">
                           <button className="text-[10px] text-gray-400" onClick={() => setEditingField(null)}>취소</button>
@@ -2174,12 +2205,12 @@ export default function Dashboard() {
                       <div className="text-xs font-extrabold text-navy dark:text-gray-100">주요 히스토리 (최근 3건)</div>
                       <button className="text-[10px] text-navy dark:text-gray-100" onClick={() => setDetailTab("history")}>전체보기 ›</button>
                     </div>
-                    <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
+                    <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0] dark:border-gray-700">
                       {activity.slice(0, 3).map((a, i) => (
                         <div key={i} className="relative">
                           <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
                           <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
-                          <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                          <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{a.text}</div>
                         </div>
                       ))}
                       {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
@@ -2191,12 +2222,12 @@ export default function Dashboard() {
               {detailTab === "history" && (
                 <div className="px-6 py-4">
                   <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-3">액션 히스토리 ({activity.length})</div>
-                  <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
+                  <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0] dark:border-gray-700">
                     {activity.map((a, i) => (
                       <div key={i} className="relative">
                         <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
                         <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
-                        <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                        <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{a.text}</div>
                       </div>
                     ))}
                     {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
@@ -2212,7 +2243,7 @@ export default function Dashboard() {
                       const label = typeof f === "string" ? f : f.label;
                       const url = typeof f === "string" ? null : f.url;
                       const content = (
-                        <div className="text-xs text-gray-700 bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 break-words flex items-center gap-2">
+                        <div className="text-xs text-gray-700 dark:text-gray-300 bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 break-words flex items-center gap-2">
                           <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
                         </div>
                       );
@@ -2230,19 +2261,19 @@ export default function Dashboard() {
                   </div>
                   <div className="text-[10px] text-gray-300 mb-3">※ 더존 사내 그룹웨어 링크는 로그인된 상태에서만 열립니다.</div>
 
-                  <div className="border-t border-[#E7EAF0] pt-3 space-y-2">
+                  <div className="border-t border-[#E7EAF0] dark:border-gray-700 pt-3 space-y-2">
                     {!addingLink ? (
                       <button className="text-[11px] text-navy dark:text-gray-100 underline" onClick={() => setAddingLink(true)}>+ 링크 추가</button>
                     ) : (
                       <div className="space-y-1.5">
                         <input
-                          className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                          className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
                           placeholder="파일/문서 이름"
                           value={newLinkLabel}
                           onChange={(e) => setNewLinkLabel(e.target.value)}
                         />
                         <input
-                          className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                          className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
                           placeholder="https://..."
                           value={newLinkUrl}
                           onChange={(e) => setNewLinkUrl(e.target.value)}
@@ -2360,7 +2391,7 @@ export default function Dashboard() {
                             </span>
                             <span className="text-[10px] text-gray-400">{a.date}</span>
                           </div>
-                          <div className="text-[11px] text-gray-600 mt-0.5">{a.text}</div>
+                          <div className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5">{a.text}</div>
                         </div>
                       ))
                     : items.map((d) => (
@@ -2565,7 +2596,7 @@ export default function Dashboard() {
                 <div>
                   <label className="text-gray-400 block mb-1">구분</label>
                   <select
-                    className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2"
+                    className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2"
                     value={newDeal.orgGroup}
                     onChange={(e) => setNewDeal({ ...newDeal, orgGroup: e.target.value })}
                   >
@@ -2574,13 +2605,13 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">업체명 *</label>
-                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.orgName} onChange={(e) => setNewDeal({ ...newDeal, orgName: e.target.value })} />
+                  <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2" value={newDeal.orgName} onChange={(e) => setNewDeal({ ...newDeal, orgName: e.target.value })} />
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">타겟 제품</label>
                   {!newDealCustomProduct ? (
                     <select
-                      className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2"
+                      className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2"
                       value={newDeal.targetProduct}
                       onChange={(e) => {
                         if (e.target.value === "__custom__") {
@@ -2600,7 +2631,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="flex gap-1.5">
                       <input
-                        className="flex-1 border border-[#E7EAF0] rounded-lg px-3 py-2"
+                        className="flex-1 border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2"
                         placeholder="새 타겟제품명 입력"
                         value={newDeal.targetProduct}
                         onChange={(e) => setNewDeal({ ...newDeal, targetProduct: e.target.value })}
@@ -2618,16 +2649,16 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-gray-400 block mb-1">RM</label>
-                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.rm} onChange={(e) => setNewDeal({ ...newDeal, rm: e.target.value })} />
+                    <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2" value={newDeal.rm} onChange={(e) => setNewDeal({ ...newDeal, rm: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-gray-400 block mb-1">SO</label>
-                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.so} onChange={(e) => setNewDeal({ ...newDeal, so: e.target.value })} />
+                    <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2" value={newDeal.so} onChange={(e) => setNewDeal({ ...newDeal, so: e.target.value })} />
                   </div>
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">기대실적 (예: 3.1억원, 3000만원)</label>
-                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.expectedPerformanceRaw} onChange={(e) => setNewDeal({ ...newDeal, expectedPerformanceRaw: e.target.value })} />
+                  <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2" value={newDeal.expectedPerformanceRaw} onChange={(e) => setNewDeal({ ...newDeal, expectedPerformanceRaw: e.target.value })} />
                   {newDeal.expectedPerformanceRaw && (
                     <div className="text-[10px] text-gray-400 mt-1">
                       인식된 금액: {parseAmountKR(newDeal.expectedPerformanceRaw) !== null ? formatWon(parseAmountKR(newDeal.expectedPerformanceRaw)) : "인식 안됨(그냥 텍스트로만 저장)"}
@@ -2637,31 +2668,31 @@ export default function Dashboard() {
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <label className="text-gray-400 block mb-1">계약목표</label>
-                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" placeholder="예: 12월" value={newDeal.contractGoal} onChange={(e) => setNewDeal({ ...newDeal, contractGoal: e.target.value })} />
+                    <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2" placeholder="예: 12월" value={newDeal.contractGoal} onChange={(e) => setNewDeal({ ...newDeal, contractGoal: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-gray-400 block mb-1">계약가능성</label>
-                    <select className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.probability} onChange={(e) => setNewDeal({ ...newDeal, probability: e.target.value })}>
+                    <select className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2" value={newDeal.probability} onChange={(e) => setNewDeal({ ...newDeal, probability: e.target.value })}>
                       {["상", "중", "하", "완료"].map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="text-gray-400 block mb-1">진행단계</label>
-                    <select className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.stage} onChange={(e) => setNewDeal({ ...newDeal, stage: e.target.value })}>
+                    <select className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2" value={newDeal.stage} onChange={(e) => setNewDeal({ ...newDeal, stage: e.target.value })}>
                       {["1단계", "2단계", "3단계", "4단계"].map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
                   <label className="text-gray-400 block mb-1">방문미팅</label>
-                  <input className="w-full border border-[#E7EAF0] rounded-lg px-3 py-2" value={newDeal.visitMeetingRaw} onChange={(e) => setNewDeal({ ...newDeal, visitMeetingRaw: e.target.value })} />
+                  <input className="w-full border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2" value={newDeal.visitMeetingRaw} onChange={(e) => setNewDeal({ ...newDeal, visitMeetingRaw: e.target.value })} />
                 </div>
 
-                <div className="pt-2 border-t border-[#E7EAF0]">
+                <div className="pt-2 border-t border-[#E7EAF0] dark:border-gray-700">
                   <label className="text-gray-400 block mb-1">최초 액션 (선택 — 입력하면 진행이력에 자동 추가)</label>
                   <div className="flex gap-2">
-                    <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-2 w-1/3" value={newDeal.firstActionDate} onChange={(e) => setNewDeal({ ...newDeal, firstActionDate: e.target.value })} />
-                    <input className="border border-[#E7EAF0] rounded-lg px-2 py-2 flex-1" placeholder="예: 킥오프 미팅 진행" value={newDeal.firstActionText} onChange={(e) => setNewDeal({ ...newDeal, firstActionText: e.target.value })} />
+                    <input type="date" className="border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 w-1/3" value={newDeal.firstActionDate} onChange={(e) => setNewDeal({ ...newDeal, firstActionDate: e.target.value })} />
+                    <input className="border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 flex-1" placeholder="예: 킥오프 미팅 진행" value={newDeal.firstActionText} onChange={(e) => setNewDeal({ ...newDeal, firstActionText: e.target.value })} />
                   </div>
                 </div>
               </div>
