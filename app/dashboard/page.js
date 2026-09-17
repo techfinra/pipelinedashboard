@@ -1642,13 +1642,21 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                {nlRelatedFileUrl && (
+                {nlRelatedFileLabel && (
                   <div className="mb-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-2 py-2">
                     <label className="flex items-start gap-1.5">
-                      <input type="checkbox" className="mt-0.5" checked={nlApplyRelatedFile} onChange={(e) => setNlApplyRelatedFile(e.target.checked)} />
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={nlApplyRelatedFile}
+                        onChange={(e) => setNlApplyRelatedFile(e.target.checked)}
+                        disabled={!nlRelatedFileUrl.trim()}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-semibold text-blue-600 flex items-center gap-1 mb-1">
-                          <FileText className="w-3 h-3" />관련파일로 추가 <span className="text-gray-400 font-normal">(선택사항)</span>
+                          <FileText className="w-3 h-3" />
+                          {nlRelatedFileUrl ? "관련파일로 추가" : `"${nlRelatedFileLabel}" 언급을 발견했어요 — 링크가 있으면 붙여넣어주세요`}
+                          <span className="text-gray-400 font-normal">(선택사항)</span>
                         </div>
                         <input
                           className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 w-24 mr-1"
@@ -1657,8 +1665,9 @@ export default function Dashboard() {
                         />
                         <input
                           className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 w-52 truncate"
+                          placeholder="https://..."
                           value={nlRelatedFileUrl}
-                          onChange={(e) => setNlRelatedFileUrl(e.target.value)}
+                          onChange={(e) => { setNlRelatedFileUrl(e.target.value); if (e.target.value.trim()) setNlApplyRelatedFile(true); }}
                         />
                       </div>
                     </label>
