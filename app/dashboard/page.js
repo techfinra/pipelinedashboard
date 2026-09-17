@@ -15,7 +15,7 @@ import {
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
-  Sun, Moon,
+  Sun, Moon, Sparkles,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -292,6 +292,7 @@ function classifyTargetProduct(text) {
 }
 
 const KPI_DEFS = [
+  { key: "aiFlag", color: "text-pink-600", bg: "bg-pink-50", ring: "ring-pink-500", icon: Sparkles, label: "AI 주의", meta: "정체 의심" },
   { key: "active7", color: "text-green-600", bg: "bg-green-50", ring: "ring-green-500", icon: PlayCircle, label: "활발 진행", meta: "최근 7일" },
   { key: "followUp", color: "text-blue-600", bg: "bg-blue-50", ring: "ring-blue-500", icon: Clock3, label: "후속 필요", meta: "8~30일" },
   { key: "stale", color: "text-red-600", bg: "bg-red-50", ring: "ring-red-500", icon: AlertTriangle, label: "장기 정체", meta: "30일 초과" },
@@ -507,8 +508,9 @@ export default function Dashboard() {
       if (c.future === "actionDue") actionDue++;
       else if (c.future === "actionPlanned") actionPlanned++;
     });
-    return { active7, followUp, stale, actionDue, actionPlanned };
-  }, [dealKpiCat]);
+    const aiFlag = deals.filter((d) => d.aiFlag).length;
+    return { active7, followUp, stale, actionDue, actionPlanned, aiFlag };
+  }, [dealKpiCat, deals]);
 
   const groupCards = useMemo(() => {
     const now = new Date();
@@ -623,6 +625,8 @@ export default function Dashboard() {
     if (!search.trim()) return [];
     return companyRows.filter((o) => o.name.includes(search.trim())).slice(0, 8);
   }, [search, companyRows]);
+
+  const aiFlaggedDeals = useMemo(() => deals.filter((d) => d.aiFlag), [deals]);
 
   const actionDueDeals = useMemo(() => {
     return deals
@@ -995,26 +999,26 @@ export default function Dashboard() {
                 className="text-gray-400 hover:text-navy p-1.5 relative"
               >
                 <Bell className="w-4 h-4" />
-                {actionDueDeals.length > 0 && (
+                {(actionDueDeals.length + aiFlaggedDeals.length) > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
-                    {actionDueDeals.length}
+                    {actionDueDeals.length + aiFlaggedDeals.length}
                   </span>
                 )}
               </button>
               {notifOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                  <div className="absolute right-0 top-10 w-72 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute right-0 top-10 w-72 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
                     <div className="px-4 py-3 border-b border-[#E7EAF0] flex items-center justify-between">
                       <span className="text-xs font-extrabold text-navy dark:text-gray-100">🟠 액션 도래 (7일 이내)</span>
                       <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
                     </div>
-                    <div className="max-h-72 overflow-y-auto">
+                    <div>
                       {actionDueDeals.map((d) => (
                         <div
                           key={d.id}
                           onClick={() => { openDeal(d); setNotifOpen(false); }}
-                          className="px-4 py-2.5 border-b border-[#F4F6F9] hover:bg-[#F8FAFC] cursor-pointer"
+                          className="px-4 py-2.5 border-b border-[#F4F6F9] dark:border-gray-800 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
                         >
                           <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={d.orgName} />{d.orgName}
@@ -1027,7 +1031,28 @@ export default function Dashboard() {
                         </div>
                       ))}
                       {actionDueDeals.length === 0 && (
-                        <div className="px-4 py-6 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
+                        <div className="px-4 py-4 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
+                      )}
+                    </div>
+                    <div className="px-4 py-3 border-b border-t border-[#E7EAF0] flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-pink-600 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />AI 주의</span>
+                      <span className="text-[10px] text-gray-400">{aiFlaggedDeals.length}건</span>
+                    </div>
+                    <div>
+                      {aiFlaggedDeals.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setNotifOpen(false); }}
+                          className="px-4 py-2.5 border-b border-[#F4F6F9] dark:border-gray-800 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                            <LogoBadge name={d.orgName} />{d.orgName}
+                          </div>
+                          <div className="text-[10px] text-pink-600 mt-0.5 ml-[28px]">{d.aiInsight}</div>
+                        </div>
+                      ))}
+                      {aiFlaggedDeals.length === 0 && (
+                        <div className="px-4 py-4 text-center text-[11px] text-gray-300">AI 주의 항목이 없습니다.</div>
                       )}
                     </div>
                   </div>
@@ -1135,7 +1160,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-5 gap-3.5 mb-6">
+          <div className="grid grid-cols-6 gap-3 mb-6">
             {KPI_DEFS.map((k) => (
               <div
                 key={k.key}
@@ -1522,6 +1547,17 @@ export default function Dashboard() {
                 })()}
               </div>
             </div>
+
+            {/* AI 제안 배너 */}
+            {selected.aiFlag && selected.aiInsight && (
+              <div className="mx-6 mt-4 p-3 rounded-xl bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-900 flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-pink-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[10px] font-bold text-pink-600 mb-0.5">AI 제안</div>
+                  <div className="text-xs text-pink-700 dark:text-pink-300">{selected.aiInsight}</div>
+                </div>
+              </div>
+            )}
 
             {/* 타겟제품 전환 */}
             {(() => {
@@ -2028,6 +2064,7 @@ export default function Dashboard() {
         const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
         const matched = deals
           .filter((d) => {
+            if (kpiModalKey === "aiFlag") return !!d.aiFlag;
             const c = dealKpiCat[d.id];
             return c?.recency === kpiModalKey || c?.future === kpiModalKey;
           })
@@ -2053,13 +2090,18 @@ export default function Dashboard() {
                     <div
                       key={d.id}
                       onClick={() => { openDeal(d); setKpiModalKey(null); }}
-                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                      className="px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
                     >
-                      <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
-                        <LogoBadge name={d.orgName} />{d.orgName}
-                        <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                          <LogoBadge name={d.orgName} />{d.orgName}
+                          <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">{lastActionByDeal[d.id] || ""}</span>
                       </div>
-                      <span className="text-[10px] text-gray-400 shrink-0 ml-2">{lastActionByDeal[d.id] || ""}</span>
+                      {kpiModalKey === "aiFlag" && d.aiInsight && (
+                        <div className="text-[11px] text-pink-600 mt-1 ml-[28px]">✨ {d.aiInsight}</div>
+                      )}
                     </div>
                   ))}
                   {matched.length === 0 && (
