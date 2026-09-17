@@ -1051,7 +1051,16 @@ export default function Dashboard() {
       const checkedSuggestions = nlFieldSuggestions.filter((s) => nlApplyFields[s.field]);
       if (checkedSuggestions.length > 0) {
         const patch = {};
-        checkedSuggestions.forEach((s) => { patch[s.field] = s.suggestedValue; });
+        checkedSuggestions.forEach((s) => {
+          if (s.field === "expectedPerformanceRaw") {
+            patch.expectedPerformanceRaw = s.suggestedValue;
+            patch.expectedPerformance = parseAmountKR(s.suggestedValue);
+          } else if (s.field === "contractAmount") {
+            patch.contractAmount = parseAmountKR(s.suggestedValue);
+          } else {
+            patch[s.field] = s.suggestedValue;
+          }
+        });
         patch.updatedAt = serverTimestamp();
         await updateDoc(doc(db, "deals", nlOverrideDealId), patch);
         setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, ...patch } : d)));
