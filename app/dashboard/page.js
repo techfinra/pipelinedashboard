@@ -988,7 +988,7 @@ export default function Dashboard() {
       setNlFieldSuggestions(data.fieldSuggestions || []);
       setNlApplyFields({});
       setNlRelatedFileUrl(data.relatedFileUrl || "");
-      setNlRelatedFileLabel(data.relatedFileLabel || "첨부자료");
+      setNlRelatedFileLabel(data.relatedFileLabel || "");
       setNlApplyRelatedFile(!!data.relatedFileUrl);
 
       if (data.orgName) {
@@ -2295,7 +2295,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
                           {row.editable && editingField !== row.field && (
-                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || ""); }}>수정</button>
+                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || new Date().toISOString().slice(0, 10)); }}>수정</button>
                           )}
                         </div>
                       </div>
