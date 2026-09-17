@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { auth, db, storage } from "../../lib/firebase";
 import "./dashboard.css";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -278,6 +279,23 @@ function canonicalOrg(name) {
   return ORG_ALIASES[key] || key;
 }
 
+function classifyTargetProduct(text) {
+  const t = (text || "").trim();
+  if (!t) return "기타";
+  if (t.includes("패키지")) return "플랫폼";
+  if (/raw\s*data/i.test(t)) return "Raw Data";
+  if (/\bCPS\b/i.test(t)) return "Raw Data";
+  if (t.includes("기업DB조회") || t.includes("기업모니터링") || t === "모니터링") return "플랫폼";
+  if (t.includes("크레디뷰") || t.includes("경영진단보고서") || t.includes("기업신용평가")) return "플랫폼";
+  return "기타";
+}
+
+const RECENCY_LABEL = {
+  active7: ["활발 진행", "text-green-600 bg-green-50"],
+  followUp: ["후속 필요", "text-blue-600 bg-blue-50"],
+  stale: ["장기 정체", "text-red-600 bg-red-50"],
+};
+
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: "🏠" },
   { key: "pipeline", label: "파이프라인", icon: "📊" },
@@ -335,6 +353,9 @@ export default function Dashboard() {
   const [nlError, setNlError] = useState("");
   const [detailTab, setDetailTab] = useState("info");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [selectedOrgName, setSelectedOrgName] = useState(null);
+  const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
+  const [panelOrigin, setPanelOrigin] = useState(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -398,12 +419,28 @@ export default function Dashboard() {
         recency = "stale";
       }
       let future = null;
+      let futureReason = null;
+      let futureDate = null;
       if (d.nextMeetingDate) {
         const diffFuture = Math.floor((new Date(d.nextMeetingDate) - now) / 86400000);
-        if (diffFuture >= 0 && diffFuture <= 7) future = "actionDue";
-        else if (diffFuture > 7) future = "actionPlanned";
+        if (diffFuture >= 0 && diffFuture <= 7) { future = "actionDue"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
+        else if (diffFuture > 7) { future = "actionPlanned"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
       }
-      map[d.id] = { recency, future };
+      if (d.contractRenewalDate) {
+        const diffRenewal = Math.floor((new Date(d.contractRenewalDate) - now) / 86400000);
+        let renewalCat = null;
+        if (diffRenewal >= 0 && diffRenewal <= 30) renewalCat = "actionDue";
+        else if (diffRenewal > 30 && diffRenewal <= 60) renewalCat = "actionPlanned";
+        if (renewalCat) {
+          // 갱신 임박이 더 급하면(actionDue) 우선, 같은 등급이면 더 이른 날짜 우선
+          if (!future || (renewalCat === "actionDue" && future !== "actionDue") || (renewalCat === future && diffRenewal < Math.floor((new Date(futureDate) - now) / 86400000))) {
+            future = renewalCat;
+            futureReason = "renewal";
+            futureDate = d.contractRenewalDate;
+          }
+        }
+      }
+      map[d.id] = { recency, future, futureReason, futureDate };
     });
     return map;
   }, [deals, lastActionByDeal]);
@@ -492,6 +529,27 @@ export default function Dashboard() {
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, count]) => ({ month, count }));
   }, [allActivity]);
 
+  const companyRows = useMemo(() => {
+    const map = {};
+    deals.forEach((d) => {
+      const name = (d.orgName || "").trim();
+      if (!name) return;
+      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0 };
+      map[name].deals.push(d);
+      const recency = dealKpiCat[d.id]?.recency;
+      if (recency) map[name][recency]++;
+    });
+    return Object.values(map)
+      .map((o) => {
+        const counts = { "Raw Data": 0, "플랫폼": 0, "기타": 0 };
+        o.deals.forEach((d) => counts[classifyTargetProduct(d.targetProduct)]++);
+        const totalExpected = o.deals.reduce((a, d) => a + (d.expectedPerformance || 0), 0);
+        const dominant = o.stale > 0 ? "stale" : o.followUp > 0 ? "followUp" : "active7";
+        return { ...o, counts, totalCount: o.deals.length, totalExpected, dominant };
+      })
+      .sort((a, b) => b.totalCount - a.totalCount);
+  }, [deals, dealKpiCat]);
+
   const actionDueDeals = useMemo(() => {
     return deals
       .filter((d) => dealKpiCat[d.id]?.future === "actionDue")
@@ -514,7 +572,9 @@ export default function Dashboard() {
       .sort((a, b) => b.expected - a.expected);
   }, [deals, search]);
 
-  async function openDeal(deal) {
+  async function openDeal(deal, origin) {
+    setPanelOrigin(origin || null);
+    if (origin) setSelectedOrgName(null);
     setSelected(deal);
     setDetailTab("info");
     setActivity([]);
@@ -564,6 +624,39 @@ export default function Dashboard() {
   async function saveMeeting() {
     await saveDealField({ nextMeetingDate: editMeetingDate, nextMeetingNote: editMeetingNote });
     setEditingField(null);
+  }
+
+  const [newLinkLabel, setNewLinkLabel] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [addingLink, setAddingLink] = useState(false);
+
+  async function handleAddLink() {
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    const updated = [...(selected.relatedFiles || []), { label: newLinkLabel.trim(), url: newLinkUrl.trim() }];
+    await saveDealField({ relatedFiles: updated });
+    setNewLinkLabel("");
+    setNewLinkUrl("");
+    setAddingLink(false);
+  }
+
+  async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const path = `deal-files/${selected.id}/${Date.now()}_${file.name}`;
+      const r = storageRef(storage, path);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      const updated = [...(selected.relatedFiles || []), { label: file.name, url }];
+      await saveDealField({ relatedFiles: updated });
+    } catch (err) {
+      alert("업로드 실패: " + (err.message || err) + " (Firebase Storage가 활성화되어 있는지 확인해주세요)");
+    } finally {
+      setUploadingFile(false);
+      e.target.value = "";
+    }
   }
 
   async function handleCreateDeal() {
@@ -674,6 +767,49 @@ export default function Dashboard() {
     }
   }
 
+  async function saveGridField(field) {
+    if (field === "expectedPerformanceRaw") {
+      await saveDealField({ expectedPerformanceRaw: editValue, expectedPerformance: parseAmountKR(editValue) });
+    } else if (field === "contractAmount") {
+      const num = editValue.replace(/[^0-9]/g, "");
+      await saveDealField({ contractAmount: num ? parseInt(num, 10) : null });
+    } else {
+      await saveDealField({ [field]: editValue });
+    }
+  }
+
+  function GridCell({ icon: Icon, label, field, displayValue }) {
+    const editing = editingField === field;
+    return (
+      <div className="bg-white px-4 py-3 group">
+        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center justify-between">
+          <span className="flex items-center gap-1"><Icon className="w-3 h-3" />{label}</span>
+          {!editing && (
+            <button className="text-navy opacity-0 group-hover:opacity-100 transition text-[10px]" onClick={() => startEdit(field, selected[field])}>
+              수정
+            </button>
+          )}
+        </div>
+        {!editing ? (
+          <div className="text-xs font-semibold text-navy break-words">{displayValue}</div>
+        ) : (
+          <div className="space-y-1">
+            <input
+              className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-1 justify-end">
+              <button className="text-[10px] text-gray-400" onClick={cancelEdit}>취소</button>
+              <button className="text-[10px] bg-navy text-white px-1.5 py-0.5 rounded" onClick={() => saveGridField(field)} disabled={saving}>저장</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (!authChecked || loading) {
     return (
       <div className="p-10 font-sans">
@@ -775,7 +911,9 @@ export default function Dashboard() {
                             <LogoBadge name={d.orgName} />{d.orgName}
                           </div>
                           <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">
-                            {d.nextMeetingDate} {d.nextMeetingNote}
+                            {dealKpiCat[d.id]?.futureReason === "renewal"
+                              ? `계약갱신 예정 · ${d.contractRenewalDate}`
+                              : `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`}
                           </div>
                         </div>
                       ))}
@@ -986,24 +1124,34 @@ export default function Dashboard() {
           )}
 
           {view === "orgs" && (
-            <table className="deals mt-2">
-              <thead>
-                <tr>
-                  <th>업체명</th><th>구분</th><th>딜 건수</th><th>기대실적 합계</th><th>계약금액 합계</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orgRows.map((o) => (
-                  <tr key={o.name} onClick={() => openDeal(o.bestDeal)}>
-                    <td style={{ fontWeight: 700 }}><LogoBadge name={o.name} />{o.name}</td>
-                    <td>{o.group}</td>
-                    <td>{o.count}</td>
-                    <td>{formatWon(o.expected)}</td>
-                    <td>{formatWon(o.contract)}</td>
-                  </tr>
+            <div className="grid grid-cols-2 gap-3">
+              {companyRows
+                .filter((o) => !search || o.name.includes(search))
+                .map((o) => (
+                  <div
+                    key={o.name}
+                    onClick={() => { setSelectedOrgName(o.name); setSelectedOrgCategory(Object.entries(o.counts).find(([, v]) => v > 0)?.[0] || "Raw Data"); }}
+                    className="bg-white border border-[#E7EAF0] rounded-xl p-4 cursor-pointer hover:border-navy/40"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center text-sm font-bold text-navy">
+                        <LogoBadge name={o.name} />{o.name}
+                      </div>
+                      <span className={"text-[10px] px-2 py-0.5 rounded-md font-semibold " + RECENCY_LABEL[o.dominant][1]}>
+                        {RECENCY_LABEL[o.dominant][0]}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-gray-400 mb-2 ml-[28px]">{o.group}</div>
+                    <div className="flex items-center gap-1.5 ml-[28px]">
+                      {Object.entries(o.counts).filter(([, v]) => v > 0).map(([cat, v]) => (
+                        <span key={cat} className="text-[10px] bg-[#F0F2F5] text-gray-600 px-2 py-1 rounded-md font-semibold">
+                          {cat} {v}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+            </div>
           )}
 
           {view === "report" && (
@@ -1091,9 +1239,21 @@ export default function Dashboard() {
                 <X className="w-4 h-4" />
               </button>
               <div className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
-                <span>전체</span><span>›</span>
-                <span>{mapGroupName(selected.orgGroup)}</span><span>›</span>
-                <span className="text-navy font-semibold">{selected.orgName}</span>
+                {panelOrigin ? (
+                  <button
+                    className="text-navy font-semibold hover:underline flex items-center gap-1"
+                    onClick={() => { setSelected(null); setSelectedOrgName(panelOrigin); }}
+                  >
+                    ‹ {panelOrigin}
+                  </button>
+                ) : (
+                  <>
+                    <span>전체</span><span>›</span>
+                    <span>{mapGroupName(selected.orgGroup)}</span>
+                  </>
+                )}
+                <span>›</span>
+                <span className="text-navy font-semibold">{(selected.targetProduct || selected.orgName).replace(/\n/g, " ")}</span>
               </div>
 
               <div className="flex items-start justify-between">
@@ -1209,26 +1369,37 @@ export default function Dashboard() {
               {detailTab === "info" && (
                 <>
                   <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
-                    {[
-                      [User, "담당자", selected.contactPerson || "-"],
-                      [Users, "RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
-                      [TrendingUp, "기대실적", formatWon(selected.expectedPerformance)],
-                      [Wallet, "계약금액", formatWon(selected.contractAmount)],
-                      [CalendarClock, "계약목표", selected.contractGoal || "-"],
-                      [Layers, "진행단계", selected.stage || "-"],
-                    ].map(([Icon, label, value]) => (
-                      <div key={label} className="bg-white px-4 py-3">
-                        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
-                          <Icon className="w-3 h-3" />{label}
-                        </div>
-                        <div className="text-xs font-semibold text-navy break-words">{value}</div>
-                      </div>
-                    ))}
+                    <GridCell icon={User} label="담당자" field="contactPerson" displayValue={selected.contactPerson || "-"} />
+                    <GridCell icon={Users} label="RM" field="rm" displayValue={selected.rm || "-"} />
+                    <GridCell icon={Users} label="SO" field="so" displayValue={selected.so || "-"} />
+                    <GridCell icon={TrendingUp} label="기대실적" field="expectedPerformanceRaw" displayValue={formatWon(selected.expectedPerformance)} />
+                    <GridCell icon={Wallet} label="계약금액" field="contractAmount" displayValue={formatWon(selected.contractAmount)} />
+                    <GridCell icon={CalendarClock} label="계약목표" field="contractGoal" displayValue={selected.contractGoal || "-"} />
+                    <GridCell icon={CalendarClock} label="계약갱신일" field="contractRenewalDate" displayValue={selected.contractRenewalDate || "-"} />
+
+                    <div className="bg-white px-4 py-3">
+                      <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><Layers className="w-3 h-3" />진행단계</div>
+                      <select
+                        className="text-xs font-semibold text-navy border-none bg-transparent -ml-0.5 focus:outline-none focus:ring-1 focus:ring-navy rounded"
+                        value={selected.stage || ""}
+                        onChange={(e) => saveDealField({ stage: e.target.value })}
+                      >
+                        <option value="">-</option>
+                        {["1단계", "2단계", "3단계", "4단계"].map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="px-6 py-3 border-b border-[#E7EAF0]">
                     <div className="text-[10px] text-gray-400 mb-1 flex items-center gap-1"><Percent className="w-3 h-3" />계약가능성</div>
-                    <span className={probPillClass(selected.probability)}>{selected.probability || "가능성 미상"}</span>
+                    <select
+                      className="text-xs font-semibold border border-[#E7EAF0] rounded-lg px-2 py-1"
+                      value={selected.probability || ""}
+                      onChange={(e) => saveDealField({ probability: e.target.value })}
+                    >
+                      <option value="">미상</option>
+                      {["상", "중", "하", "완료"].map((p) => <option key={p} value={p}>{p}</option>)}
+                    </select>
                   </div>
 
                   <div className="px-6 py-3 border-b border-[#E7EAF0]">
@@ -1314,7 +1485,7 @@ export default function Dashboard() {
               {detailTab === "files" && (
                 <div className="px-6 py-4">
                   <div className="text-xs font-extrabold text-navy mb-3">관련파일 ({(selected.relatedFiles || []).length})</div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 mb-3">
                     {(selected.relatedFiles || []).map((f, i) => {
                       const label = typeof f === "string" ? f : f.label;
                       const url = typeof f === "string" ? null : f.url;
@@ -1335,7 +1506,37 @@ export default function Dashboard() {
                       <div className="text-xs text-gray-300">관련파일이 없습니다.</div>
                     )}
                   </div>
-                  <div className="text-[10px] text-gray-300 mt-3">※ 더존 사내 그룹웨어 링크라 로그인된 상태에서만 열립니다.</div>
+                  <div className="text-[10px] text-gray-300 mb-3">※ 더존 사내 그룹웨어 링크는 로그인된 상태에서만 열립니다.</div>
+
+                  <div className="border-t border-[#E7EAF0] pt-3 space-y-2">
+                    {!addingLink ? (
+                      <button className="text-[11px] text-navy underline" onClick={() => setAddingLink(true)}>+ 링크 추가</button>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <input
+                          className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                          placeholder="파일/문서 이름"
+                          value={newLinkLabel}
+                          onChange={(e) => setNewLinkLabel(e.target.value)}
+                        />
+                        <input
+                          className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                          placeholder="https://..."
+                          value={newLinkUrl}
+                          onChange={(e) => setNewLinkUrl(e.target.value)}
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button className="text-[10px] text-gray-400" onClick={() => setAddingLink(false)}>취소</button>
+                          <button className="text-[10px] bg-navy text-white px-2.5 py-1 rounded-lg" onClick={handleAddLink}>추가</button>
+                        </div>
+                      </div>
+                    )}
+
+                    <label className="block text-[11px] text-navy underline cursor-pointer">
+                      {uploadingFile ? "업로드 중..." : "+ 파일 업로드"}
+                      <input type="file" className="hidden" onChange={handleFileUpload} disabled={uploadingFile} />
+                    </label>
+                  </div>
                 </div>
               )}
 
@@ -1392,6 +1593,81 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {selectedOrgName && !selected && (() => {
+        const org = companyRows.find((o) => o.name === selectedOrgName);
+        if (!org) return null;
+        const dealsInCat = org.deals.filter((d) => classifyTargetProduct(d.targetProduct) === selectedOrgCategory);
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelectedOrgName(null)} />
+            <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl flex flex-col">
+              <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
+                <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelectedOrgName(null)}>
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
+                  <span>전체</span><span>›</span><span>기관현황</span><span>›</span>
+                  <span className="text-navy font-semibold">{org.name}</span>
+                </div>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <LogoBadge name={org.name} />
+                  <h2 className="text-lg font-extrabold text-navy">{org.name}</h2>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">{org.group}</span>
+                  <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + RECENCY_LABEL[org.dominant][1]}>
+                    {RECENCY_LABEL[org.dominant][0]}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-b border-[#E7EAF0] shrink-0">
+                <div className="text-xs font-extrabold text-navy mb-2">타겟제품 ({org.totalCount})</div>
+                <div className="flex gap-2">
+                  {Object.entries(org.counts).filter(([, v]) => v > 0).map(([cat, v]) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedOrgCategory(cat)}
+                      className={
+                        "text-xs px-3 py-1.5 rounded-lg font-semibold border " +
+                        (selectedOrgCategory === cat ? "bg-navy text-white border-navy" : "bg-white text-gray-500 border-[#E7EAF0]")
+                      }
+                    >
+                      {cat} ({v})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
+                {dealsInCat.map((d) => {
+                  const cat = dealKpiCat[d.id];
+                  const recInfo = cat ? RECENCY_LABEL[cat.recency] : null;
+                  return (
+                    <div
+                      key={d.id}
+                      onClick={() => openDeal(d, org.name)}
+                      className="border border-[#E7EAF0] rounded-xl p-3 cursor-pointer hover:border-navy/40"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-xs font-bold text-navy">{(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}</div>
+                        {recInfo && (
+                          <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + recInfo[1]}>{recInfo[0]}</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        {[d.rm, d.so].filter(Boolean).join(" / ") || "담당자 미상"} · {formatWon(d.expectedPerformance)}
+                      </div>
+                    </div>
+                  );
+                })}
+                {dealsInCat.length === 0 && <div className="text-xs text-gray-300">해당 카테고리에 딜이 없습니다.</div>}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {showNewDeal && (
         <>
