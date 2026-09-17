@@ -329,7 +329,6 @@ export default function Dashboard() {
   const [listFilterGroup, setListFilterGroup] = useState("전체");
   const [listFilterRecency, setListFilterRecency] = useState("전체");
   const [myCompaniesFilter, setMyCompaniesFilter] = useState("mine");
-  const [showAiRecommendModal, setShowAiRecommendModal] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState("전체");
@@ -637,24 +636,6 @@ export default function Dashboard() {
     return [...new Set(deals.map((d) => (d.targetProduct || "").replace(/\n/g, " ").trim()).filter(Boolean))].sort();
   }, [deals]);
 
-  const myCompanyGroups = useMemo(() => {
-    const filtered = companyRows.filter((o) =>
-      myCompaniesFilter === "all" || o.deals.some((d) => d.rm === profile?.name || d.so === profile?.name)
-    );
-    const map = {};
-    filtered.forEach((o) => {
-      if (!map[o.group]) map[o.group] = [];
-      map[o.group].push(o);
-    });
-    return Object.entries(map).sort(([a], [b]) => {
-      const ia = GROUP_ORDER.indexOf(a);
-      const ib = GROUP_ORDER.indexOf(b);
-      if (ia === -1 && ib === -1) return 0;
-      if (ia === -1) return 1;
-      if (ib === -1) return -1;
-      return ia - ib;
-    });
-  }, [companyRows, myCompaniesFilter, profile]);
 
   const allOrgFlat = useMemo(() => {
     const rows = [];
@@ -688,6 +669,35 @@ export default function Dashboard() {
     if (!profile?.name) return [];
     return deals.filter((d) => d.aiFlag && (d.rm === profile.name || d.so === profile.name));
   }, [deals, profile]);
+
+  const myCompanyGroups = useMemo(() => {
+    let filtered;
+    if (myCompaniesFilter === "favorites") {
+      filtered = companyRows.filter((o) => favorites.includes(o.name));
+    } else if (myCompaniesFilter === "ai") {
+      const aiOrgNames = new Set(aiFlaggedDeals.map((d) => d.orgName));
+      filtered = companyRows
+        .filter((o) => aiOrgNames.has(o.name))
+        .map((o) => ({ ...o, aiInsights: aiFlaggedDeals.filter((d) => d.orgName === o.name) }));
+    } else if (myCompaniesFilter === "mine") {
+      filtered = companyRows.filter((o) => o.deals.some((d) => d.rm === profile?.name || d.so === profile?.name));
+    } else {
+      filtered = companyRows;
+    }
+    const map = {};
+    filtered.forEach((o) => {
+      if (!map[o.group]) map[o.group] = [];
+      map[o.group].push(o);
+    });
+    return Object.entries(map).sort(([a], [b]) => {
+      const ia = GROUP_ORDER.indexOf(a);
+      const ib = GROUP_ORDER.indexOf(b);
+      if (ia === -1 && ib === -1) return 0;
+      if (ia === -1) return 1;
+      if (ib === -1) return -1;
+      return ia - ib;
+    });
+  }, [companyRows, myCompaniesFilter, profile, favorites, aiFlaggedDeals]);
 
   const actionDueDeals = useMemo(() => {
     return deals
@@ -1144,15 +1154,6 @@ export default function Dashboard() {
               className="text-[11px] bg-navy text-white px-3 py-2 rounded-lg font-semibold"
             >
               + 상세 등록
-            </button>
-            <button
-              onClick={() => setShowAiRecommendModal(true)}
-              className="text-[11px] bg-pink-50 dark:bg-pink-950/40 text-pink-600 px-3 py-2 rounded-lg font-semibold flex items-center gap-1"
-            >
-              <Sparkles className="w-3.5 h-3.5" /> 다음 액션 추천 AI
-              {aiFlaggedDeals.length > 0 && (
-                <span className="bg-pink-600 text-white rounded-full px-1.5 text-[10px] font-bold">{aiFlaggedDeals.length}</span>
-              )}
             </button>
             <button onClick={toggleDarkMode} className="text-gray-400 hover:text-navy dark:hover:text-gray-100 p-1.5">
               {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -1702,19 +1703,28 @@ export default function Dashboard() {
 
           {view === "mycompanies" && (
             <div>
-              <div className="flex items-center gap-2 mb-5">
-                <button
-                  onClick={() => setMyCompaniesFilter("mine")}
-                  className={"text-xs px-3 py-1.5 rounded-lg font-semibold border " + (myCompaniesFilter === "mine" ? "bg-navy text-white border-navy" : "bg-white dark:bg-[#111827] text-gray-500 border-[#E7EAF0] dark:border-gray-700")}
-                >
-                  내 담당만
-                </button>
-                <button
-                  onClick={() => setMyCompaniesFilter("all")}
-                  className={"text-xs px-3 py-1.5 rounded-lg font-semibold border " + (myCompaniesFilter === "all" ? "bg-navy text-white border-navy" : "bg-white dark:bg-[#111827] text-gray-500 border-[#E7EAF0] dark:border-gray-700")}
-                >
-                  전체 보기
-                </button>
+              <div className="flex items-center gap-2 mb-5 flex-wrap">
+                {[
+                  { key: "mine", label: "담당 업체" },
+                  { key: "favorites", label: "관심 업체" },
+                  { key: "all", label: "전체 업체" },
+                  { key: "ai", label: "액션 추천 업체 (AI기반)" },
+                ].map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => setMyCompaniesFilter(t.key)}
+                    className={"text-xs px-3 py-1.5 rounded-lg font-semibold border flex items-center gap-1 " + (myCompaniesFilter === t.key ? "bg-navy text-white border-navy" : "bg-white dark:bg-[#111827] text-gray-500 border-[#E7EAF0] dark:border-gray-700")}
+                  >
+                    {t.key === "favorites" && <Star className="w-3 h-3" />}
+                    {t.key === "ai" && <Sparkles className="w-3 h-3" />}
+                    {t.label}
+                    {t.key === "ai" && aiFlaggedDeals.length > 0 && (
+                      <span className={"rounded-full px-1.5 text-[10px] " + (myCompaniesFilter === "ai" ? "bg-white/20" : "bg-pink-100 text-pink-600")}>
+                        {aiFlaggedDeals.length}
+                      </span>
+                    )}
+                  </button>
+                ))}
                 {!profile?.name && myCompaniesFilter === "mine" && (
                   <span className="text-[11px] text-gray-400">본인 이름이 설정되어 있어야 매칭됩니다.</span>
                 )}
@@ -1735,7 +1745,7 @@ export default function Dashboard() {
                       return (
                         <div
                           key={o.name}
-                          onClick={() => openDeal(o.deals[0])}
+                          onClick={() => openDeal(o.aiInsights ? o.aiInsights[0] : o.deals[0])}
                           className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-3 cursor-pointer hover:border-navy/40"
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -1754,6 +1764,16 @@ export default function Dashboard() {
                               </span>
                             ))}
                           </div>
+                          {o.aiInsights && (
+                            <div className="mt-2 ml-[28px] space-y-1">
+                              {o.aiInsights.map((d) => (
+                                <div key={d.id} className="text-[10px] text-pink-600 bg-pink-50 dark:bg-pink-950/30 rounded-md px-2 py-1 flex items-start gap-1">
+                                  <Sparkles className="w-3 h-3 shrink-0 mt-0.5" />
+                                  <span>{d.aiInsight}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1763,7 +1783,10 @@ export default function Dashboard() {
 
               {myCompanyGroups.length === 0 && (
                 <div className="text-center text-xs text-gray-300 py-16">
-                  {myCompaniesFilter === "mine" ? "담당 중인 업체가 없습니다." : "표시할 업체가 없습니다."}
+                  {myCompaniesFilter === "mine" && "담당 중인 업체가 없습니다."}
+                  {myCompaniesFilter === "favorites" && "별표로 등록한 관심업체가 없습니다."}
+                  {myCompaniesFilter === "ai" && "지금은 AI가 추천할 액션이 없습니다."}
+                  {myCompaniesFilter === "all" && "표시할 업체가 없습니다."}
                 </div>
               )}
             </div>
@@ -2483,50 +2506,6 @@ export default function Dashboard() {
           </>
         );
       })()}
-
-      {showAiRecommendModal && (
-        <>
-          <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setShowAiRecommendModal(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
-              <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
-                <span className="text-sm font-extrabold text-pink-600 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4" />다음 액션 추천 (AI기반)
-                </span>
-                <button className="text-gray-400 hover:text-navy" onClick={() => setShowAiRecommendModal(false)}>
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="p-3">
-                <div className="text-[11px] text-gray-400 px-2 mb-1">{aiFlaggedDeals.length}건</div>
-                {aiFlaggedDeals.map((d) => (
-                  <div
-                    key={d.id}
-                    className="px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 flex items-start justify-between gap-2"
-                  >
-                    <div onClick={() => { openDeal(d); setShowAiRecommendModal(false); }} className="flex-1 min-w-0 cursor-pointer">
-                      <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
-                        <LogoBadge name={d.orgName} />{d.orgName}
-                        <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
-                      </div>
-                      <div className="text-[11px] text-pink-600 mt-0.5 ml-[28px]">{d.aiInsight}</div>
-                    </div>
-                    <button
-                      onClick={() => dismissAiInsight(d.id, d.aiInsightForAction)}
-                      className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-                {aiFlaggedDeals.length === 0 && (
-                  <div className="text-center text-xs text-gray-300 py-10">지금은 추천할 액션이 없습니다.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
 
       {kpiModalKey && (() => {
         const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
