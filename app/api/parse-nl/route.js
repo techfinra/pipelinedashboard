@@ -51,10 +51,11 @@ ${dealList}
 2. 그 회사에 여러 딜(타겟제품)이 있을 수 있습니다. 문장에서 특정 제품이 명확히 언급되면 [딜 목록]에서 해당 dealIndex를 찾으세요. 어느 제품인지 특정할 수 없으면(그래도 orgIndex는 찾았다면) dealIndex는 null로 두세요. orgIndex를 못 찾았으면 dealIndex도 null입니다.
 3. 의도가 "register"(새 진행상황 등록)인지 "cancel"(이전에 등록한 내용을 취소/삭제해달라는 요청)인지 구분하세요.
 4. 문장에 날짜가 명시 안되어 있으면 오늘 날짜를 씁니다.
-5. 문장에 "다음주 화요일 미팅", "9/23 미팅 예정" 처럼 향후 예정된 미팅/일정이 언급되면, 오늘 날짜 기준으로 정확한 날짜(YYYY-MM-DD)를 계산하세요. 언급 없으면 null.
+5. 문장에 "다음주 화요일 미팅", "9/23 미팅 예정"처럼 **향후(미래) 예정된** 미팅/일정이 언급되면, 오늘 날짜 기준으로 정확한 날짜(YYYY-MM-DD)를 계산하세요. **주의: "미팅했다", "미팅 진행함", "다녀왔어", "회의록 작성했어"처럼 이미 끝난(과거) 미팅을 설명하는 문장은 향후 미팅이 아닙니다 — 이 경우 meetingDate는 반드시 null입니다.** 향후 일정 언급이 전혀 없으면 null.
+6. 문장에 http:// 또는 https://로 시작하는 URL이 포함되어 있으면 그대로 추출하세요 (relatedFileUrl). 없으면 null. URL이 있을 경우, 그 앞뒤 문맥(예: "회의록", "제안서", "견적서", "계약서", "자료" 등 단어)을 보고 어떤 종류의 파일/링크인지 한 단어로 라벨을 붙여주세요(relatedFileLabel). 판단이 안 서면 "첨부자료"로 하세요.
 
 아래 JSON 형식으로만 답하세요 (다른 설명이나 코드블록 없이 순수 JSON만):
-{"orgIndex": <인덱스 또는 null>, "dealIndex": <인덱스 또는 null>, "intent": "register 또는 cancel", "date": "YYYY-MM-DD", "actionText": "정리된 액션 내용 한 문장", "meetingDate": "YYYY-MM-DD 또는 null", "meetingNote": "미팅 관련 짧은 메모 또는 null"}`;
+{"orgIndex": <인덱스 또는 null>, "dealIndex": <인덱스 또는 null>, "intent": "register 또는 cancel", "date": "YYYY-MM-DD", "actionText": "정리된 액션 내용 한 문장", "meetingDate": "YYYY-MM-DD 또는 null", "meetingNote": "미팅 관련 짧은 메모 또는 null", "relatedFileUrl": "URL 또는 null", "relatedFileLabel": "라벨 또는 null"}`;
 
     const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -158,6 +159,8 @@ ${dealList}
       actionText: parsed.actionText || text,
       meetingDate: parsed.meetingDate || null,
       meetingNote: parsed.meetingNote || null,
+      relatedFileUrl: parsed.relatedFileUrl || null,
+      relatedFileLabel: parsed.relatedFileLabel || "첨부자료",
       fieldSuggestions,
     });
   } catch (e) {
