@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 import {
@@ -364,11 +364,18 @@ export default function Dashboard() {
   const [nlText, setNlText] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlResult, setNlResult] = useState(null);
+  const [nlCompanySearch, setNlCompanySearch] = useState("");
+  const [nlSelectedOrg, setNlSelectedOrg] = useState("");
   const [nlOverrideDealId, setNlOverrideDealId] = useState("");
   const [nlDate, setNlDate] = useState("");
   const [nlActionText, setNlActionText] = useState("");
+  const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
+  const [nlMeetingDate, setNlMeetingDate] = useState("");
+  const [nlMeetingNote, setNlMeetingNote] = useState("");
   const [nlSaving, setNlSaving] = useState(false);
   const [nlError, setNlError] = useState("");
+  const [nlHistoryOpen, setNlHistoryOpen] = useState(false);
+  const [nlConfirmDeleteId, setNlConfirmDeleteId] = useState(null);
   const [detailTab, setDetailTab] = useState("info");
   const [notifOpen, setNotifOpen] = useState(false);
   const [kpiModalKey, setKpiModalKey] = useState(null);
@@ -420,7 +427,7 @@ export default function Dashboard() {
           getDocs(collection(db, "activityLog")),
         ]);
         setDeals(dealsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setAllActivity(activitySnap.docs.map((d) => d.data()));
+        setAllActivity(activitySnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (e) {
         setLoadError(String(e && e.message ? e.message : e));
       } finally {
@@ -633,6 +640,21 @@ export default function Dashboard() {
     return companyRows.filter((o) => o.name.includes(search.trim())).slice(0, 8);
   }, [search, companyRows]);
 
+  const quickEntries = useMemo(() => {
+    return allActivity
+      .filter((a) => a.source === "quick-input" && a.id)
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .slice(0, 10);
+  }, [allActivity]);
+
+  const nlCancelTarget = useMemo(() => {
+    if (!nlResult || nlResult.intent !== "cancel" || !nlOverrideDealId) return null;
+    const candidates = allActivity.filter((a) => a.dealId === nlOverrideDealId && a.source === "quick-input" && a.id);
+    if (candidates.length === 0) return null;
+    candidates.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    return candidates[0];
+  }, [nlResult, nlOverrideDealId, allActivity]);
+
   const aiFlaggedDeals = useMemo(() => {
     if (!profile?.name) return [];
     return deals.filter((d) => d.aiFlag && (d.rm === profile.name || d.so === profile.name));
@@ -799,9 +821,22 @@ export default function Dashboard() {
         return;
       }
       setNlResult(data);
-      setNlOverrideDealId(data.dealId || "");
       setNlDate(data.date || "");
       setNlActionText(data.actionText || "");
+      setNlApplyMeeting(!!data.meetingDate);
+      setNlMeetingDate(data.meetingDate || "");
+      setNlMeetingNote(data.meetingNote || "");
+
+      if (data.orgName) {
+        setNlCompanySearch(data.orgName);
+        const exists = companyRows.find((o) => o.name === data.orgName);
+        setNlSelectedOrg(exists ? data.orgName : "");
+        setNlOverrideDealId(data.dealId || "");
+      } else {
+        setNlCompanySearch("");
+        setNlSelectedOrg("");
+        setNlOverrideDealId("");
+      }
     } catch (e) {
       setNlError(String(e.message || e));
     } finally {
@@ -809,29 +844,72 @@ export default function Dashboard() {
     }
   }
 
+  function resetNL() {
+    setNlText("");
+    setNlResult(null);
+    setNlCompanySearch("");
+    setNlSelectedOrg("");
+    setNlOverrideDealId("");
+    setNlDate("");
+    setNlActionText("");
+    setNlApplyMeeting(false);
+    setNlMeetingDate("");
+    setNlMeetingNote("");
+  }
+
   async function handleConfirmNL() {
     if (!nlOverrideDealId) {
-      setNlError("연결할 딜을 선택해주세요.");
+      setNlError("타겟제품(딜)을 선택해주세요.");
       return;
     }
     setNlSaving(true);
     try {
-      await addDoc(collection(db, "activityLog"), {
+      const newLogRef = await addDoc(collection(db, "activityLog"), {
         dealId: nlOverrideDealId,
         date: nlDate || null,
         text: nlActionText,
+        source: "quick-input",
         createdAt: serverTimestamp(),
       });
-      setAllActivity((prev) => [...prev, { dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText }]);
-      setNlText("");
-      setNlResult(null);
-      setNlOverrideDealId("");
-      setNlDate("");
-      setNlActionText("");
+      setAllActivity((prev) => [...prev, { id: newLogRef.id, dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText, source: "quick-input" }]);
+
+      if (nlApplyMeeting && nlMeetingDate) {
+        await updateDoc(doc(db, "deals", nlOverrideDealId), {
+          nextMeetingDate: nlMeetingDate,
+          nextMeetingNote: nlMeetingNote || "",
+          updatedAt: serverTimestamp(),
+        });
+        setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, nextMeetingDate: nlMeetingDate, nextMeetingNote: nlMeetingNote || "" } : d)));
+      }
+
+      resetNL();
     } catch (e) {
       setNlError("저장 실패: " + (e.message || e));
     } finally {
       setNlSaving(false);
+    }
+  }
+
+  async function handleCancelViaNL() {
+    setNlSaving(true);
+    try {
+      await deleteDoc(doc(db, "activityLog", nlCancelTarget.id));
+      setAllActivity((prev) => prev.filter((a) => a !== nlCancelTarget && !(a.dealId === nlCancelTarget.dealId && a.text === nlCancelTarget.text && a.date === nlCancelTarget.date)));
+      resetNL();
+    } catch (e) {
+      setNlError("취소 실패: " + (e.message || e));
+    } finally {
+      setNlSaving(false);
+    }
+  }
+
+  async function deleteQuickEntry(entry) {
+    try {
+      await deleteDoc(doc(db, "activityLog", entry.id));
+      setAllActivity((prev) => prev.filter((a) => a.id !== entry.id));
+      setNlConfirmDeleteId(null);
+    } catch (e) {
+      alert("취소 실패: " + (e.message || e));
     }
   }
 
@@ -1119,11 +1197,16 @@ export default function Dashboard() {
 
         <div className="p-7">
           <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
-            <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-2">⚡ 빠른 등록</div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-extrabold text-navy dark:text-gray-100">⚡ 빠른 등록/취소</div>
+              <button className="text-[11px] text-navy dark:text-gray-300 underline" onClick={() => setNlHistoryOpen((v) => !v)}>
+                최근 이력 {nlHistoryOpen ? "접기" : `보기 (${quickEntries.length})`}
+              </button>
+            </div>
             <div className="flex gap-2">
               <input
-                className="flex-1 text-xs border border-[#E7EAF0] rounded-lg px-3 py-2"
-                placeholder="예: 9월 20일 신한카드 미팅해서 계약서 전달함"
+                className="flex-1 text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2"
+                placeholder="예: 9월 20일 신한카드 미팅해서 계약서 전달함 / 신한카드에 입력한거 취소해줘"
                 value={nlText}
                 onChange={(e) => setNlText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handleAnalyzeNL(); }}
@@ -1138,37 +1221,169 @@ export default function Dashboard() {
             </div>
             {nlError && <p className="text-xs text-red-600 mt-2">{nlError}</p>}
 
-            {nlResult && (
-              <div className="mt-3 border border-[#E7EAF0] rounded-xl p-3 bg-[#F8FAFC]">
-                <div className="text-[11px] text-gray-400 mb-2">
-                  {nlResult.dealId ? "AI가 딜을 찾았습니다. 확인 후 저장하세요." : "일치하는 딜을 못 찾았습니다. 직접 선택해주세요."}
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
+            {nlHistoryOpen && (
+              <div className="mt-3 border border-[#E7EAF0] dark:border-gray-700 rounded-xl overflow-hidden">
+                {quickEntries.map((a) => {
+                  const d = deals.find((dl) => dl.id === a.dealId);
+                  return (
+                    <div key={a.id} className="px-3 py-2 border-b border-[#F4F6F9] dark:border-gray-800 last:border-b-0 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-semibold text-navy dark:text-gray-100 flex items-center">
+                          {d && <LogoBadge name={d.orgName} />}{d ? d.orgName : "(삭제된 딜)"}
+                          <span className="text-gray-400 font-normal ml-1.5">{a.date}</span>
+                        </div>
+                        <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">{a.text}</div>
+                      </div>
+                      {nlConfirmDeleteId === a.id ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-[10px] text-red-500">취소할까요?</span>
+                          <button className="text-[10px] bg-red-600 text-white px-2 py-1 rounded" onClick={() => deleteQuickEntry(a)}>확인</button>
+                          <button className="text-[10px] text-gray-400" onClick={() => setNlConfirmDeleteId(null)}>아니오</button>
+                        </div>
+                      ) : (
+                        <button className="text-gray-300 hover:text-red-500 shrink-0" onClick={() => setNlConfirmDeleteId(a.id)}>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+                {quickEntries.length === 0 && (
+                  <div className="px-3 py-4 text-center text-[11px] text-gray-300">빠른등록으로 추가한 이력이 없습니다.</div>
+                )}
+              </div>
+            )}
+
+            {nlResult && nlResult.intent === "cancel" ? (
+              <div className="mt-3 border border-red-200 dark:border-red-900 rounded-xl p-3 bg-red-50 dark:bg-red-950/30">
+                <div className="text-[11px] font-bold text-red-600 mb-2">취소 요청으로 감지했습니다</div>
+                {!nlSelectedOrg && (
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input
+                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
+                      placeholder="회사명 검색"
+                      value={nlCompanySearch}
+                      onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
+                    />
+                    {nlCompanySearch && companyRows.filter((o) => o.name.includes(nlCompanySearch)).slice(0, 6).map((o) => (
+                      <button
+                        key={o.name}
+                        className="text-xs text-left px-2 py-1.5 rounded-lg bg-white border border-[#E7EAF0] col-span-2"
+                        onClick={() => { setNlSelectedOrg(o.name); setNlOverrideDealId(o.deals.length === 1 ? o.deals[0].id : ""); }}
+                      >
+                        {o.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {nlSelectedOrg && (
                   <select
-                    className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
+                    className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
                     value={nlOverrideDealId}
                     onChange={(e) => setNlOverrideDealId(e.target.value)}
                   >
-                    <option value="">-- 딜 선택 --</option>
-                    {deals.map((d) => (
-                      <option key={d.id} value={d.id}>{d.orgName} - {d.targetProduct}</option>
+                    <option value="">-- 타겟제품 선택 --</option>
+                    {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
+                      <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
                     ))}
                   </select>
-                  <input
-                    type="date"
-                    className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
-                    value={nlDate}
-                    onChange={(e) => setNlDate(e.target.value)}
-                  />
+                )}
+                {nlOverrideDealId && (
+                  nlCancelTarget ? (
+                    <div className="bg-white dark:bg-[#111827] rounded-lg p-2 mb-2">
+                      <div className="text-[10px] text-gray-400 mb-0.5">{nlCancelTarget.date}</div>
+                      <div className="text-xs text-gray-700 dark:text-gray-200">{nlCancelTarget.text}</div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400 mb-2">이 딜에 빠른등록으로 추가한 최근 이력이 없습니다.</div>
+                  )
+                )}
+                <div className="flex justify-end gap-2">
+                  <button className="text-xs text-gray-400" onClick={resetNL}>닫기</button>
+                  {nlCancelTarget && (
+                    <button className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg" onClick={handleCancelViaNL} disabled={nlSaving}>
+                      {nlSaving ? "취소 중..." : "이 내용 취소하기"}
+                    </button>
+                  )}
                 </div>
+              </div>
+            ) : nlResult && (
+              <div className="mt-3 border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-3 bg-[#F8FAFC] dark:bg-[#0B1220]">
+                <div className="text-[11px] text-gray-400 mb-2">
+                  {nlSelectedOrg ? "AI가 회사를 찾았습니다. 타겟제품을 확인해주세요." : "회사명을 검색해서 선택해주세요."}
+                </div>
+
+                <input
+                  className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-1.5"
+                  placeholder="회사명 검색"
+                  value={nlCompanySearch}
+                  onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
+                />
+                {nlCompanySearch && !nlSelectedOrg && (
+                  <div className="space-y-1 mb-2 max-h-28 overflow-y-auto">
+                    {companyRows.filter((o) => o.name.includes(nlCompanySearch)).slice(0, 6).map((o) => (
+                      <button
+                        key={o.name}
+                        className="w-full text-xs text-left px-2 py-1.5 rounded-lg bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700"
+                        onClick={() => { setNlSelectedOrg(o.name); setNlOverrideDealId(o.deals.length === 1 ? o.deals[0].id : ""); }}
+                      >
+                        {o.name}
+                      </button>
+                    ))}
+                    {companyRows.filter((o) => o.name.includes(nlCompanySearch)).length === 0 && (
+                      <div className="text-[11px] text-gray-300 px-2">일치하는 회사가 없습니다.</div>
+                    )}
+                  </div>
+                )}
+
+                {nlSelectedOrg && (
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <select
+                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 col-span-2"
+                      value={nlOverrideDealId}
+                      onChange={(e) => setNlOverrideDealId(e.target.value)}
+                    >
+                      <option value="">-- 타겟제품 선택 --</option>
+                      {companyRows.find((o) => o.name === nlSelectedOrg)?.deals.map((d) => (
+                        <option key={d.id} value={d.id}>{(d.targetProduct || "").replace(/\n/g, " ")}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      className="text-xs border border-[#E7EAF0] rounded-lg px-2 py-2"
+                      value={nlDate}
+                      onChange={(e) => setNlDate(e.target.value)}
+                    />
+                  </div>
+                )}
+
                 <textarea
                   className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-2 mb-2"
                   rows={2}
                   value={nlActionText}
                   onChange={(e) => setNlActionText(e.target.value)}
                 />
+
+                {nlMeetingDate && (
+                  <label className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300 mb-2 bg-orange-50 dark:bg-orange-950/30 rounded-lg px-2 py-1.5">
+                    <input type="checkbox" checked={nlApplyMeeting} onChange={(e) => setNlApplyMeeting(e.target.checked)} />
+                    다음 미팅으로 반영:
+                    <input
+                      type="date"
+                      className="text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                      value={nlMeetingDate}
+                      onChange={(e) => setNlMeetingDate(e.target.value)}
+                    />
+                    <input
+                      className="flex-1 text-[11px] border border-[#E7EAF0] rounded px-1 py-0.5"
+                      value={nlMeetingNote}
+                      onChange={(e) => setNlMeetingNote(e.target.value)}
+                    />
+                  </label>
+                )}
+
                 <div className="flex justify-end gap-2">
-                  <button className="text-xs text-gray-400" onClick={() => setNlResult(null)}>취소</button>
+                  <button className="text-xs text-gray-400" onClick={resetNL}>취소</button>
                   <button className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg" onClick={handleConfirmNL} disabled={nlSaving}>
                     {nlSaving ? "저장 중..." : "진행이력에 추가"}
                   </button>
