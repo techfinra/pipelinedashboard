@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/ai-insights",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/kakaowork-notify",
+      "schedule": "0 22 * * *"
     }
   ]
 }
