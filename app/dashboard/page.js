@@ -394,6 +394,7 @@ export default function Dashboard() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [kpiModalKey, setKpiModalKey] = useState(null);
   const [showDroppedModal, setShowDroppedModal] = useState(false);
+  const [showMemoHistory, setShowMemoHistory] = useState(false);
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
@@ -794,6 +795,7 @@ export default function Dashboard() {
     setSelected(deal);
     setDetailTab("info");
     setConfirmDropCompany(false);
+    setShowMemoHistory(false);
     setActivity([]);
     const q = query(collection(db, "activityLog"), where("dealId", "==", deal.id));
     const snap = await getDocs(q);
@@ -808,6 +810,14 @@ export default function Dashboard() {
   }
   function cancelEdit() {
     setEditingField(null);
+  }
+
+  function buildMemoPatch(oldMemo, newMemo, existingHistory) {
+    const history = existingHistory || [];
+    const updatedHistory = (oldMemo && oldMemo.trim() && oldMemo.trim() !== (newMemo || "").trim())
+      ? [...history, { text: oldMemo.trim(), date: new Date().toISOString().slice(0, 10) }]
+      : history;
+    return { memo: newMemo, memoHistory: updatedHistory };
   }
 
   async function saveDealField(patch) {
@@ -1057,6 +1067,9 @@ export default function Dashboard() {
             patch.expectedPerformance = parseAmountKR(s.suggestedValue);
           } else if (s.field === "contractAmount") {
             patch.contractAmount = parseAmountKR(s.suggestedValue);
+          } else if (s.field === "memo") {
+            const targetDeal = deals.find((d) => d.id === nlOverrideDealId);
+            Object.assign(patch, buildMemoPatch(targetDeal?.memo, s.suggestedValue, targetDeal?.memoHistory));
           } else {
             patch[s.field] = s.suggestedValue;
           }
@@ -2410,9 +2423,30 @@ export default function Dashboard() {
                       setEditValue={setEditValue}
                       onEdit={() => startEdit("memo", selected.memo)}
                       onCancel={cancelEdit}
-                      onSave={() => saveDealField({ memo: editValue })}
+                      onSave={() => saveDealField(buildMemoPatch(selected.memo, editValue, selected.memoHistory))}
                       saving={saving}
                     />
+                    {(selected.memoHistory || []).length > 0 && (
+                      <div className="mt-2">
+                        <button
+                          className="text-[10px] text-navy dark:text-gray-100 underline"
+                          onClick={() => setShowMemoHistory((v) => !v)}
+                        >
+                          이전 메모 이력 {showMemoHistory ? "접기" : `보기 (${selected.memoHistory.length})`}
+                        </button>
+                        {showMemoHistory && (
+                          <div className="mt-2 relative pl-4 space-y-3 border-l-2 border-[#E7EAF0] dark:border-gray-700">
+                            {[...selected.memoHistory].reverse().map((h, i) => (
+                              <div key={i} className="relative">
+                                <span className="absolute -left-[21px] top-1 w-2 h-2 rounded-full bg-gray-300 border-2 border-white dark:border-[#111827]" />
+                                <div className="text-[10px] text-gray-400 mb-0.5">{h.date}</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">{h.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="px-6 py-4 border-b border-[#E7EAF0] dark:border-gray-700">
