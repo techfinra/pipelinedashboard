@@ -290,6 +290,14 @@ function classifyTargetProduct(text) {
   return "기타";
 }
 
+const KPI_DEFS = [
+  { key: "active7", color: "text-green-600", bg: "bg-green-50", ring: "ring-green-500", icon: PlayCircle, label: "활발 진행", meta: "최근 7일" },
+  { key: "followUp", color: "text-blue-600", bg: "bg-blue-50", ring: "ring-blue-500", icon: Clock3, label: "후속 필요", meta: "8~30일" },
+  { key: "stale", color: "text-red-600", bg: "bg-red-50", ring: "ring-red-500", icon: AlertTriangle, label: "장기 정체", meta: "30일 초과" },
+  { key: "actionDue", color: "text-orange-500", bg: "bg-orange-50", ring: "ring-orange-400", icon: Flag, label: "액션 도래", meta: "7일 이내" },
+  { key: "actionPlanned", color: "text-purple-600", bg: "bg-purple-50", ring: "ring-purple-500", icon: CalendarClock, label: "액션 예정", meta: "8일 이후" },
+];
+
 const RECENCY_LABEL = {
   active7: ["활발 진행", "text-green-600 bg-green-50"],
   followUp: ["후속 필요", "text-blue-600 bg-blue-50"],
@@ -353,6 +361,7 @@ export default function Dashboard() {
   const [nlError, setNlError] = useState("");
   const [detailTab, setDetailTab] = useState("info");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [kpiModalKey, setKpiModalKey] = useState(null);
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -986,16 +995,10 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-5 gap-3.5 mb-6">
-            {[
-              { key: "active7", value: kpis.active7, color: "text-green-600", bg: "bg-green-50", ring: "ring-green-500", icon: PlayCircle, label: "활발 진행", meta: "최근 7일" },
-              { key: "followUp", value: kpis.followUp, color: "text-blue-600", bg: "bg-blue-50", ring: "ring-blue-500", icon: Clock3, label: "후속 필요", meta: "8~30일" },
-              { key: "stale", value: kpis.stale, color: "text-red-600", bg: "bg-red-50", ring: "ring-red-500", icon: AlertTriangle, label: "장기 정체", meta: "30일 초과" },
-              { key: "actionDue", value: kpis.actionDue, color: "text-orange-500", bg: "bg-orange-50", ring: "ring-orange-400", icon: Flag, label: "액션 도래", meta: "7일 이내" },
-              { key: "actionPlanned", value: kpis.actionPlanned, color: "text-purple-600", bg: "bg-purple-50", ring: "ring-purple-500", icon: CalendarClock, label: "액션 예정", meta: "8일 이후" },
-            ].map((k) => (
+            {KPI_DEFS.map((k) => (
               <div
                 key={k.key}
-                onClick={() => setActiveKpi(activeKpi === k.key ? null : k.key)}
+                onClick={() => setKpiModalKey(k.key)}
                 className={
                   "bg-white border rounded-2xl p-4 cursor-pointer transition " +
                   (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] hover:border-navy/40")
@@ -1004,7 +1007,7 @@ export default function Dashboard() {
                 <div className={"w-9 h-9 rounded-xl flex items-center justify-center mb-2 " + k.bg}>
                   <k.icon className={"w-[18px] h-[18px] " + k.color} strokeWidth={2.2} />
                 </div>
-                <div className={"text-2xl font-extrabold " + k.color}>{k.value}</div>
+                <div className={"text-2xl font-extrabold " + k.color}>{kpis[k.key]}</div>
                 <div className="text-xs text-gray-500 mt-1">{k.label} <span className="text-gray-300">({k.meta})</span></div>
               </div>
             ))}
@@ -1640,6 +1643,51 @@ export default function Dashboard() {
         </>
       )}
 
+
+      {kpiModalKey && (() => {
+        const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
+        const matched = deals.filter((d) => {
+          const c = dealKpiCat[d.id];
+          return c?.recency === kpiModalKey || c?.future === kpiModalKey;
+        });
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
+                  <div className="flex items-center gap-2">
+                    <def.icon className={"w-4 h-4 " + def.color} />
+                    <span className="text-sm font-extrabold text-navy">{def.label}</span>
+                    <span className="text-xs text-gray-400">({def.meta})</span>
+                  </div>
+                  <button className="text-gray-400 hover:text-navy" onClick={() => setKpiModalKey(null)}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-3">
+                  <div className="text-[11px] text-gray-400 px-2 mb-1">{matched.length}건</div>
+                  {matched.map((d) => (
+                    <div
+                      key={d.id}
+                      onClick={() => { openDeal(d); setKpiModalKey(null); }}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                    >
+                      <div className="flex items-center text-xs font-semibold text-navy">
+                        <LogoBadge name={d.orgName} />{d.orgName}
+                        <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {matched.length === 0 && (
+                    <div className="text-center text-xs text-gray-300 py-8">해당하는 딜이 없습니다.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {showNewDeal && (
         <>
