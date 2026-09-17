@@ -12,9 +12,81 @@ function getAdminApp() {
   });
 }
 
+async function callClaude(prompt, maxTokens) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  const data = await res.json();
+  return { ok: res.ok, text: data.content?.[0]?.text || "", error: data.error?.message };
+}
+
+async function getFieldSuggestions(db, dealId, text) {
+  const fullDoc = await db.collection("deals").doc(dealId).get();
+  if (!fullDoc.exists) return [];
+  const fd = fullDoc.data();
+
+  const fieldPrompt = `당신은 B2B 데이터 세일즈 파이프라인 관리를 돕는 어시스턴트입니다. 담당 영업사원이 방금 진행상황을 한 문장으로 보고했고, 그 문장을 바탕으로 이 딜의 필드 중 실제로 값이 바뀌어야 할 것 같은 항목을 찾아내는 게 당신의 역할입니다.
+
+[현재 딜 정보]
+업체명: ${fd.orgName}
+타겟제품: ${fd.targetProduct || ""}
+담당자(고객사 측 담당자): ${fd.contactPerson || "미입력"}
+진행단계: ${fd.stage || "미입력"} (1단계=데이터/상품소개, 2단계=유관부서세분화, 3단계=유관부서접촉/미팅·PoC 진행, 4단계=계약·MOU 체결)
+계약가능성: ${fd.probability || "미입력"} (상=가능성높음/중=보통/하=낮음/완료=계약체결됨)
+메모: ${fd.memo || "미입력"}
+다음 액션: ${fd.nextAction || "미입력"}
+
+[사용자 보고]
+"${text}"
+
+[필드별 판단 기준과 예시 — 이런 패턴이 문장에 있으면 반드시 제안하세요]
+
+1. contactPerson (담당자 변경): "담당자가 OOO로 바뀌었어", "담당자 OOO로 변경", "이제 OOO가 담당한대", "OOO 과장님으로 교체" 같은 표현이 있으면 → suggestedValue는 새 담당자 이름만.
+
+2. stage (진행단계): 아래처럼 단계가 실제로 넘어갔다고 볼 수 있는 표현이 있으면 제안.
+   - "계약하기로 했다", "계약서에 서명함", "정식 계약 체결" → 4단계
+   - "미팅 잡았다/했다", "담당부서와 만났다", "PoC 시작함/진행중" → 아직 3단계면 그대로(이미 3단계면 제안 안 함), 1~2단계였다면 3단계로 상향 제안
+   - 진행단계가 이미 그 상태와 일치하면 제안하지 않음(중복 제안 금지)
+
+3. probability (계약가능성): 
+   - "계약 완료", "사인함", "계약서 작성 완료" → "완료"
+   - "긍정적", "가능성 높아졌다", "거의 확정적" → "상"
+   - "어려울 것 같다", "예산이 없대서 보류", "다른 곳으로 갈 듯" → "하"
+   - "PoC 결과가 좋게 나왔다" 같은 긍정 신호는 "상"으로 올리는 걸 검토
+
+4. memo (메모 추가): 문장에 향후 참고할 만한 새로운 배경정보(예산 상황, 의사결정권자, 경쟁사 언급, 내부 사정 등)가 있는데 기존 메모에는 없는 내용이면, 기존 메모 뒤에 이어붙인 전체 텍스트를 suggestedValue로 제시. 단순히 활동 로그에 이미 들어갈 내용(미팅했다, PoC 했다 정도)은 메모로 중복 제안하지 않음.
+
+5. nextAction (다음 액션): 문장에 다음 계획이 전혀 없고, 상황상 다음에 뭘 해야 할지 자연스럽게 유추 가능하면 제안 (예: "PoC 결과 나왔다"고만 하고 다음 계획이 없으면 "PoC 결과 공유 미팅 제안" 등).
+
+애매하면 억지로 만들지 말고 제안하지 마세요. 근거가 명확한 것만 제안합니다 (빈 배열도 정상).
+
+아래 JSON 배열로만 답하세요 (다른 설명 없이):
+[{"field": "contactPerson 또는 stage 또는 probability 또는 memo 또는 nextAction", "label": "한글 라벨", "currentValue": "현재값(짧게)", "suggestedValue": "제안값", "reason": "왜 이렇게 제안하는지 한 문장"}]`;
+
+  try {
+    const { text: raw } = await callClaude(fieldPrompt, 600);
+    const arrMatch = raw.match(/\[[\s\S]*\]/);
+    const parsed = arrMatch ? JSON.parse(arrMatch[0]) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export async function POST(request) {
   const body = await request.json().catch(() => ({}));
   const text = (body.text || "").trim();
+  const providedDealId = body.dealId || null;
   if (!text) {
     return NextResponse.json({ error: "텍스트를 입력해주세요." }, { status: 400 });
   }
@@ -22,6 +94,13 @@ export async function POST(request) {
   try {
     const app = getAdminApp();
     const db = admin.firestore(app);
+
+    // ── 클라이언트가 이미 딜을 확정한 경우(사용자가 타겟제품을 직접 선택) — 필드제안만 다시 계산 ──
+    if (providedDealId) {
+      const fieldSuggestions = await getFieldSuggestions(db, providedDealId, text);
+      return NextResponse.json({ fieldSuggestions });
+    }
+
     const snap = await db.collection("deals").get();
     const deals = snap.docs.map((d) => ({
       id: d.id,
@@ -52,31 +131,15 @@ ${dealList}
 3. 의도가 "register"(새 진행상황 등록)인지 "cancel"(이전에 등록한 내용을 취소/삭제해달라는 요청)인지 구분하세요.
 4. 문장에 날짜가 명시 안되어 있으면 오늘 날짜를 씁니다.
 5. 문장에 "다음주 화요일 미팅", "9/23 미팅 예정"처럼 **향후(미래) 예정된** 미팅/일정이 언급되면, 오늘 날짜 기준으로 정확한 날짜(YYYY-MM-DD)를 계산하세요. **주의: "미팅했다", "미팅 진행함", "다녀왔어", "회의록 작성했어"처럼 이미 끝난(과거) 미팅을 설명하는 문장은 향후 미팅이 아닙니다 — 이 경우 meetingDate는 반드시 null입니다.** 향후 일정 언급이 전혀 없으면 null.
-6. 문장에 http:// 또는 https://로 시작하는 URL이 포함되어 있으면 그대로 추출하세요 (relatedFileUrl). 없으면 null. URL이 있을 경우, 그 앞뒤 문맥(예: "회의록", "제안서", "견적서", "계약서", "자료" 등 단어)을 보고 어떤 종류의 파일/링크인지 한 단어로 라벨을 붙여주세요(relatedFileLabel). 판단이 안 서면 "첨부자료"로 하세요.
 
 아래 JSON 형식으로만 답하세요 (다른 설명이나 코드블록 없이 순수 JSON만):
-{"orgIndex": <인덱스 또는 null>, "dealIndex": <인덱스 또는 null>, "intent": "register 또는 cancel", "date": "YYYY-MM-DD", "actionText": "정리된 액션 내용 한 문장", "meetingDate": "YYYY-MM-DD 또는 null", "meetingNote": "미팅 관련 짧은 메모 또는 null", "relatedFileUrl": "URL 또는 null", "relatedFileLabel": "라벨 또는 null"}`;
+{"orgIndex": <인덱스 또는 null>, "dealIndex": <인덱스 또는 null>, "intent": "register 또는 cancel", "date": "YYYY-MM-DD", "actionText": "정리된 액션 내용 한 문장", "meetingDate": "YYYY-MM-DD 또는 null", "meetingNote": "미팅 관련 짧은 메모 또는 null"}`;
 
-    const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 350,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-
-    const aiData = await aiRes.json();
-    if (!aiRes.ok) {
-      return NextResponse.json({ error: aiData.error?.message || "AI 분석 실패" }, { status: 500 });
+    const { ok, text: raw, error } = await callClaude(prompt, 350);
+    if (!ok) {
+      return NextResponse.json({ error: error || "AI 분석 실패" }, { status: 500 });
     }
 
-    const raw = aiData.content?.[0]?.text || "";
     let parsed;
     try {
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
@@ -96,58 +159,22 @@ ${dealList}
       if (!matchedOrg || cand.orgName === matchedOrg) matchedDeal = cand;
     }
 
-    // ── 특정 딜까지 정해졌으면, 현재 필드값과 비교해서 바뀔만한 항목들을 2차로 제안받음 ──
+    // URL 추출은 정규식으로 확정 (AI가 놓치는 경우가 있어 신뢰도를 위해 직접 처리)
+    const urlMatch = text.match(/https?:\/\/[^\s]+/);
+    const relatedFileUrl = urlMatch ? urlMatch[0] : null;
+    let relatedFileLabel = null;
+    if (relatedFileUrl) {
+      if (text.includes("회의록")) relatedFileLabel = "회의록";
+      else if (text.includes("제안서")) relatedFileLabel = "제안서";
+      else if (text.includes("견적서")) relatedFileLabel = "견적서";
+      else if (text.includes("계약서")) relatedFileLabel = "계약서";
+      else if (text.includes("자료")) relatedFileLabel = "참고자료";
+      else relatedFileLabel = "첨부자료";
+    }
+
     let fieldSuggestions = [];
     if (matchedDeal && parsed.intent !== "cancel") {
-      const fullDoc = await db.collection("deals").doc(matchedDeal.id).get();
-      const fd = fullDoc.data() || {};
-
-      const fieldPrompt = `다음은 한 영업 딜의 현재 정보입니다.
-
-업체명: ${fd.orgName}
-타겟제품: ${fd.targetProduct || ""}
-담당자(고객사 측 담당자): ${fd.contactPerson || "미입력"}
-진행단계: ${fd.stage || "미입력"} (1단계 데이터/상품소개 → 2단계 유관부서세분화 → 3단계 유관부서접촉 → 4단계 계약/MOU)
-계약가능성: ${fd.probability || "미입력"} (상/중/하/완료 중 하나)
-메모: ${fd.memo || "미입력"}
-다음 액션: ${fd.nextAction || "미입력"}
-
-사용자가 다음과 같이 진행상황을 보고했습니다:
-"${text}"
-
-이 보고 내용을 바탕으로, 위 필드들 중 실제로 값이 바뀌어야 할 것 같은 항목이 있으면 제안해주세요. 명확한 근거가 문장에 있을 때만 제안하고, 애매하면 그 필드는 제안하지 마세요 (빈 배열도 정상입니다).
-
-- contactPerson: 문장에서 "담당자가 OOO로 바뀌었다"처럼 명시적으로 언급된 경우만
-- stage: 상황이 명확히 다음 단계로 넘어갔다고 판단되는 경우만 (예: PoC 결과가 나와서 계약 논의로 진입)
-- probability: 상황을 보아 조정이 필요해 보이는 경우만
-- memo: 앞으로 참고하면 좋을 새로운 정보가 있으면, 기존 메모 뒤에 자연스럽게 이어붙인 전체 메모 텍스트를 suggestedValue로 제시
-- nextAction: 문장에 다음 계획이 명확히 없는데 제안할 만한 다음 액션이 있으면
-
-아래 JSON 배열로만 답하세요 (다른 설명 없이, 해당 없으면 빈 배열 []):
-[{"field": "contactPerson 또는 stage 또는 probability 또는 memo 또는 nextAction", "label": "한글 라벨", "currentValue": "현재값(짧게)", "suggestedValue": "제안값", "reason": "왜 이렇게 제안하는지 한 문장"}]`;
-
-      try {
-        const fieldRes = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 500,
-            messages: [{ role: "user", content: fieldPrompt }],
-          }),
-        });
-        const fieldData = await fieldRes.json();
-        const fieldRaw = fieldData.content?.[0]?.text || "[]";
-        const arrMatch = fieldRaw.match(/\[[\s\S]*\]/);
-        fieldSuggestions = arrMatch ? JSON.parse(arrMatch[0]) : [];
-        if (!Array.isArray(fieldSuggestions)) fieldSuggestions = [];
-      } catch (e) {
-        fieldSuggestions = [];
-      }
+      fieldSuggestions = await getFieldSuggestions(db, matchedDeal.id, text);
     }
 
     return NextResponse.json({
@@ -159,8 +186,8 @@ ${dealList}
       actionText: parsed.actionText || text,
       meetingDate: parsed.meetingDate || null,
       meetingNote: parsed.meetingNote || null,
-      relatedFileUrl: parsed.relatedFileUrl || null,
-      relatedFileLabel: parsed.relatedFileLabel || "첨부자료",
+      relatedFileUrl,
+      relatedFileLabel,
       fieldSuggestions,
     });
   } catch (e) {
