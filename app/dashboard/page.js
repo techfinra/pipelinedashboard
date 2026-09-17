@@ -1242,15 +1242,27 @@ export default function Dashboard() {
                 <div className="px-6 py-4">
                   <div className="text-xs font-extrabold text-navy mb-3">관련파일 ({(selected.relatedFiles || []).length})</div>
                   <div className="space-y-1.5">
-                    {(selected.relatedFiles || []).map((f, i) => (
-                      <div key={i} className="text-xs text-gray-700 bg-[#F8FAFC] rounded-lg px-3 py-2 break-words flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{f}
-                      </div>
-                    ))}
+                    {(selected.relatedFiles || []).map((f, i) => {
+                      const label = typeof f === "string" ? f : f.label;
+                      const url = typeof f === "string" ? null : f.url;
+                      const content = (
+                        <div className="text-xs text-gray-700 bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 break-words flex items-center gap-2">
+                          <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
+                        </div>
+                      );
+                      return url ? (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                          {content}
+                        </a>
+                      ) : (
+                        <div key={i}>{content}</div>
+                      );
+                    })}
                     {(!selected.relatedFiles || selected.relatedFiles.length === 0) && (
                       <div className="text-xs text-gray-300">관련파일이 없습니다.</div>
                     )}
                   </div>
+                  <div className="text-[10px] text-gray-300 mt-3">※ 더존 사내 그룹웨어 링크라 로그인된 상태에서만 열립니다.</div>
                 </div>
               )}
 
