@@ -72,3 +72,20 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
 .kv-label { width: 88px; flex: none; color: var(--gray); font-weight: 600; }
 .activity-item { padding: 10px 22px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
 .activity-date { color: var(--gray); font-size: 11px; margin-bottom: 2px; }
+
+.dark {
+  --navy-deep: #060a16;
+  --navy: #0f1f45;
+  --bg: #0B1220;
+  --card: #111827;
+  --line: #263042;
+  --ink: #E5E7EB;
+  --gray: #9CA3AF;
+}
+.dark body { background: var(--bg); }
+.dark table.deals th { background: #0F1626; color: var(--gray); border-bottom-color: var(--line); }
+.dark table.deals td { color: var(--ink); border-bottom-color: var(--line); }
+.dark table.deals tr:hover td { background: #16202F; }
+.dark .search-input, .dark .group-chip { background: var(--card); color: var(--ink); border-color: var(--line); }
+.dark .panel, .dark .panel-head { background: var(--card); }
+.dark .kv, .dark .activity-item { border-bottom-color: var(--line); }
