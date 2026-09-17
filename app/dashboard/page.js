@@ -9,6 +9,12 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LineChart, Line,
 } from "recharts";
+import {
+  Search, Bell, ChevronDown, Star, X, User, Users, TrendingUp, Wallet,
+  CalendarClock, Flag, FileText, LayoutGrid, List, Landmark, CreditCard,
+  Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
+  Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
+} from "lucide-react";
 
 function formatWon(n) {
   if (n === null || n === undefined) return "-";
@@ -176,11 +182,11 @@ function mapGroupName(raw) {
   return GROUP_MAP[key] || (key === "" ? "미분류" : key);
 }
 
-function EditableLine({ label, meta, value, editing, editable, multiline, editValue, setEditValue, onEdit, onCancel, onSave, saving }) {
+function EditableLine({ label, meta, value, editing, editable, multiline, highlight, icon: Icon, editValue, setEditValue, onEdit, onCancel, onSave, saving }) {
   return (
-    <div>
+    <div className={highlight ? "bg-orange-50 border border-orange-100 rounded-lg px-2.5 py-2" : ""}>
       <div className="flex items-center justify-between">
-        <span className="text-gray-400">{label}{meta ? ` (${meta})` : ""}</span>
+        <span className="text-gray-400 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}{meta ? ` (${meta})` : ""}</span>
         {editable && !editing && (
           <button className="text-navy underline" onClick={onEdit}>수정</button>
         )}
@@ -213,6 +219,17 @@ function EditableLine({ label, meta, value, editing, editable, multiline, editVa
       )}
     </div>
   );
+}
+
+const GROUP_ICONS = {
+  "신한금융그룹": Landmark, "은행": Landmark, "코피티션": Handshake, "카드": CreditCard,
+  "캐피탈": Wallet, "핀테크": Cpu, "정책지원": ShieldCheck, "협회": Users,
+  "VC": TrendingUp, "일반기업": Factory, "행사(오프라인)": PartyPopper,
+  "팩토링": FileText, "렌탈·리스": Truck, "미분류": Building2,
+};
+function GroupIcon({ name, className }) {
+  const Icon = GROUP_ICONS[name] || Building2;
+  return <Icon className={className} strokeWidth={2} />;
 }
 
 const NAV_ITEMS = [
@@ -652,12 +669,15 @@ export default function Dashboard() {
             <p className="text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
           </div>
           <div className="flex items-center gap-3">
-            <input
-              className="text-xs border border-[#E7EAF0] rounded-lg px-3 py-2 w-56"
-              placeholder="기관명으로 검색..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                className="text-xs border border-[#E7EAF0] rounded-lg pl-8 pr-3 py-2 w-56"
+                placeholder="기관명으로 검색..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
             <span className="text-[11px] bg-green-50 text-green-600 px-2.5 py-1.5 rounded-full font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 실시간 업데이트
             </span>
@@ -667,6 +687,9 @@ export default function Dashboard() {
             >
               + 새 딜 등록
             </button>
+            <button className="text-gray-400 hover:text-navy p-1.5">
+              <Bell className="w-4 h-4" />
+            </button>
             <div className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0]">
               <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
                 {(profile?.name || "?").slice(0, 1)}
@@ -675,6 +698,7 @@ export default function Dashboard() {
                 <div className="font-semibold text-navy">{profile?.name || "이름 미설정"}</div>
                 <div className="text-gray-400">{profile?.division || ""}</div>
               </div>
+              <ChevronDown className="w-3.5 h-3.5 text-gray-300" />
             </div>
             <button onClick={() => signOut(auth)} className="text-[11px] text-gray-400 hover:text-navy ml-2">
               로그아웃
@@ -744,11 +768,11 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-5 gap-3.5 mb-6">
             {[
-              { key: "active7", value: kpis.active7, color: "text-green-600", ring: "ring-green-500", label: "🟢 활발 진행", meta: "최근 7일" },
-              { key: "followUp", value: kpis.followUp, color: "text-blue-600", ring: "ring-blue-500", label: "🔵 후속 필요", meta: "8~30일" },
-              { key: "stale", value: kpis.stale, color: "text-red-600", ring: "ring-red-500", label: "🔴 장기 정체", meta: "30일 초과" },
-              { key: "actionDue", value: kpis.actionDue, color: "text-orange-500", ring: "ring-orange-400", label: "🟠 액션 도래", meta: "7일 이내" },
-              { key: "actionPlanned", value: kpis.actionPlanned, color: "text-purple-600", ring: "ring-purple-500", label: "🟣 액션 예정", meta: "8일 이후" },
+              { key: "active7", value: kpis.active7, color: "text-green-600", bg: "bg-green-50", ring: "ring-green-500", icon: PlayCircle, label: "활발 진행", meta: "최근 7일" },
+              { key: "followUp", value: kpis.followUp, color: "text-blue-600", bg: "bg-blue-50", ring: "ring-blue-500", icon: Clock3, label: "후속 필요", meta: "8~30일" },
+              { key: "stale", value: kpis.stale, color: "text-red-600", bg: "bg-red-50", ring: "ring-red-500", icon: AlertTriangle, label: "장기 정체", meta: "30일 초과" },
+              { key: "actionDue", value: kpis.actionDue, color: "text-orange-500", bg: "bg-orange-50", ring: "ring-orange-400", icon: Flag, label: "액션 도래", meta: "7일 이내" },
+              { key: "actionPlanned", value: kpis.actionPlanned, color: "text-purple-600", bg: "bg-purple-50", ring: "ring-purple-500", icon: CalendarClock, label: "액션 예정", meta: "8일 이후" },
             ].map((k) => (
               <div
                 key={k.key}
@@ -758,6 +782,9 @@ export default function Dashboard() {
                   (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] hover:border-navy/40")
                 }
               >
+                <div className={"w-9 h-9 rounded-xl flex items-center justify-center mb-2 " + k.bg}>
+                  <k.icon className={"w-[18px] h-[18px] " + k.color} strokeWidth={2.2} />
+                </div>
                 <div className={"text-2xl font-extrabold " + k.color}>{k.value}</div>
                 <div className="text-xs text-gray-500 mt-1">{k.label} <span className="text-gray-300">({k.meta})</span></div>
               </div>
@@ -776,9 +803,15 @@ export default function Dashboard() {
                   <h2 className="text-sm font-extrabold text-navy">산업군별 주요 기관</h2>
                   <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
                 </div>
-                {activeGroup !== "전체" && (
-                  <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
-                )}
+                <div className="flex items-center gap-2">
+                  {activeGroup !== "전체" && (
+                    <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>전체 보기</button>
+                  )}
+                  <div className="flex items-center bg-[#F0F2F5] rounded-lg p-1">
+                    <button className="p-1.5 rounded-md bg-white text-navy shadow-sm"><LayoutGrid className="w-4 h-4" /></button>
+                    <button className="p-1.5 rounded-md text-gray-400"><List className="w-4 h-4" /></button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-7">
@@ -792,10 +825,15 @@ export default function Dashboard() {
                     }
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <div className="font-bold text-sm text-navy">{g.name}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-navy/10 flex items-center justify-center shrink-0">
+                          <GroupIcon name={g.name} className="w-4 h-4 text-navy" />
+                        </div>
+                        <div className="font-bold text-sm text-navy">{g.name}</div>
+                      </div>
                       <span className="text-gray-300">›</span>
                     </div>
-                    <div className="text-[11px] text-gray-400 mb-3">총 {g.orgCount}개 기관</div>
+                    <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기관</div>
                     <div className="flex items-center gap-3 mb-3">
                       <Donut progress={g.progress} due={g.due} delayed={g.delayed} done={g.done} />
                       <div className="text-[11px] space-y-1">
@@ -804,7 +842,10 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
                       </div>
                     </div>
-                    <div className="text-[10px] text-gray-400 mb-1.5">주요 기업 ({g.allOrgs.length})</div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="text-[10px] text-gray-400">주요 기업 ({g.allOrgs.length})</div>
+                      <span className="text-[10px] text-navy">전체보기 ›</span>
+                    </div>
                     <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                       {g.allOrgs.map((o) => (
                         <div
@@ -949,10 +990,18 @@ export default function Dashboard() {
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
           <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
             <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9]">
-              <button className="absolute top-4 right-5 text-gray-400 hover:text-navy text-lg" onClick={() => setSelected(null)}>✕</button>
+              <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelected(null)}>
+                <X className="w-4 h-4" />
+              </button>
+              <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-1">
+                <span>전체</span><span>›</span>
+                <span>{mapGroupName(selected.orgGroup)}</span><span>›</span>
+                <span className="text-navy font-semibold">{selected.orgName}</span>
+              </div>
               <div className="flex items-center gap-2 mb-1">
                 <LogoBadge name={selected.orgName} />
                 <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
+                <Star className="w-4 h-4 text-gray-300" />
               </div>
               <div className="text-xs text-gray-500">
                 {mapGroupName(selected.orgGroup)} · {(selected.targetProduct || "").replace(/\n/g, " ")}
@@ -962,15 +1011,17 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
               {[
-                ["담당자", selected.contactPerson || "-"],
-                ["RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
-                ["기대실적", formatWon(selected.expectedPerformance)],
-                ["계약금액", formatWon(selected.contractAmount)],
-                ["계약목표", selected.contractGoal || "-"],
-                ["진행단계", selected.stage || "-"],
-              ].map(([label, value]) => (
+                [User, "담당자", selected.contactPerson || "-"],
+                [Users, "RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
+                [TrendingUp, "기대실적", formatWon(selected.expectedPerformance)],
+                [Wallet, "계약금액", formatWon(selected.contractAmount)],
+                [CalendarClock, "계약목표", selected.contractGoal || "-"],
+                [Layers, "진행단계", selected.stage || "-"],
+              ].map(([Icon, label, value]) => (
                 <div key={label} className="bg-white px-4 py-3">
-                  <div className="text-[10px] text-gray-400 mb-0.5">{label}</div>
+                  <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
+                    <Icon className="w-3 h-3" />{label}
+                  </div>
                   <div className="text-xs font-semibold text-navy break-words">{value}</div>
                 </div>
               ))}
@@ -988,6 +1039,7 @@ export default function Dashboard() {
                 {/* 이전 액션 */}
                 <EditableLine
                   label="이전 액션"
+                  icon={ClipboardList}
                   meta={activity[1]?.date}
                   value={activity[1]?.text}
                   editing={editingField === "prevAction"}
@@ -1003,6 +1055,7 @@ export default function Dashboard() {
                 {/* 현재 액션 */}
                 <EditableLine
                   label="현재 액션"
+                  icon={PlayCircle}
                   meta={activity[0]?.date}
                   value={activity[0]?.text}
                   editing={editingField === "currentAction"}
@@ -1018,6 +1071,8 @@ export default function Dashboard() {
                 {/* 다음 액션 */}
                 <EditableLine
                   label="다음 액션"
+                  icon={Flag}
+                  highlight
                   value={selected.nextAction}
                   editing={editingField === "nextAction"}
                   editable
