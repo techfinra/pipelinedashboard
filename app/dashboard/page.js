@@ -377,6 +377,7 @@ export default function Dashboard() {
   const [nlDealAutoGuessed, setNlDealAutoGuessed] = useState(false);
   const [nlDate, setNlDate] = useState("");
   const [nlActionText, setNlActionText] = useState("");
+  const [nlApplyActivity, setNlApplyActivity] = useState(true);
   const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
   const [nlFieldSuggestions, setNlFieldSuggestions] = useState([]);
   const [nlApplyFields, setNlApplyFields] = useState({});
@@ -956,6 +957,7 @@ export default function Dashboard() {
       setNlResult(data);
       setNlDate(data.date || "");
       setNlActionText(data.actionText || "");
+      setNlApplyActivity(true);
       setNlApplyMeeting(!!data.meetingDate);
       setNlMeetingDate(data.meetingDate || "");
       setNlMeetingNote(data.meetingNote || "");
@@ -999,6 +1001,7 @@ export default function Dashboard() {
     setNlOverrideDealId("");
     setNlDate("");
     setNlActionText("");
+    setNlApplyActivity(true);
     setNlApplyMeeting(false);
     setNlMeetingDate("");
     setNlMeetingNote("");
@@ -1019,19 +1022,22 @@ export default function Dashboard() {
     setNlSaving(true);
     try {
       const appliedMeeting = nlApplyMeeting && nlMeetingDate;
-      const newLogRef = await addDoc(collection(db, "activityLog"), {
-        dealId: nlOverrideDealId,
-        date: nlDate || null,
-        text: nlActionText,
-        source: "quick-input",
-        appliedMeetingDate: appliedMeeting ? nlMeetingDate : null,
-        appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
-        createdAt: serverTimestamp(),
-      });
-      setAllActivity((prev) => [...prev, {
-        id: newLogRef.id, dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText, source: "quick-input",
-        appliedMeetingDate: appliedMeeting ? nlMeetingDate : null, appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
-      }]);
+
+      if (nlApplyActivity) {
+        const newLogRef = await addDoc(collection(db, "activityLog"), {
+          dealId: nlOverrideDealId,
+          date: nlDate || null,
+          text: nlActionText,
+          source: "quick-input",
+          appliedMeetingDate: appliedMeeting ? nlMeetingDate : null,
+          appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
+          createdAt: serverTimestamp(),
+        });
+        setAllActivity((prev) => [...prev, {
+          id: newLogRef.id, dealId: nlOverrideDealId, date: nlDate || null, text: nlActionText, source: "quick-input",
+          appliedMeetingDate: appliedMeeting ? nlMeetingDate : null, appliedMeetingNote: appliedMeeting ? (nlMeetingNote || "") : null,
+        }]);
+      }
 
       if (appliedMeeting) {
         await updateDoc(doc(db, "deals", nlOverrideDealId), {
@@ -1556,20 +1562,25 @@ export default function Dashboard() {
                       <label className="text-[10px] text-gray-400 block mb-0.5">액션 날짜</label>
                       <input
                         type="date"
-                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2"
+                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 disabled:opacity-40 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                         value={nlDate}
                         onChange={(e) => setNlDate(e.target.value)}
+                        disabled={!nlApplyActivity}
                       />
                     </div>
                   </div>
                 )}
 
-                <label className="text-[10px] text-gray-400 block mb-0.5">진행이력 내용</label>
+                <label className="flex items-center gap-1.5 mb-0.5">
+                  <input type="checkbox" checked={nlApplyActivity} onChange={(e) => setNlApplyActivity(e.target.checked)} />
+                  <span className="text-[10px] text-gray-400">진행이력 내용 (해제하면 이력에 기록 안 하고 아래 선택한 항목만 반영)</span>
+                </label>
                 <textarea
-                  className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 mb-2"
+                  className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-2 mb-2 disabled:opacity-40 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                   rows={2}
                   value={nlActionText}
                   onChange={(e) => setNlActionText(e.target.value)}
+                  disabled={!nlApplyActivity}
                 />
 
                 {nlMeetingDate && (
