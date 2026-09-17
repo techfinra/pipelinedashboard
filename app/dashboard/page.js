@@ -98,7 +98,7 @@ const LOGO_DOMAINS = {
   "KCB": "koreacb.com", "나이스평가정보": "nice.co.kr", "SGI서울보증": "sgic.co.kr",
   "신용보증기금": "kodit.co.kr", "더존": "douzone.com", "더존비즈온": "douzone.com",
   "전자신문사": "etnews.com", "한국수출입은행": "koreaexim.go.kr", "리드코프": "leadcorp.co.kr",
-  "BNK캐피탈": "bnkcapital.co.kr",
+  "BNK캐피탈": "bnkcapital.co.kr", "중진공": "kosmes.or.kr",
 };
 
 function LogoBadge({ name }) {
@@ -307,7 +307,6 @@ const RECENCY_LABEL = {
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
-  { key: "pipeline", label: "파이프라인", icon: Workflow },
   { key: "orgs", label: "기관현황", icon: Building2 },
   { key: "report", label: "리포트", icon: BarChart3 },
   { key: "settings", label: "설정", icon: Settings },
@@ -1200,15 +1199,26 @@ export default function Dashboard() {
                       <span className="text-[10px] text-navy dark:text-gray-100">전체보기 ›</span>
                     </div>
                     <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                      {g.allOrgs.map((o) => (
-                        <div
-                          key={o.name}
-                          onClick={(e) => { e.stopPropagation(); openDeal(o.deal); }}
-                          className="flex items-center text-xs bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-2 py-1.5 cursor-pointer"
-                        >
-                          <LogoBadge name={o.name} />{o.name}
-                        </div>
-                      ))}
+                      {g.allOrgs.map((o) => {
+                        const cat = dealKpiCat[o.deal.id]?.recency;
+                        const info = cat ? RECENCY_LABEL[cat] : null;
+                        return (
+                          <div
+                            key={o.name}
+                            onClick={(e) => { e.stopPropagation(); openDeal(o.deal); }}
+                            className="flex items-center justify-between text-xs bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-2 py-1.5 cursor-pointer"
+                          >
+                            <span className="flex items-center min-w-0">
+                              <LogoBadge name={o.name} /><span className="truncate">{o.name}</span>
+                            </span>
+                            {info && (
+                              <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold shrink-0 ml-1.5 " + info[1]}>
+                                {info[0]}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                       {g.allOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
                     </div>
                   </div>
@@ -1217,7 +1227,7 @@ export default function Dashboard() {
             </>
           )}
 
-          {(view === "dashboard" || view === "pipeline") && (
+          {view === "dashboard" && (
             <table className="deals mt-2">
               <thead>
                 <tr>
