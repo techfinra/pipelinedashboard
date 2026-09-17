@@ -15,7 +15,7 @@ import {
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
-  Sun, Moon, Sparkles, UserCheck,
+  Sun, Moon, Sparkles, UserCheck, Newspaper, BookOpen, ExternalLink,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -305,6 +305,12 @@ const RECENCY_LABEL = {
   followUp: ["후속 필요", "text-blue-600 bg-blue-50"],
   stale: ["장기 정체", "text-red-600 bg-red-50"],
 };
+
+const SHORTCUT_LINKS = [
+  { label: "경쟁사 다이제스트", url: "https://daily-digest-techfinratings.netlify.app/", icon: Newspaper },
+  { label: "세일즈 대시보드", url: "https://techfin-sales-kpi.vercel.app/", icon: BarChart3 },
+  { label: "세일즈 매뉴얼", url: "https://techfinsalesmanual.vercel.app/", icon: BookOpen },
+];
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
@@ -1232,6 +1238,34 @@ export default function Dashboard() {
             </div>
           ))}
         </nav>
+
+        <div className={"border-t border-[#ECEEF1] dark:border-gray-700 " + (sidebarCollapsed ? "py-3" : "px-3 py-3")}>
+          {!sidebarCollapsed && (
+            <div className="text-[10px] font-semibold text-gray-400 px-2 mb-1.5 uppercase tracking-wide">바로가기</div>
+          )}
+          {SHORTCUT_LINKS.map((link) => (
+            <a
+              key={link.url}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={sidebarCollapsed ? link.label : undefined}
+              className={
+                "group mb-0.5 py-2 rounded-lg text-[13px] flex items-center gap-2.5 cursor-pointer text-gray-500 dark:text-gray-400 hover:bg-[#F8F9FB] dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white " +
+                (sidebarCollapsed ? "justify-center px-0" : "px-3")
+              }
+            >
+              <link.icon className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+              {!sidebarCollapsed && (
+                <>
+                  <span className="flex-1 truncate">{link.label}</span>
+                  <ExternalLink className="w-3 h-3 shrink-0 opacity-0 group-hover:opacity-100" />
+                </>
+              )}
+            </a>
+          ))}
+        </div>
+
         {!sidebarCollapsed && (
           <div className="p-4 text-[11px] text-gray-400 border-t border-[#ECEEF1] dark:border-gray-700">
             TechFin Ratings<br />세일즈추진팀
