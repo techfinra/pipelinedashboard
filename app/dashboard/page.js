@@ -14,6 +14,7 @@ import {
   CalendarClock, Flag, FileText, LayoutGrid, List, Landmark, CreditCard,
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
+  LayoutDashboard, Workflow, BarChart3, Settings,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -296,11 +297,11 @@ const RECENCY_LABEL = {
 };
 
 const NAV_ITEMS = [
-  { key: "dashboard", label: "대시보드", icon: "🏠" },
-  { key: "pipeline", label: "파이프라인", icon: "📊" },
-  { key: "orgs", label: "기관현황", icon: "🏢" },
-  { key: "report", label: "리포트", icon: "📈" },
-  { key: "settings", label: "설정", icon: "⚙️" },
+  { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
+  { key: "pipeline", label: "파이프라인", icon: Workflow },
+  { key: "orgs", label: "기관현황", icon: Building2 },
+  { key: "report", label: "리포트", icon: BarChart3 },
+  { key: "settings", label: "설정", icon: Settings },
 ];
 
 export default function Dashboard() {
@@ -355,6 +356,7 @@ export default function Dashboard() {
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
+  const [activeProductCat, setActiveProductCat] = useState(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -394,6 +396,7 @@ export default function Dashboard() {
     setEditingField(null);
     setEditMeetingDate(selected.nextMeetingDate || "");
     setEditMeetingNote(selected.nextMeetingNote || "");
+    setActiveProductCat(classifyTargetProduct(selected.targetProduct));
   }, [selected]);
 
   const lastActionByDeal = useMemo(() => {
@@ -801,8 +804,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex">
       <aside className="w-60 shrink-0 bg-gradient-to-b from-navy-deep to-navy text-white flex flex-col">
-        <div className="px-6 py-5 flex items-center gap-2 border-b border-white/10">
-          <span className="text-gold text-xl">◆</span>
+        <div className="px-6 py-5 flex items-center gap-2.5 border-b border-white/10">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden">
+            <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
+          </div>
           <div>
             <div className="font-bold text-sm leading-tight">TechFin Pipeline</div>
             <div className="text-[10px] text-white/50 leading-tight">Sales Growth Together</div>
@@ -818,7 +823,7 @@ export default function Dashboard() {
                 (view === item.key ? "bg-white/10 text-white font-semibold" : "text-white/60 hover:bg-white/5")
               }
             >
-              <span>{item.icon}</span>
+              <item.icon className="w-4 h-4" strokeWidth={2} />
               {item.label}
             </div>
           ))}
@@ -1109,7 +1114,7 @@ export default function Dashboard() {
                 .map((o) => (
                   <div
                     key={o.name}
-                    onClick={() => { setSelectedOrgName(o.name); setSelectedOrgCategory(Object.entries(o.counts).find(([, v]) => v > 0)?.[0] || "Raw Data"); }}
+                    onClick={() => openDeal(o.deals[0])}
                     className="bg-white border border-[#E7EAF0] rounded-xl p-4 cursor-pointer hover:border-navy/40"
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -1253,9 +1258,6 @@ export default function Dashboard() {
                       return info ? <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + info[1]}>{info[0]}</span> : null;
                     })()}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1.5 font-medium">
-                    {(selected.targetProduct || "").replace(/\n/g, " ") || "타겟제품 미입력"}
-                  </div>
                 </div>
                 {(() => {
                   const dd = ddayFromGoal(selected.contractGoal);
@@ -1272,6 +1274,66 @@ export default function Dashboard() {
                 })()}
               </div>
             </div>
+
+            {/* 타겟제품 전환 */}
+            {(() => {
+              const companyDeals = deals.filter((d) => (d.orgName || "").trim() === (selected.orgName || "").trim());
+              const counts = { "Raw Data": 0, "플랫폼": 0, "기타": 0 };
+              companyDeals.forEach((d) => counts[classifyTargetProduct(d.targetProduct)]++);
+              const catList = Object.entries(counts).filter(([, v]) => v > 0);
+              if (catList.length === 0) return null;
+              const itemsInCat = companyDeals.filter((d) => classifyTargetProduct(d.targetProduct) === activeProductCat);
+              return (
+                <div className="px-6 py-4 border-b border-[#E7EAF0] shrink-0">
+                  <div className="text-xs font-extrabold text-navy mb-2">타겟제품 ({companyDeals.length})</div>
+                  <div className="flex gap-2 mb-2">
+                    {catList.map(([cat, v]) => (
+                      <button
+                        key={cat}
+                        onClick={() => setActiveProductCat(cat)}
+                        className={
+                          "text-xs px-3 py-1.5 rounded-lg font-semibold border " +
+                          (activeProductCat === cat ? "bg-navy text-white border-navy" : "bg-white text-gray-500 border-[#E7EAF0]")
+                        }
+                      >
+                        {cat} ({v})
+                      </button>
+                    ))}
+                  </div>
+                  {activeProductCat && (
+                    <div className="space-y-1.5 mt-2">
+                      {itemsInCat.map((d) => {
+                        const cat = dealKpiCat[d.id];
+                        const recInfo = cat ? RECENCY_LABEL[cat.recency] : null;
+                        const isCurrent = d.id === selected.id;
+                        return (
+                          <div
+                            key={d.id}
+                            onClick={() => openDeal(d)}
+                            className={
+                              "border rounded-lg px-3 py-2 cursor-pointer " +
+                              (isCurrent ? "border-navy bg-navy/5" : "border-[#E7EAF0] hover:border-navy/40")
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-semibold text-navy">
+                                {(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}
+                              </span>
+                              {recInfo && (
+                                <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + recInfo[1]}>{recInfo[0]}</span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">
+                              {[d.rm, d.so].filter(Boolean).join(" / ") || "담당자 미상"} · {formatWon(d.expectedPerformance)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* 액션 3종 카드 */}
             <div className="px-6 py-4 border-b border-[#E7EAF0] space-y-2 shrink-0">
@@ -1572,80 +1634,6 @@ export default function Dashboard() {
         </>
       )}
 
-      {selectedOrgName && !selected && (() => {
-        const org = companyRows.find((o) => o.name === selectedOrgName);
-        if (!org) return null;
-        const dealsInCat = org.deals.filter((d) => classifyTargetProduct(d.targetProduct) === selectedOrgCategory);
-        return (
-          <>
-            <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelectedOrgName(null)} />
-            <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl flex flex-col">
-              <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
-                <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelectedOrgName(null)}>
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
-                  <span>전체</span><span>›</span><span>기관현황</span><span>›</span>
-                  <span className="text-navy font-semibold">{org.name}</span>
-                </div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <LogoBadge name={org.name} />
-                  <h2 className="text-lg font-extrabold text-navy">{org.name}</h2>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">{org.group}</span>
-                  <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + RECENCY_LABEL[org.dominant][1]}>
-                    {RECENCY_LABEL[org.dominant][0]}
-                  </span>
-                </div>
-              </div>
-
-              <div className="px-6 py-4 border-b border-[#E7EAF0] shrink-0">
-                <div className="text-xs font-extrabold text-navy mb-2">타겟제품 ({org.totalCount})</div>
-                <div className="flex gap-2">
-                  {Object.entries(org.counts).filter(([, v]) => v > 0).map(([cat, v]) => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedOrgCategory(cat)}
-                      className={
-                        "text-xs px-3 py-1.5 rounded-lg font-semibold border " +
-                        (selectedOrgCategory === cat ? "bg-navy text-white border-navy" : "bg-white text-gray-500 border-[#E7EAF0]")
-                      }
-                    >
-                      {cat} ({v})
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto px-6 py-4 space-y-2">
-                {dealsInCat.map((d) => {
-                  const cat = dealKpiCat[d.id];
-                  const recInfo = cat ? RECENCY_LABEL[cat.recency] : null;
-                  return (
-                    <div
-                      key={d.id}
-                      onClick={() => openDeal(d, org.name)}
-                      className="border border-[#E7EAF0] rounded-xl p-3 cursor-pointer hover:border-navy/40"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-xs font-bold text-navy">{(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}</div>
-                        {recInfo && (
-                          <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + recInfo[1]}>{recInfo[0]}</span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-gray-400">
-                        {[d.rm, d.so].filter(Boolean).join(" / ") || "담당자 미상"} · {formatWon(d.expectedPerformance)}
-                      </div>
-                    </div>
-                  );
-                })}
-                {dealsInCat.length === 0 && <div className="text-xs text-gray-300">해당 카테고리에 딜이 없습니다.</div>}
-              </div>
-            </div>
-          </>
-        );
-      })()}
 
       {showNewDeal && (
         <>
