@@ -20,9 +20,9 @@ const UPDATES = [
   { orgName: "제주은행", keyword: "CPS", contractAmount: 30000000, contractGoal: "2월" },
   { orgName: "중진공창업지원처", keyword: "기업DB조회", contractAmount: 5000000, contractGoal: "7월" },
   { orgName: "PACM", keyword: "패키지", contractAmount: 6000000, contractGoal: "8월" },
-  { orgName: "더존비즈온", keyword: "채권추심팀", contractAmount: 120000000, contractGoal: "8월", secondKeyword: "패키지" },
+  { orgName: "더존비즈온", orgNameContains: "채권추심팀", keyword: "패키지", contractAmount: 120000000, contractGoal: "8월" },
   { orgName: "신한은행", keyword: "월별매입매출", contractAmount: 310000000 },
-  { orgName: "신한은행", keyword: "월재무제표", contractAmount: 270000000 },
+  { orgName: "신한은행", keyword: "월별재무제표", contractAmount: 270000000 },
   { orgName: "신한은행", keyword: "CPS", contractAmount: 30000000, disambiguateNotChae: true },
   { orgName: "신한카드", keyword: "월별매입매출", contractAmount: 200000000 },
   { orgName: "한국수출입은행", keyword: "팩토링", contractAmount: 59000000 },
@@ -57,7 +57,11 @@ export async function GET(request) {
       const candidates = allDeals.filter((d) => {
         const org = (d.orgName || "").trim();
         const prod = (d.targetProduct || "");
-        if (org !== u.orgName) return false;
+        if (u.orgNameContains) {
+          if (!org.includes(u.orgNameContains)) return false;
+        } else if (org !== u.orgName) {
+          return false;
+        }
         if (!prod.includes(u.keyword)) return false;
         if (u.secondKeyword && !prod.includes(u.secondKeyword)) return false;
         if (u.disambiguateNotChae && org !== "신한은행") return false;
