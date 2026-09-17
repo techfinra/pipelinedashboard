@@ -232,6 +232,15 @@ function GroupIcon({ name, className }) {
   return <Icon className={className} strokeWidth={2} />;
 }
 
+function ddayFromGoal(contractGoal) {
+  const month = parseGoalMonth(contractGoal);
+  if (!month) return null;
+  const now = new Date();
+  const target = new Date(now.getFullYear(), month, 0);
+  const diff = Math.ceil((target - now) / 86400000);
+  return { diff, label: target.toISOString().slice(0, 10) };
+}
+
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: "🏠" },
   { key: "pipeline", label: "파이프라인", icon: "📊" },
@@ -287,6 +296,7 @@ export default function Dashboard() {
   const [nlActionText, setNlActionText] = useState("");
   const [nlSaving, setNlSaving] = useState(false);
   const [nlError, setNlError] = useState("");
+  const [detailTab, setDetailTab] = useState("info");
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -460,6 +470,7 @@ export default function Dashboard() {
 
   async function openDeal(deal) {
     setSelected(deal);
+    setDetailTab("info");
     setActivity([]);
     const q = query(collection(db, "activityLog"), where("dealId", "==", deal.id));
     const snap = await getDocs(q);
@@ -988,170 +999,266 @@ export default function Dashboard() {
       {selected && (
         <>
           <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
-          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
-            <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9]">
+          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl flex flex-col">
+            <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9] shrink-0">
               <button className="absolute top-4 right-5 text-gray-400 hover:text-navy" onClick={() => setSelected(null)}>
                 <X className="w-4 h-4" />
               </button>
-              <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-1">
+              <div className="text-[10px] text-gray-400 mb-3 flex items-center gap-1">
                 <span>전체</span><span>›</span>
                 <span>{mapGroupName(selected.orgGroup)}</span><span>›</span>
                 <span className="text-navy font-semibold">{selected.orgName}</span>
               </div>
-              <div className="flex items-center gap-2 mb-1">
-                <LogoBadge name={selected.orgName} />
-                <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
-                <Star className="w-4 h-4 text-gray-300" />
+
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <LogoBadge name={selected.orgName} />
+                    <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
+                    <Star className="w-4 h-4 text-gray-300" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
+                      {mapGroupName(selected.orgGroup)}
+                    </span>
+                    {(() => {
+                      const cat = dealKpiCat[selected.id];
+                      const labelMap = { active7: ["활발 진행", "text-green-600 bg-green-50"], followUp: ["후속 필요", "text-blue-600 bg-blue-50"], stale: ["장기 정체", "text-red-600 bg-red-50"] };
+                      const info = cat ? labelMap[cat.recency] : null;
+                      return info ? <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + info[1]}>{info[0]}</span> : null;
+                    })()}
+                  </div>
+                </div>
+                {(() => {
+                  const dd = ddayFromGoal(selected.contractGoal);
+                  if (!dd) return null;
+                  const overdue = dd.diff < 0;
+                  return (
+                    <div className={"rounded-xl px-3 py-2 text-center " + (overdue ? "bg-red-50" : "bg-green-50")}>
+                      <div className={"text-sm font-extrabold " + (overdue ? "text-red-600" : "text-green-600")}>
+                        {overdue ? `D+${Math.abs(dd.diff)}` : `D-${dd.diff}`}
+                      </div>
+                      <div className="text-[9px] text-gray-400 mt-0.5">목표월 {dd.label}</div>
+                    </div>
+                  );
+                })()}
               </div>
-              <div className="text-xs text-gray-500">
-                {mapGroupName(selected.orgGroup)} · {(selected.targetProduct || "").replace(/\n/g, " ")}
-              </div>
-              <span className={probPillClass(selected.probability) + " mt-2 inline-block"}>{selected.probability || "가능성 미상"}</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
+            {/* 액션 3종 카드 */}
+            <div className="px-6 py-4 border-b border-[#E7EAF0] space-y-2 shrink-0">
               {[
-                [User, "담당자", selected.contactPerson || "-"],
-                [Users, "RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
-                [TrendingUp, "기대실적", formatWon(selected.expectedPerformance)],
-                [Wallet, "계약금액", formatWon(selected.contractAmount)],
-                [CalendarClock, "계약목표", selected.contractGoal || "-"],
-                [Layers, "진행단계", selected.stage || "-"],
-              ].map(([Icon, label, value]) => (
-                <div key={label} className="bg-white px-4 py-3">
-                  <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
-                    <Icon className="w-3 h-3" />{label}
+                { icon: ClipboardList, color: "bg-blue-50 text-blue-600", label: "지난번 액션", date: activity[1]?.date, text: activity[1]?.text, field: "prevAction", editable: !!activity[1] },
+                { icon: PlayCircle, color: "bg-navy/10 text-navy", label: "현재 액션", date: activity[0]?.date, text: activity[0]?.text, field: "currentAction", editable: !!activity[0] },
+                { icon: Flag, color: "bg-orange-100 text-orange-600", label: "다음 액션", date: selected.nextAction ? "예정" : null, text: selected.nextAction, field: "nextAction", editable: true, highlight: true },
+              ].map((row) => (
+                <div key={row.field} className={"rounded-xl border p-3 " + (row.highlight ? "border-orange-200 bg-orange-50" : "border-[#E7EAF0]")}>
+                  <div className="flex items-start gap-2.5">
+                    <div className={"w-7 h-7 rounded-lg flex items-center justify-center shrink-0 " + row.color}>
+                      <row.icon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-gray-500">{row.label}</span>
+                        <div className="flex items-center gap-2">
+                          {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
+                          {row.editable && editingField !== row.field && (
+                            <button className="text-[10px] text-navy underline" onClick={() => startEdit(row.field, row.text)}>수정</button>
+                          )}
+                        </div>
+                      </div>
+                      {editingField !== row.field ? (
+                        <div className="text-xs text-gray-700 mt-0.5">{row.text || "미입력"}</div>
+                      ) : (
+                        <div className="mt-1.5 space-y-1.5">
+                          <input
+                            className="w-full text-xs border border-[#E7EAF0] rounded-lg px-2 py-1.5"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button className="text-[10px] text-gray-400" onClick={cancelEdit}>취소</button>
+                            <button
+                              className="text-[10px] bg-navy text-white px-2 py-1 rounded-lg"
+                              disabled={saving}
+                              onClick={() =>
+                                row.field === "nextAction"
+                                  ? saveDealField({ nextAction: editValue })
+                                  : saveActivityText(activity[row.field === "prevAction" ? 1 : 0].id)
+                              }
+                            >
+                              {saving ? "저장 중..." : "저장"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs font-semibold text-navy break-words">{value}</div>
                 </div>
               ))}
             </div>
 
-            <div className="px-6 py-3 border-b border-[#E7EAF0]">
-              <div className="text-[10px] text-gray-400 mb-1">방문미팅</div>
-              <div className="text-xs text-gray-700">{selected.visitMeetingRaw || "-"}</div>
+            {/* 탭 */}
+            <div className="flex border-b border-[#E7EAF0] shrink-0 px-2">
+              {[
+                { key: "info", label: "상세정보" },
+                { key: "history", label: "액션 히스토리" },
+                { key: "files", label: "관련파일" },
+                { key: "related", label: "연관기관" },
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setDetailTab(t.key)}
+                  className={
+                    "px-3 py-2.5 text-xs font-semibold border-b-2 -mb-px " +
+                    (detailTab === t.key ? "text-navy border-navy" : "text-gray-400 border-transparent")
+                  }
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
 
-            <div className="px-6 py-4 border-b border-[#E7EAF0]">
-              <div className="text-xs font-extrabold text-navy mb-2">액션 · 메모</div>
-              <div className="space-y-3 text-xs">
+            <div className="flex-1 overflow-y-auto">
+              {detailTab === "info" && (
+                <>
+                  <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
+                    {[
+                      [User, "담당자", selected.contactPerson || "-"],
+                      [Users, "RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
+                      [TrendingUp, "기대실적", formatWon(selected.expectedPerformance)],
+                      [Wallet, "계약금액", formatWon(selected.contractAmount)],
+                      [CalendarClock, "계약목표", selected.contractGoal || "-"],
+                      [Layers, "진행단계", selected.stage || "-"],
+                    ].map(([Icon, label, value]) => (
+                      <div key={label} className="bg-white px-4 py-3">
+                        <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1">
+                          <Icon className="w-3 h-3" />{label}
+                        </div>
+                        <div className="text-xs font-semibold text-navy break-words">{value}</div>
+                      </div>
+                    ))}
+                  </div>
 
-                {/* 이전 액션 */}
-                <EditableLine
-                  label="이전 액션"
-                  icon={ClipboardList}
-                  meta={activity[1]?.date}
-                  value={activity[1]?.text}
-                  editing={editingField === "prevAction"}
-                  editable={!!activity[1]}
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  onEdit={() => startEdit("prevAction", activity[1]?.text)}
-                  onCancel={cancelEdit}
-                  onSave={() => saveActivityText(activity[1].id)}
-                  saving={saving}
-                />
+                  <div className="px-6 py-3 border-b border-[#E7EAF0]">
+                    <div className="text-[10px] text-gray-400 mb-1 flex items-center gap-1"><Percent className="w-3 h-3" />계약가능성</div>
+                    <span className={probPillClass(selected.probability)}>{selected.probability || "가능성 미상"}</span>
+                  </div>
 
-                {/* 현재 액션 */}
-                <EditableLine
-                  label="현재 액션"
-                  icon={PlayCircle}
-                  meta={activity[0]?.date}
-                  value={activity[0]?.text}
-                  editing={editingField === "currentAction"}
-                  editable={!!activity[0]}
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  onEdit={() => startEdit("currentAction", activity[0]?.text)}
-                  onCancel={cancelEdit}
-                  onSave={() => saveActivityText(activity[0].id)}
-                  saving={saving}
-                />
+                  <div className="px-6 py-3 border-b border-[#E7EAF0]">
+                    <div className="text-[10px] text-gray-400 mb-1">방문미팅</div>
+                    <div className="text-xs text-gray-700">{selected.visitMeetingRaw || "-"}</div>
+                  </div>
 
-                {/* 다음 액션 */}
-                <EditableLine
-                  label="다음 액션"
-                  icon={Flag}
-                  highlight
-                  value={selected.nextAction}
-                  editing={editingField === "nextAction"}
-                  editable
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  onEdit={() => startEdit("nextAction", selected.nextAction)}
-                  onCancel={cancelEdit}
-                  onSave={() => saveDealField({ nextAction: editValue })}
-                  saving={saving}
-                />
+                  <div className="px-6 py-4 border-b border-[#E7EAF0]">
+                    <EditableLine
+                      label="메모"
+                      icon={FileText}
+                      value={selected.memo}
+                      editing={editingField === "memo"}
+                      editable
+                      multiline
+                      editValue={editValue}
+                      setEditValue={setEditValue}
+                      onEdit={() => startEdit("memo", selected.memo)}
+                      onCancel={cancelEdit}
+                      onSave={() => saveDealField({ memo: editValue })}
+                      saving={saving}
+                    />
+                  </div>
 
-                {/* 다음 미팅 */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">다음 미팅</span>
-                    {editingField !== "meeting" && (
-                      <button className="text-navy underline" onClick={() => setEditingField("meeting")}>수정</button>
+                  <div className="px-6 py-4 border-b border-[#E7EAF0]">
+                    <div className="text-[10px] text-gray-400 mb-1">다음 미팅</div>
+                    {editingField !== "meeting" ? (
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-700">
+                          {selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}
+                        </div>
+                        <button className="text-[10px] text-navy underline" onClick={() => setEditingField("meeting")}>수정</button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" value={editMeetingDate} onChange={(e) => setEditMeetingDate(e.target.value)} />
+                          <input className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" placeholder="메모" value={editMeetingNote} onChange={(e) => setEditMeetingNote(e.target.value)} />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <button className="text-[10px] text-gray-400" onClick={() => setEditingField(null)}>취소</button>
+                          <button className="text-[10px] bg-navy text-white px-2.5 py-1 rounded-lg" onClick={saveMeeting} disabled={saving}>{saving ? "저장 중..." : "저장"}</button>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  {editingField !== "meeting" ? (
-                    <div className="text-gray-700 mt-0.5">
-                      {selected.nextMeetingDate ? `${selected.nextMeetingDate} ${selected.nextMeetingNote || ""}` : "미입력"}
-                    </div>
-                  ) : (
-                    <div className="mt-1 space-y-1.5">
-                      <div className="flex gap-1.5">
-                        <input type="date" className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" value={editMeetingDate} onChange={(e) => setEditMeetingDate(e.target.value)} />
-                        <input className="border border-[#E7EAF0] rounded-lg px-2 py-1.5 w-1/2 text-xs" placeholder="메모" value={editMeetingNote} onChange={(e) => setEditMeetingNote(e.target.value)} />
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <button className="text-gray-400" onClick={() => setEditingField(null)}>취소</button>
-                        <button className="bg-navy text-white px-2.5 py-1 rounded-lg" onClick={saveMeeting} disabled={saving}>{saving ? "저장 중..." : "저장"}</button>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* 메모 */}
-                <EditableLine
-                  label="메모"
-                  value={selected.memo}
-                  editing={editingField === "memo"}
-                  editable
-                  multiline
-                  editValue={editValue}
-                  setEditValue={setEditValue}
-                  onEdit={() => startEdit("memo", selected.memo)}
-                  onCancel={cancelEdit}
-                  onSave={() => saveDealField({ memo: editValue })}
-                  saving={saving}
-                />
-              </div>
-            </div>
-
-            {selected.relatedFiles && selected.relatedFiles.length > 0 && (
-              <div className="px-6 py-4 border-b border-[#E7EAF0]">
-                <div className="text-xs font-extrabold text-navy mb-2">관련파일 ({selected.relatedFiles.length})</div>
-                <div className="space-y-1.5">
-                  {selected.relatedFiles.map((f, i) => (
-                    <div key={i} className="text-xs text-gray-700 bg-[#F8FAFC] rounded-lg px-3 py-2 break-words">
-                      {f}
+                  <div className="px-6 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-xs font-extrabold text-navy">주요 히스토리 (최근 3건)</div>
+                      <button className="text-[10px] text-navy" onClick={() => setDetailTab("history")}>전체보기 ›</button>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="px-6 py-4">
-              <div className="text-xs font-extrabold text-navy mb-3">진행 이력 ({activity.length})</div>
-              <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
-                {activity.map((a, i) => (
-                  <div key={i} className="relative">
-                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
-                    <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
-                    <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                    <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
+                      {activity.slice(0, 3).map((a, i) => (
+                        <div key={i} className="relative">
+                          <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
+                          <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
+                          <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                        </div>
+                      ))}
+                      {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
+                    </div>
                   </div>
-                ))}
-                {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
-              </div>
+                </>
+              )}
+
+              {detailTab === "history" && (
+                <div className="px-6 py-4">
+                  <div className="text-xs font-extrabold text-navy mb-3">액션 히스토리 ({activity.length})</div>
+                  <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
+                    {activity.map((a, i) => (
+                      <div key={i} className="relative">
+                        <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
+                        <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
+                        <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                      </div>
+                    ))}
+                    {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
+                  </div>
+                </div>
+              )}
+
+              {detailTab === "files" && (
+                <div className="px-6 py-4">
+                  <div className="text-xs font-extrabold text-navy mb-3">관련파일 ({(selected.relatedFiles || []).length})</div>
+                  <div className="space-y-1.5">
+                    {(selected.relatedFiles || []).map((f, i) => (
+                      <div key={i} className="text-xs text-gray-700 bg-[#F8FAFC] rounded-lg px-3 py-2 break-words flex items-center gap-2">
+                        <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{f}
+                      </div>
+                    ))}
+                    {(!selected.relatedFiles || selected.relatedFiles.length === 0) && (
+                      <div className="text-xs text-gray-300">관련파일이 없습니다.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {detailTab === "related" && (
+                <div className="px-6 py-4">
+                  <div className="text-xs font-extrabold text-navy mb-3">연관기관 (같은 구분)</div>
+                  <div className="space-y-1.5">
+                    {(groupCards.find((g) => g.name === mapGroupName(selected.orgGroup))?.allOrgs || [])
+                      .filter((o) => o.name !== selected.orgName)
+                      .map((o) => (
+                        <div
+                          key={o.name}
+                          onClick={() => openDeal(o.deal)}
+                          className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 cursor-pointer"
+                        >
+                          <LogoBadge name={o.name} />{o.name}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </>
