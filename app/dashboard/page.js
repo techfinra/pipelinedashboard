@@ -334,6 +334,7 @@ export default function Dashboard() {
   const [nlSaving, setNlSaving] = useState(false);
   const [nlError, setNlError] = useState("");
   const [detailTab, setDetailTab] = useState("info");
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -490,6 +491,12 @@ export default function Dashboard() {
     });
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, count]) => ({ month, count }));
   }, [allActivity]);
+
+  const actionDueDeals = useMemo(() => {
+    return deals
+      .filter((d) => dealKpiCat[d.id]?.future === "actionDue")
+      .sort((a, b) => (a.nextMeetingDate || "").localeCompare(b.nextMeetingDate || ""));
+  }, [deals, dealKpiCat]);
 
   const orgRows = useMemo(() => {
     const map = {};
@@ -737,9 +744,49 @@ export default function Dashboard() {
             >
               + 새 딜 등록
             </button>
-            <button className="text-gray-400 hover:text-navy p-1.5">
-              <Bell className="w-4 h-4" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen((v) => !v)}
+                className="text-gray-400 hover:text-navy p-1.5 relative"
+              >
+                <Bell className="w-4 h-4" />
+                {actionDueDeals.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
+                    {actionDueDeals.length}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                  <div className="absolute right-0 top-10 w-72 bg-white border border-[#E7EAF0] rounded-xl shadow-xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#E7EAF0] flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-navy">🟠 액션 도래 (7일 이내)</span>
+                      <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {actionDueDeals.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setNotifOpen(false); }}
+                          className="px-4 py-2.5 border-b border-[#F4F6F9] hover:bg-[#F8FAFC] cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy">
+                            <LogoBadge name={d.orgName} />{d.orgName}
+                          </div>
+                          <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">
+                            {d.nextMeetingDate} {d.nextMeetingNote}
+                          </div>
+                        </div>
+                      ))}
+                      {actionDueDeals.length === 0 && (
+                        <div className="px-4 py-6 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <div className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0]">
               <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
                 {(profile?.name || "?").slice(0, 1)}
