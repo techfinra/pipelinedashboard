@@ -1211,7 +1211,7 @@ export default function Dashboard() {
       <aside
         className={
           "shrink-0 bg-white dark:bg-[#111827] border-r border-[#ECEEF1] dark:border-gray-700 text-gray-700 dark:text-gray-300 flex flex-col transition-all duration-200 " +
-          "fixed inset-y-0 left-0 z-50 md:relative md:z-auto w-64 " +
+          "fixed inset-y-0 left-0 z-50 md:sticky md:top-0 md:h-screen md:z-auto w-64 " +
           (mobileSidebarOpen ? "translate-x-0" : "-translate-x-full") + " md:translate-x-0 " +
           (sidebarCollapsed ? "md:w-[68px]" : "md:w-60")
         }
@@ -1227,7 +1227,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 py-4 overflow-y-auto">
           {NAV_ITEMS.map((item) => (
             <div
               key={item.key}
