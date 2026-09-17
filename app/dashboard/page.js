@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 import {
@@ -297,6 +297,7 @@ const KPI_DEFS = [
   { key: "stale", color: "text-red-600", bg: "bg-red-50", ring: "ring-red-500", icon: AlertTriangle, label: "장기 정체", meta: "30일 초과" },
   { key: "actionDue", color: "text-orange-500", bg: "bg-orange-50", ring: "ring-orange-400", icon: Flag, label: "액션 도래", meta: "7일 이내" },
   { key: "actionPlanned", color: "text-purple-600", bg: "bg-purple-50", ring: "ring-purple-500", icon: CalendarClock, label: "액션 예정", meta: "8일 이후" },
+  { key: "dropped", color: "text-gray-500", bg: "bg-gray-100", ring: "ring-gray-400", icon: X, label: "드랍 기업", meta: "제외됨" },
 ];
 
 const RECENCY_LABEL = {
@@ -323,6 +324,7 @@ export default function Dashboard() {
   const [profileModalKey, setProfileModalKey] = useState(null);
   const [reportModal, setReportModal] = useState(null);
   const [deals, setDeals] = useState([]);
+  const [droppedOrgNames, setDroppedOrgNames] = useState(new Set());
   const [allActivity, setAllActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
@@ -389,6 +391,8 @@ export default function Dashboard() {
   const [detailTab, setDetailTab] = useState("info");
   const [notifOpen, setNotifOpen] = useState(false);
   const [kpiModalKey, setKpiModalKey] = useState(null);
+  const [showDroppedModal, setShowDroppedModal] = useState(false);
+  const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -433,12 +437,14 @@ export default function Dashboard() {
     if (!authChecked) return;
     (async () => {
       try {
-        const [dealsSnap, activitySnap] = await Promise.all([
+        const [dealsSnap, activitySnap, droppedSnap] = await Promise.all([
           getDocs(collection(db, "deals")),
           getDocs(collection(db, "activityLog")),
+          getDocs(collection(db, "droppedCompanies")),
         ]);
         setDeals(dealsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setAllActivity(activitySnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setDroppedOrgNames(new Set(droppedSnap.docs.map((d) => d.id)));
       } catch (e) {
         setLoadError(String(e && e.message ? e.message : e));
       } finally {
@@ -455,6 +461,46 @@ export default function Dashboard() {
     setActiveProductCat(classifyTargetProduct(selected.targetProduct));
   }, [selected]);
 
+  const activeDeals = useMemo(() => {
+    return deals.filter((d) => !droppedOrgNames.has((d.orgName || "").trim()));
+  }, [deals, droppedOrgNames]);
+
+  const droppedCompanyList = useMemo(() => {
+    const map = {};
+    deals.forEach((d) => {
+      const name = (d.orgName || "").trim();
+      if (!name || !droppedOrgNames.has(name)) return;
+      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [] };
+      map[name].deals.push(d);
+    });
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  }, [deals, droppedOrgNames]);
+
+  async function dropCompany(orgName) {
+    const name = (orgName || "").trim();
+    if (!name) return;
+    try {
+      await setDoc(doc(db, "droppedCompanies", name), { droppedAt: serverTimestamp(), droppedBy: profile?.name || null });
+      setDroppedOrgNames((prev) => new Set([...prev, name]));
+    } catch (e) {
+      alert("삭제 실패: " + (e.message || e));
+    }
+  }
+
+  async function restoreCompany(orgName) {
+    const name = (orgName || "").trim();
+    try {
+      await deleteDoc(doc(db, "droppedCompanies", name));
+      setDroppedOrgNames((prev) => {
+        const next = new Set(prev);
+        next.delete(name);
+        return next;
+      });
+    } catch (e) {
+      alert("복구 실패: " + (e.message || e));
+    }
+  }
+
   const lastActionByDeal = useMemo(() => {
     const map = {};
     allActivity.forEach((a) => {
@@ -467,7 +513,7 @@ export default function Dashboard() {
   const dealKpiCat = useMemo(() => {
     const now = new Date();
     const map = {};
-    deals.forEach((d) => {
+    activeDeals.forEach((d) => {
       const lastDate = lastActionByDeal[d.id];
       let recency;
       if (lastDate) {
@@ -501,10 +547,10 @@ export default function Dashboard() {
       map[d.id] = { recency, future, futureReason, futureDate };
     });
     return map;
-  }, [deals, lastActionByDeal]);
+  }, [activeDeals, lastActionByDeal]);
 
   const filtered = useMemo(() => {
-    return deals.filter((d) => {
+    return activeDeals.filter((d) => {
       const g = mapGroupName(d.orgGroup);
       if (activeGroup !== "전체" && g !== activeGroup) return false;
       if (search && !(d.orgName || "").includes(search)) return false;
@@ -514,7 +560,7 @@ export default function Dashboard() {
       }
       return true;
     });
-  }, [deals, activeGroup, search, activeKpi, dealKpiCat]);
+  }, [activeDeals, activeGroup, search, activeKpi, dealKpiCat]);
 
   const kpis = useMemo(() => {
     let active7 = 0, followUp = 0, stale = 0, actionDue = 0, actionPlanned = 0;
@@ -533,7 +579,7 @@ export default function Dashboard() {
     const curMonth = now.getMonth() + 1;
     const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
     const map = {};
-    deals.forEach((d) => {
+    activeDeals.forEach((d) => {
       const g = mapGroupName(d.orgGroup);
       if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
@@ -569,13 +615,13 @@ export default function Dashboard() {
 
   const probDist = useMemo(() => {
     const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 미상: 0 };
-    deals.forEach((d) => {
+    activeDeals.forEach((d) => {
       const p = d.probability;
       if (p && counts[p] !== undefined) counts[p]++;
       else counts["미상"]++;
     });
     return Object.entries(counts).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
-  }, [deals]);
+  }, [activeDeals]);
 
   const monthlyActivity = useMemo(() => {
     const map = {};
@@ -624,15 +670,15 @@ export default function Dashboard() {
 
   const myActionNeededDeals = useMemo(() => {
     if (!profile?.name) return [];
-    return deals
+    return activeDeals
       .filter((d) => (d.rm === profile.name || d.so === profile.name))
       .filter((d) => ["actionDue", "actionPlanned"].includes(dealKpiCat[d.id]?.future))
       .sort((a, b) => (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || ""));
-  }, [deals, dealKpiCat, profile, lastActionByDeal]);
+  }, [activeDeals, dealKpiCat, profile, lastActionByDeal]);
 
   const companyRows = useMemo(() => {
     const map = {};
-    deals.forEach((d) => {
+    activeDeals.forEach((d) => {
       const name = (d.orgName || "").trim();
       if (!name) return;
       if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0 };
@@ -649,7 +695,7 @@ export default function Dashboard() {
         return { ...o, counts, totalCount: o.deals.length, totalExpected, dominant };
       })
       .sort((a, b) => b.totalCount - a.totalCount);
-  }, [deals, dealKpiCat]);
+  }, [activeDeals, dealKpiCat]);
 
   const uniqueTargetProducts = useMemo(() => {
     return [...new Set(deals.map((d) => (d.targetProduct || "").replace(/\n/g, " ").trim()).filter(Boolean))].sort();
@@ -686,8 +732,8 @@ export default function Dashboard() {
 
   const aiFlaggedDeals = useMemo(() => {
     if (!profile?.name) return [];
-    return deals.filter((d) => d.aiFlag && (d.rm === profile.name || d.so === profile.name));
-  }, [deals, profile]);
+    return activeDeals.filter((d) => d.aiFlag && (d.rm === profile.name || d.so === profile.name));
+  }, [activeDeals, profile]);
 
   const myCompanyGroups = useMemo(() => {
     let filtered;
@@ -745,6 +791,7 @@ export default function Dashboard() {
     if (origin) setSelectedOrgName(null);
     setSelected(deal);
     setDetailTab("info");
+    setConfirmDropCompany(false);
     setActivity([]);
     const q = query(collection(db, "activityLog"), where("dealId", "==", deal.id));
     const snap = await getDocs(q);
@@ -1610,11 +1657,11 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-5 gap-3.5 mb-6">
+          <div className="grid grid-cols-6 gap-3 mb-6">
             {KPI_DEFS.map((k) => (
               <div
                 key={k.key}
-                onClick={() => setKpiModalKey(k.key)}
+                onClick={() => (k.key === "dropped" ? setShowDroppedModal(true) : setKpiModalKey(k.key))}
                 className={
                   "bg-white dark:bg-[#111827] border rounded-2xl p-4 cursor-pointer transition " +
                   (activeKpi === k.key ? "border-navy ring-1 " + k.ring : "border-[#E7EAF0] dark:border-gray-700 hover:border-navy/40")
@@ -1623,7 +1670,7 @@ export default function Dashboard() {
                 <div className={"w-9 h-9 rounded-xl flex items-center justify-center mb-2 " + k.bg}>
                   <k.icon className={"w-[18px] h-[18px] " + k.color} strokeWidth={2.2} />
                 </div>
-                <div className={"text-2xl font-extrabold " + k.color}>{kpis[k.key]}</div>
+                <div className={"text-2xl font-extrabold " + k.color}>{k.key === "dropped" ? droppedCompanyList.length : kpis[k.key]}</div>
                 <div className="text-xs text-gray-500 mt-1">{k.label} <span className="text-gray-300">({k.meta})</span></div>
               </div>
             ))}
@@ -2360,6 +2407,33 @@ export default function Dashboard() {
                       {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
                     </div>
                   </div>
+
+                  <div className="px-6 py-4 border-t border-[#E7EAF0] dark:border-gray-700">
+                    <div className="text-[10px] font-bold text-red-500 mb-2">위험 영역</div>
+                    {confirmDropCompany ? (
+                      <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3">
+                        <div className="text-xs text-red-600 mb-2">
+                          "{selected.orgName}"을(를) 삭제하면 산업군·기관현황·담당업체 등 모든 화면에서 제외됩니다. (드랍기업 목록에서 언제든 복구 가능)
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          <button className="text-[11px] text-gray-400" onClick={() => setConfirmDropCompany(false)}>취소</button>
+                          <button
+                            className="text-[11px] bg-red-600 text-white px-2.5 py-1.5 rounded-lg font-semibold"
+                            onClick={() => { dropCompany(selected.orgName); setConfirmDropCompany(false); setSelected(null); }}
+                          >
+                            삭제(드랍)
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        className="text-[11px] text-red-500 border border-red-200 dark:border-red-900 rounded-lg px-2.5 py-1.5"
+                        onClick={() => setConfirmDropCompany(true)}
+                      >
+                        이 기업 삭제(드랍)
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -2491,17 +2565,17 @@ export default function Dashboard() {
         let title = "", items = [];
         if (reportModal.type === "group") {
           title = `${reportModal.key} · 계약금액 상세`;
-          items = deals.filter((d) => mapGroupName(d.orgGroup) === reportModal.key)
+          items = activeDeals.filter((d) => mapGroupName(d.orgGroup) === reportModal.key)
             .filter((d) => d.contractAmount)
             .sort((a, b) => (b.contractAmount || 0) - (a.contractAmount || 0));
         } else if (reportModal.type === "prob") {
           title = `계약가능성: ${reportModal.key}`;
           const known = ["상", "중", "하", "완료"];
-          items = deals.filter((d) => (known.includes(reportModal.key) ? d.probability === reportModal.key : !known.includes(d.probability)));
+          items = activeDeals.filter((d) => (known.includes(reportModal.key) ? d.probability === reportModal.key : !known.includes(d.probability)));
         } else if (reportModal.type === "month") {
           title = `${reportModal.key} 활동 내역`;
           const dealsById = {};
-          deals.forEach((d) => { dealsById[d.id] = d; });
+          activeDeals.forEach((d) => { dealsById[d.id] = d; });
           items = allActivity
             .filter((a) => a.date && a.date.slice(0, 7) === reportModal.key)
             .map((a) => ({ ...a, deal: dealsById[a.dealId] }))
@@ -2627,6 +2701,42 @@ export default function Dashboard() {
           </>
         );
       })()}
+
+      {showDroppedModal && (
+        <>
+          <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setShowDroppedModal(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+              <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
+                <span className="text-sm font-extrabold text-gray-600 dark:text-gray-300">드랍 기업</span>
+                <button className="text-gray-400 hover:text-navy" onClick={() => setShowDroppedModal(false)}>
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-3">
+                <div className="text-[11px] text-gray-400 px-2 mb-1">{droppedCompanyList.length}개 기업 — 산업군·기관현황·담당업체 등 모든 화면에서 제외되어 있습니다.</div>
+                {droppedCompanyList.map((o) => (
+                  <div key={o.name} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800">
+                    <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100 min-w-0">
+                      <LogoBadge name={o.name} /><span className="truncate">{o.name}</span>
+                      <span className="text-gray-300 font-normal ml-1.5 shrink-0">{o.group}</span>
+                    </div>
+                    <button
+                      onClick={() => restoreCompany(o.name)}
+                      className="text-[10px] bg-navy text-white px-2.5 py-1 rounded-lg font-semibold shrink-0 ml-2"
+                    >
+                      복구
+                    </button>
+                  </div>
+                ))}
+                {droppedCompanyList.length === 0 && (
+                  <div className="text-center text-xs text-gray-300 py-10">드랍된 기업이 없습니다.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {kpiModalKey && (() => {
         const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
