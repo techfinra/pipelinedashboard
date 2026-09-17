@@ -20,6 +20,75 @@ function probPillClass(p) {
   return "pill pill-default";
 }
 
+const LOGO_DOMAINS = {
+  "KB국민은행": "kbstar.com",
+  "KB국민카드(KCB)": "kbcard.com",
+  "KB국민카드(직영업)": "kbcard.com",
+  "KB캐피탈": "kbcapital.com",
+  "신한은행": "shinhan.com",
+  "신한카드": "shinhancard.com",
+  "신한캐피탈": "shinhancapital.com",
+  "신한투자증권": "shinhansec.com",
+  "신한지주": "shinhangroup.com",
+  "하나은행(NICE)": "hanabank.com",
+  "하나은행(직영업)": "hanabank.com",
+  "하나카드": "hanacard.co.kr",
+  "하나캐피탈": "hanacapital.co.kr",
+  "우리은행": "wooribank.com",
+  "우리카드": "wooricard.com",
+  "NH농협은행": "nonghyup.com",
+  "NH농협캐피탈": "nhcapital.co.kr",
+  "IBK기업은행": "ibk.co.kr",
+  "부산은행": "busanbank.co.kr",
+  "제주은행": "jejubank.co.kr",
+  "수협은행": "suhyup-bank.com",
+  "카카오뱅크(NICE)": "kakaobank.com",
+  "카카오뱅크(직영업)": "kakaobank.com",
+  "토스뱅크(NICE)": "tossbank.com",
+  "토스뱅크(직영업)": "tossbank.com",
+  "비바리퍼블리카": "toss.im",
+  "토스페이먼츠": "tosspayments.com",
+  "케이뱅크(NICE)": "kbanknow.com",
+  "케이뱅크(직영업)": "kbanknow.com",
+  "KCB": "koreacb.com",
+  "나이스평가정보": "nice.co.kr",
+  "SGI서울보증": "sgic.co.kr",
+  "신용보증기금": "kodit.co.kr",
+  "더존": "douzone.com",
+  "더존비즈온": "douzone.com",
+  "전자신문사": "etnews.com",
+  "한국수출입은행": "koreaexim.go.kr",
+  "리드코프": "leadcorp.co.kr",
+  "BNK캐피탈": "bnkcapital.co.kr",
+};
+
+function LogoBadge({ name }) {
+  const domain = LOGO_DOMAINS[(name || "").trim()];
+  const [broken, setBroken] = useState(false);
+  if (domain && !broken) {
+    return (
+      <img
+        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+        alt=""
+        onError={() => setBroken(true)}
+        style={{ width: 22, height: 22, borderRadius: 5, marginRight: 6, verticalAlign: "middle" }}
+      />
+    );
+  }
+  const initials = (name || "-").trim().slice(0, 2);
+  return (
+    <span
+      style={{
+        display: "inline-flex", width: 22, height: 22, borderRadius: 5, marginRight: 6,
+        background: "#0D1F4E", color: "#fff", fontSize: 9, fontWeight: 700,
+        alignItems: "center", justifyContent: "center", verticalAlign: "middle",
+      }}
+    >
+      {initials}
+    </span>
+  );
+}
+
 export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [deals, setDeals] = useState([]);
@@ -161,7 +230,7 @@ export default function Dashboard() {
             {filtered.map((d) => (
               <tr key={d.id} onClick={() => openDeal(d)}>
                 <td>{(d.orgGroup || "").replace(/\n/g, " ")}</td>
-                <td style={{ fontWeight: 700 }}>{d.orgName}</td>
+                <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
                 <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
                 <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
                 <td>{formatWon(d.expectedPerformance)}</td>
@@ -179,7 +248,7 @@ export default function Dashboard() {
           <div className="panel">
             <div className="panel-head">
               <button className="panel-close" onClick={() => setSelected(null)}>✕</button>
-              <h2>{selected.orgName}</h2>
+              <h2><LogoBadge name={selected.orgName} />{selected.orgName}</h2>
               <div style={{ fontSize: 12, color: "#6B7280" }}>
                 {(selected.orgGroup || "").replace(/\n/g, " ")} · {(selected.targetProduct || "").replace(/\n/g, " ")}
               </div>
