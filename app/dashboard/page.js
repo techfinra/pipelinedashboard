@@ -317,6 +317,8 @@ export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [profile, setProfile] = useState(null);
   const [favorites, setFavorites] = useState([]);
+  const [kakaoworkEmailInput, setKakaoworkEmailInput] = useState("");
+  const [savingKakaoworkEmail, setSavingKakaoworkEmail] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileModalKey, setProfileModalKey] = useState(null);
   const [reportModal, setReportModal] = useState(null);
@@ -375,6 +377,9 @@ export default function Dashboard() {
   const [nlApplyMeeting, setNlApplyMeeting] = useState(false);
   const [nlFieldSuggestions, setNlFieldSuggestions] = useState([]);
   const [nlApplyFields, setNlApplyFields] = useState({});
+  const [nlRelatedFileUrl, setNlRelatedFileUrl] = useState("");
+  const [nlRelatedFileLabel, setNlRelatedFileLabel] = useState("");
+  const [nlApplyRelatedFile, setNlApplyRelatedFile] = useState(false);
   const [nlMeetingDate, setNlMeetingDate] = useState("");
   const [nlMeetingNote, setNlMeetingNote] = useState("");
   const [nlSaving, setNlSaving] = useState(false);
@@ -417,6 +422,7 @@ export default function Dashboard() {
         if (snap.exists()) {
           setProfile(snap.data());
           setFavorites(snap.data().favorites || []);
+          setKakaoworkEmailInput(snap.data().kakaoworkEmail || "");
         }
       } catch (e) {}
     });
@@ -587,6 +593,19 @@ export default function Dashboard() {
       setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, aiFlag: false, aiDismissedForAction: actionText || null } : d)));
     } catch (e) {
       alert("실패: " + (e.message || e));
+    }
+  }
+
+  async function handleSaveKakaoworkEmail() {
+    if (!auth.currentUser) return;
+    setSavingKakaoworkEmail(true);
+    try {
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { kakaoworkEmail: kakaoworkEmailInput.trim() });
+      setProfile((prev) => ({ ...prev, kakaoworkEmail: kakaoworkEmailInput.trim() }));
+    } catch (e) {
+      alert("저장 실패: " + (e.message || e));
+    } finally {
+      setSavingKakaoworkEmail(false);
     }
   }
 
@@ -868,6 +887,9 @@ export default function Dashboard() {
       setNlMeetingNote(data.meetingNote || "");
       setNlFieldSuggestions(data.fieldSuggestions || []);
       setNlApplyFields({});
+      setNlRelatedFileUrl(data.relatedFileUrl || "");
+      setNlRelatedFileLabel(data.relatedFileLabel || "첨부자료");
+      setNlApplyRelatedFile(!!data.relatedFileUrl);
 
       if (data.orgName) {
         setNlCompanySearch(data.orgName);
@@ -904,6 +926,9 @@ export default function Dashboard() {
     setNlMeetingNote("");
     setNlFieldSuggestions([]);
     setNlApplyFields({});
+    setNlRelatedFileUrl("");
+    setNlRelatedFileLabel("");
+    setNlApplyRelatedFile(false);
   }
 
   async function handleConfirmNL() {
@@ -944,6 +969,13 @@ export default function Dashboard() {
         patch.updatedAt = serverTimestamp();
         await updateDoc(doc(db, "deals", nlOverrideDealId), patch);
         setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, ...patch } : d)));
+      }
+
+      if (nlApplyRelatedFile && nlRelatedFileUrl) {
+        const targetDeal = deals.find((d) => d.id === nlOverrideDealId);
+        const updatedFiles = [...(targetDeal?.relatedFiles || []), { label: nlRelatedFileLabel || "첨부자료", url: nlRelatedFileUrl }];
+        await updateDoc(doc(db, "deals", nlOverrideDealId), { relatedFiles: updatedFiles });
+        setDeals((prev) => prev.map((d) => (d.id === nlOverrideDealId ? { ...d, relatedFiles: updatedFiles } : d)));
       }
 
       resetNL();
@@ -1521,6 +1553,29 @@ export default function Dashboard() {
                   </div>
                 )}
 
+                {nlRelatedFileUrl && (
+                  <div className="mb-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-2 py-2">
+                    <label className="flex items-start gap-1.5">
+                      <input type="checkbox" className="mt-0.5" checked={nlApplyRelatedFile} onChange={(e) => setNlApplyRelatedFile(e.target.checked)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-semibold text-blue-600 flex items-center gap-1 mb-1">
+                          <FileText className="w-3 h-3" />관련파일로 추가 <span className="text-gray-400 font-normal">(선택사항)</span>
+                        </div>
+                        <input
+                          className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 w-24 mr-1"
+                          value={nlRelatedFileLabel}
+                          onChange={(e) => setNlRelatedFileLabel(e.target.value)}
+                        />
+                        <input
+                          className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded px-1.5 py-1 w-52 truncate"
+                          value={nlRelatedFileUrl}
+                          onChange={(e) => setNlRelatedFileUrl(e.target.value)}
+                        />
+                      </div>
+                    </label>
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-2">
                   <button className="text-xs text-gray-400" onClick={resetNL}>취소</button>
                   <button className="text-xs bg-navy text-white px-3 py-1.5 rounded-lg" onClick={handleConfirmNL} disabled={nlSaving}>
@@ -1932,8 +1987,30 @@ export default function Dashboard() {
           )}
 
           {view === "settings" && (
-            <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-6 text-sm text-gray-500">
-              설정 화면은 준비 중입니다.
+            <div className="max-w-md space-y-4">
+              <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-1">카카오워크 알림</div>
+                <p className="text-xs text-gray-400 mb-3">카카오워크 이메일을 등록하면 매일 아침 액션도래·AI추천 항목을 봇이 DM으로 요약해드립니다.</p>
+                <label className="text-[11px] text-gray-400 block mb-1">카카오워크 이메일</label>
+                <input
+                  className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2 mb-2"
+                  placeholder="you@techfinratings.com"
+                  value={kakaoworkEmailInput}
+                  onChange={(e) => setKakaoworkEmailInput(e.target.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    className="text-xs bg-navy text-white px-3 py-2 rounded-lg font-semibold"
+                    onClick={handleSaveKakaoworkEmail}
+                    disabled={savingKakaoworkEmail}
+                  >
+                    {savingKakaoworkEmail ? "저장 중..." : "저장"}
+                  </button>
+                  {profile?.kakaoworkEmail && (
+                    <span className="text-[11px] text-green-600">✓ {profile.kakaoworkEmail} 등록됨</span>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
