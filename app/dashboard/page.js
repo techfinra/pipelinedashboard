@@ -222,23 +222,26 @@ export default function Dashboard() {
     const map = {};
     deals.forEach((d) => {
       const g = (d.orgGroup || "미분류").replace(/\n/g, " ").trim() || "미분류";
-      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgAmount: {} };
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgReps: {} };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
       map[g][cls]++;
       const key = (d.orgName || "").trim();
-      map[g].orgAmount[key] = (map[g].orgAmount[key] || 0) + (d.expectedPerformance || 0);
+      if (key) {
+        const amt = d.expectedPerformance || 0;
+        if (!map[g].orgReps[key] || amt > map[g].orgReps[key].amt) {
+          map[g].orgReps[key] = { amt, deal: d };
+        }
+      }
     });
 
     return Object.values(map)
       .map((g) => ({
         ...g,
         orgCount: g.orgs.size,
-        topOrgs: Object.entries(g.orgAmount)
-          .filter(([name]) => name)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 3)
-          .map(([name]) => name),
+        allOrgs: Object.entries(g.orgReps)
+          .sort((a, b) => b[1].amt - a[1].amt)
+          .map(([name, v]) => ({ name, deal: v.deal })),
       }))
       .sort((a, b) => b.orgCount - a.orgCount);
   }, [deals]);
@@ -381,14 +384,21 @@ export default function Dashboard() {
                     <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
                   </div>
                 </div>
-                <div className="text-[10px] text-gray-400 mb-1.5">주요 기업</div>
-                <div className="space-y-1">
-                  {g.topOrgs.map((name) => (
-                    <div key={name} className="flex items-center text-xs bg-[#F8FAFC] rounded-lg px-2 py-1.5">
-                      <LogoBadge name={name} />{name}
+                <div className="text-[10px] text-gray-400 mb-1.5">주요 기업 ({g.allOrgs.length})</div>
+                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                  {g.allOrgs.map((o) => (
+                    <div
+                      key={o.name}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeal(o.deal);
+                      }}
+                      className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-2 py-1.5 cursor-pointer"
+                    >
+                      <LogoBadge name={o.name} />{o.name}
                     </div>
                   ))}
-                  {g.topOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
+                  {g.allOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
                 </div>
               </div>
             ))}
@@ -425,33 +435,61 @@ export default function Dashboard() {
 
       {selected && (
         <>
-          <div className="panel-backdrop" onClick={() => setSelected(null)} />
-          <div className="panel">
-            <div className="panel-head">
-              <button className="panel-close" onClick={() => setSelected(null)}>✕</button>
-              <h2><LogoBadge name={selected.orgName} />{selected.orgName}</h2>
-              <div style={{ fontSize: 12, color: "#6B7280" }}>
+          <div className="fixed inset-0 bg-navy-deep/30 z-30" onClick={() => setSelected(null)} />
+          <div className="fixed top-0 right-0 w-[440px] max-w-full h-screen bg-white z-40 overflow-y-auto shadow-2xl">
+            <div className="px-6 py-5 border-b border-[#E7EAF0] relative bg-gradient-to-br from-white to-[#F4F6F9]">
+              <button
+                className="absolute top-4 right-5 text-gray-400 hover:text-navy text-lg"
+                onClick={() => setSelected(null)}
+              >
+                ✕
+              </button>
+              <div className="flex items-center gap-2 mb-1">
+                <LogoBadge name={selected.orgName} />
+                <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
+              </div>
+              <div className="text-xs text-gray-500">
                 {(selected.orgGroup || "").replace(/\n/g, " ")} · {(selected.targetProduct || "").replace(/\n/g, " ")}
               </div>
+              <span className={probPillClass(selected.probability) + " mt-2 inline-block"}>
+                {selected.probability || "가능성 미상"}
+              </span>
             </div>
-            <div className="kv"><div className="kv-label">담당자</div><div>{selected.contactPerson || "-"}</div></div>
-            <div className="kv"><div className="kv-label">RM / SO</div><div>{[selected.rm, selected.so].filter(Boolean).join(" / ") || "-"}</div></div>
-            <div className="kv"><div className="kv-label">기대실적</div><div>{formatWon(selected.expectedPerformance)}</div></div>
-            <div className="kv"><div className="kv-label">계약목표</div><div>{selected.contractGoal || "-"}</div></div>
-            <div className="kv"><div className="kv-label">계약가능성</div><div><span className={probPillClass(selected.probability)}>{selected.probability || "-"}</span></div></div>
-            <div className="kv"><div className="kv-label">진행단계</div><div>{selected.stage || "-"}</div></div>
-            <div className="kv"><div className="kv-label">계약금액</div><div>{formatWon(selected.contractAmount)}</div></div>
-            <div className="kv"><div className="kv-label">방문미팅</div><div>{selected.visitMeetingRaw || "-"}</div></div>
 
-            <div style={{ padding: "16px 22px 6px", fontWeight: 800, fontSize: 13, color: "#0D1F4E" }}>
-              진행 이력 ({activity.length})
+            <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] border-b border-[#E7EAF0]">
+              {[
+                ["담당자", selected.contactPerson || "-"],
+                ["RM / SO", [selected.rm, selected.so].filter(Boolean).join(" / ") || "-"],
+                ["기대실적", formatWon(selected.expectedPerformance)],
+                ["계약금액", formatWon(selected.contractAmount)],
+                ["계약목표", selected.contractGoal || "-"],
+                ["진행단계", selected.stage || "-"],
+              ].map(([label, value]) => (
+                <div key={label} className="bg-white px-4 py-3">
+                  <div className="text-[10px] text-gray-400 mb-0.5">{label}</div>
+                  <div className="text-xs font-semibold text-navy break-words">{value}</div>
+                </div>
+              ))}
             </div>
-            {activity.map((a, i) => (
-              <div className="activity-item" key={i}>
-                <div className="activity-date">{a.date || "날짜 미상"}</div>
-                <div>{a.text}</div>
+
+            <div className="px-6 py-3 border-b border-[#E7EAF0]">
+              <div className="text-[10px] text-gray-400 mb-1">방문미팅</div>
+              <div className="text-xs text-gray-700">{selected.visitMeetingRaw || "-"}</div>
+            </div>
+
+            <div className="px-6 py-4">
+              <div className="text-xs font-extrabold text-navy mb-3">진행 이력 ({activity.length})</div>
+              <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
+                {activity.map((a, i) => (
+                  <div key={i} className="relative">
+                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
+                    <div className="text-[11px] text-gray-400 mb-0.5">{a.date || "날짜 미상"}</div>
+                    <div className="text-xs text-gray-700 leading-relaxed">{a.text}</div>
+                  </div>
+                ))}
+                {activity.length === 0 && <div className="text-xs text-gray-300">이력이 없습니다.</div>}
               </div>
-            ))}
+            </div>
           </div>
         </>
       )}
