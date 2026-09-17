@@ -120,29 +120,29 @@ function LogoBadge({ name }) {
   );
 }
 
-function GroupDonut({ progress, due, delayed }) {
-  const total = progress + due + delayed || 0;
-  const pct = total > 0 ? Math.round((progress / total) * 100) : 0;
+function GroupDonut({ active7, followUp, stale }) {
+  const total = active7 + followUp + stale || 0;
+  const pct = total > 0 ? Math.round((active7 / total) * 100) : 0;
   const raw = [
-    { name: "진행", value: progress, color: "#16A34A" },
-    { name: "마감임박", value: due, color: "#D97706" },
-    { name: "지연", value: delayed, color: "#DC2626" },
+    { name: "활발 진행", value: active7, color: "#16A34A" },
+    { name: "후속 필요", value: followUp, color: "#2563EB" },
+    { name: "장기 정체", value: stale, color: "#DC2626" },
   ];
   const data = total > 0 ? raw.filter((d) => d.value > 0) : [{ name: "없음", value: 1, color: "#E5E7EB" }];
   return (
-    <div className="relative w-[104px] h-[104px] shrink-0">
+    <div className="relative w-[132px] h-[132px] shrink-0">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={data}
             dataKey="value"
-            innerRadius="70%"
+            innerRadius="72%"
             outerRadius="100%"
             startAngle={90}
             endAngle={-270}
             stroke="none"
             paddingAngle={data.length > 1 ? 3 : 0}
-            cornerRadius={6}
+            cornerRadius={7}
             isAnimationActive={false}
           >
             {data.map((d, i) => (
@@ -152,8 +152,8 @@ function GroupDonut({ progress, due, delayed }) {
         </PieChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-lg font-extrabold text-navy leading-none">{pct}%</span>
-        <span className="text-[9px] text-gray-400 mt-0.5">진행률</span>
+        <span className="text-2xl font-extrabold text-navy leading-none">{pct}%</span>
+        <span className="text-[9px] text-gray-400 mt-1">활발 진행률</span>
       </div>
     </div>
   );
@@ -439,10 +439,12 @@ export default function Dashboard() {
     const map = {};
     deals.forEach((d) => {
       const g = mapGroupName(d.orgGroup);
-      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgReps: {}, expected: 0, contract: 0 };
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
       map[g][cls]++;
+      const recency = dealKpiCat[d.id]?.recency;
+      if (recency) map[g][recency]++;
       map[g].expected += d.expectedPerformance || 0;
       map[g].contract += d.contractAmount || 0;
       const key = (d.orgName || "").trim();
@@ -467,7 +469,7 @@ export default function Dashboard() {
         if (ib === -1) return -1;
         return ia - ib;
       });
-  }, [deals]);
+  }, [deals, dealKpiCat]);
 
   const probDist = useMemo(() => {
     const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 미상: 0 };
@@ -883,11 +885,11 @@ export default function Dashboard() {
                     </div>
                     <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기관</div>
                     <div className="flex items-center gap-1 mb-4 -ml-1">
-                      <GroupDonut progress={g.progress + g.done} due={g.due} delayed={g.delayed} />
+                      <GroupDonut active7={g.active7} followUp={g.followUp} stale={g.stale} />
                       <div className="flex-1 space-y-2.5 pl-2">
-                        <DonutLegendRow color="#16A34A" label="진행" value={g.progress + g.done} />
-                        <DonutLegendRow color="#D97706" label="마감임박" value={g.due} />
-                        <DonutLegendRow color="#DC2626" label="지연" value={g.delayed} />
+                        <DonutLegendRow color="#16A34A" label="활발 진행 (최근 7일)" value={g.active7} />
+                        <DonutLegendRow color="#2563EB" label="후속 필요 (8~30일)" value={g.followUp} />
+                        <DonutLegendRow color="#DC2626" label="장기 정체 (30일 초과)" value={g.stale} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between mb-1.5">
