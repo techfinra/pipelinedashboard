@@ -241,6 +241,19 @@ function ddayFromGoal(contractGoal) {
   return { diff, label: target.toISOString().slice(0, 10) };
 }
 
+const ORG_ALIASES = {
+  "더존": "더존비즈온",
+  "더존>전략투자Unit": "더존비즈온",
+  "더존비즈온\n(채권추심팀)": "더존비즈온",
+  "더존비즈온": "더존비즈온",
+  "Plan.H": "Plan.H",
+  "Plan.H벤처스": "Plan.H",
+};
+function canonicalOrg(name) {
+  const key = (name || "").trim();
+  return ORG_ALIASES[key] || key;
+}
+
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: "🏠" },
   { key: "pipeline", label: "파이프라인", icon: "📊" },
@@ -1242,20 +1255,51 @@ export default function Dashboard() {
               )}
 
               {detailTab === "related" && (
-                <div className="px-6 py-4">
-                  <div className="text-xs font-extrabold text-navy mb-3">연관기관 (같은 구분)</div>
-                  <div className="space-y-1.5">
-                    {(groupCards.find((g) => g.name === mapGroupName(selected.orgGroup))?.allOrgs || [])
-                      .filter((o) => o.name !== selected.orgName)
-                      .map((o) => (
-                        <div
-                          key={o.name}
-                          onClick={() => openDeal(o.deal)}
-                          className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 cursor-pointer"
-                        >
-                          <LogoBadge name={o.name} />{o.name}
+                <div className="px-6 py-4 space-y-5">
+                  {(() => {
+                    const canon = canonicalOrg(selected.orgName);
+                    const sameCompany = deals.filter((d) => d.id !== selected.id && canonicalOrg(d.orgName) === canon);
+                    if (sameCompany.length === 0) return null;
+                    return (
+                      <div>
+                        <div className="text-xs font-extrabold text-navy mb-2">같은 회사 (다른 부서·담당)</div>
+                        <div className="space-y-1.5">
+                          {sameCompany.map((d) => (
+                            <div
+                              key={d.id}
+                              onClick={() => openDeal(d)}
+                              className="flex items-center justify-between text-xs bg-orange-50 hover:bg-orange-100 rounded-lg px-3 py-2 cursor-pointer"
+                            >
+                              <div className="flex items-center">
+                                <LogoBadge name={d.orgName} />
+                                <div>
+                                  <div className="font-semibold">{d.orgName}</div>
+                                  <div className="text-[10px] text-gray-400">{(d.targetProduct || "").replace(/\n/g, " ")}</div>
+                                </div>
+                              </div>
+                              <span className="text-gray-300">›</span>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    );
+                  })()}
+
+                  <div>
+                    <div className="text-xs font-extrabold text-navy mb-2">같은 구분 ({mapGroupName(selected.orgGroup)})</div>
+                    <div className="space-y-1.5">
+                      {(groupCards.find((g) => g.name === mapGroupName(selected.orgGroup))?.allOrgs || [])
+                        .filter((o) => o.name !== selected.orgName)
+                        .map((o) => (
+                          <div
+                            key={o.name}
+                            onClick={() => openDeal(o.deal)}
+                            className="flex items-center text-xs bg-[#F8FAFC] hover:bg-[#EEF2F7] rounded-lg px-3 py-2 cursor-pointer"
+                          >
+                            <LogoBadge name={o.name} />{o.name}
+                          </div>
+                        ))}
+                    </div>
                   </div>
                 </div>
               )}
