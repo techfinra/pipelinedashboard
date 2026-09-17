@@ -754,6 +754,19 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {selected.relatedFiles && selected.relatedFiles.length > 0 && (
+              <div className="px-6 py-4 border-b border-[#E7EAF0]">
+                <div className="text-xs font-extrabold text-navy mb-2">관련파일 ({selected.relatedFiles.length})</div>
+                <div className="space-y-1.5">
+                  {selected.relatedFiles.map((f, i) => (
+                    <div key={i} className="text-xs text-gray-700 bg-[#F8FAFC] rounded-lg px-3 py-2 break-words">
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="px-6 py-4">
               <div className="text-xs font-extrabold text-navy mb-3">진행 이력 ({activity.length})</div>
               <div className="relative pl-4 space-y-4 border-l-2 border-[#E7EAF0]">
