@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 import {
@@ -162,12 +162,12 @@ function GroupDonut({ active7, followUp, stale }) {
 
 function DonutLegendRow({ color, label, value }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500">
+    <div className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
         {label}
       </span>
-      <span className="text-sm font-extrabold text-navy">{value}</span>
+      <span className="text-base font-extrabold text-navy">{value}</span>
     </div>
   );
 }
@@ -315,6 +315,10 @@ const NAV_ITEMS = [
 export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [favorites, setFavorites] = useState([]);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileModalKey, setProfileModalKey] = useState(null);
+  const [reportModal, setReportModal] = useState(null);
   const [deals, setDeals] = useState([]);
   const [allActivity, setAllActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -376,7 +380,10 @@ export default function Dashboard() {
       setAuthChecked(true);
       try {
         const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) setProfile(snap.data());
+        if (snap.exists()) {
+          setProfile(snap.data());
+          setFavorites(snap.data().favorites || []);
+        }
       } catch (e) {}
     });
     return () => unsub();
@@ -539,6 +546,27 @@ export default function Dashboard() {
     });
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, count]) => ({ month, count }));
   }, [allActivity]);
+
+  async function toggleFavorite(orgName) {
+    if (!auth.currentUser) return;
+    const isFav = favorites.includes(orgName);
+    try {
+      await updateDoc(doc(db, "users", auth.currentUser.uid), {
+        favorites: isFav ? arrayRemove(orgName) : arrayUnion(orgName),
+      });
+      setFavorites((prev) => (isFav ? prev.filter((n) => n !== orgName) : [...prev, orgName]));
+    } catch (e) {
+      alert("저장 실패: " + (e.message || e));
+    }
+  }
+
+  const myActionNeededDeals = useMemo(() => {
+    if (!profile?.name) return [];
+    return deals
+      .filter((d) => (d.rm === profile.name || d.so === profile.name))
+      .filter((d) => ["actionDue", "actionPlanned"].includes(dealKpiCat[d.id]?.future))
+      .sort((a, b) => (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || ""));
+  }, [deals, dealKpiCat, profile, lastActionByDeal]);
 
   const companyRows = useMemo(() => {
     const map = {};
@@ -918,15 +946,40 @@ export default function Dashboard() {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0]">
-              <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
-                {(profile?.name || "?").slice(0, 1)}
+            <div className="relative">
+              <div
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                className="flex items-center gap-2 pl-3 border-l border-[#E7EAF0] cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-full bg-navy text-white text-xs flex items-center justify-center font-bold">
+                  {(profile?.name || "?").slice(0, 1)}
+                </div>
+                <div className="text-xs leading-tight">
+                  <div className="font-semibold text-navy">{profile?.name || "이름 미설정"}</div>
+                  <div className="text-gray-400">{profile?.division || ""}</div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-300" />
               </div>
-              <div className="text-xs leading-tight">
-                <div className="font-semibold text-navy">{profile?.name || "이름 미설정"}</div>
-                <div className="text-gray-400">{profile?.division || ""}</div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-gray-300" />
+              {profileMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
+                  <div className="absolute right-0 top-11 w-56 bg-white border border-[#E7EAF0] rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                    <button
+                      onClick={() => { setProfileModalKey("favorites"); setProfileMenuOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 hover:bg-[#F8FAFC]"
+                    >
+                      <span className="flex items-center gap-2"><Star className="w-3.5 h-3.5" />내 관심업체</span>
+                      <span className="text-gray-400">{favorites.length}</span>
+                    </button>
+                    <button
+                      onClick={() => { setProfileModalKey("actionNeeded"); setProfileMenuOpen(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs text-gray-600 hover:bg-[#F8FAFC]"
+                    >
+                      <span className="flex items-center gap-2"><Flag className="w-3.5 h-3.5" />액션 필요 ({myActionNeededDeals.length})</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
             <button onClick={() => signOut(auth)} className="text-[11px] text-gray-400 hover:text-navy ml-2">
               로그아웃
@@ -1152,7 +1205,13 @@ export default function Dashboard() {
                       <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
                       <YAxis tick={{ fontSize: 10 }} unit="억" />
                       <Tooltip formatter={(v) => `${v}억원`} />
-                      <Bar dataKey="계약금액" fill="#0D1F4E" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="계약금액"
+                        fill="#0D1F4E"
+                        radius={[4, 4, 0, 0]}
+                        cursor="pointer"
+                        onClick={(data) => setReportModal({ type: "group", key: data.name })}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -1161,7 +1220,17 @@ export default function Dashboard() {
                   <div className="text-sm font-extrabold text-navy mb-3">계약가능성 분포</div>
                   <ResponsiveContainer width="100%" height={260}>
                     <PieChart>
-                      <Pie data={probDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} label={(e) => `${e.name} ${e.value}`}>
+                      <Pie
+                        data={probDist}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        label={(e) => `${e.name} ${e.value}`}
+                        cursor="pointer"
+                        onClick={(entry) => setReportModal({ type: "prob", key: entry.name })}
+                      >
                         {probDist.map((entry, i) => (
                           <Cell key={i} fill={["#16A34A", "#D97706", "#DC2626", "#0D1F4E", "#9CA3AF"][i % 5]} />
                         ))}
@@ -1176,7 +1245,11 @@ export default function Dashboard() {
               <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4 mb-6">
                 <div className="text-sm font-extrabold text-navy mb-3">월별 활동(진행이력) 추이</div>
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={monthlyActivity}>
+                  <LineChart
+                    data={monthlyActivity}
+                    onClick={(e) => { if (e && e.activeLabel) setReportModal({ type: "month", key: e.activeLabel }); }}
+                    style={{ cursor: "pointer" }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
                     <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                     <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
@@ -1248,7 +1321,11 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <LogoBadge name={selected.orgName} />
                     <h2 className="text-lg font-extrabold text-navy">{selected.orgName}</h2>
-                    <Star className="w-4 h-4 text-gray-300" />
+                    <button onClick={() => toggleFavorite(selected.orgName)}>
+                      <Star
+                        className={"w-4 h-4 " + (favorites.includes(selected.orgName) ? "text-amber-400 fill-amber-400" : "text-gray-300")}
+                      />
+                    </button>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
@@ -1644,12 +1721,155 @@ export default function Dashboard() {
       )}
 
 
+      {reportModal && (() => {
+        let title = "", items = [];
+        if (reportModal.type === "group") {
+          title = `${reportModal.key} · 계약금액 상세`;
+          items = deals.filter((d) => mapGroupName(d.orgGroup) === reportModal.key)
+            .filter((d) => d.contractAmount)
+            .sort((a, b) => (b.contractAmount || 0) - (a.contractAmount || 0));
+        } else if (reportModal.type === "prob") {
+          title = `계약가능성: ${reportModal.key}`;
+          const known = ["상", "중", "하", "완료"];
+          items = deals.filter((d) => (known.includes(reportModal.key) ? d.probability === reportModal.key : !known.includes(d.probability)));
+        } else if (reportModal.type === "month") {
+          title = `${reportModal.key} 활동 내역`;
+          const dealsById = {};
+          deals.forEach((d) => { dealsById[d.id] = d; });
+          items = allActivity
+            .filter((a) => a.date && a.date.slice(0, 7) === reportModal.key)
+            .map((a) => ({ ...a, deal: dealsById[a.dealId] }))
+            .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        }
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setReportModal(null)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
+                  <span className="text-sm font-extrabold text-navy">{title}</span>
+                  <button className="text-gray-400 hover:text-navy" onClick={() => setReportModal(null)}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-3">
+                  <div className="text-[11px] text-gray-400 px-2 mb-1">{items.length}건</div>
+
+                  {reportModal.type === "month"
+                    ? items.map((a, i) => (
+                        <div
+                          key={i}
+                          onClick={() => { if (a.deal) { openDeal(a.deal); setReportModal(null); } }}
+                          className="px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-navy flex items-center">
+                              {a.deal && <LogoBadge name={a.deal.orgName} />}
+                              {a.deal ? a.deal.orgName : "(삭제된 딜)"}
+                            </span>
+                            <span className="text-[10px] text-gray-400">{a.date}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-600 mt-0.5">{a.text}</div>
+                        </div>
+                      ))
+                    : items.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setReportModal(null); }}
+                          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy">
+                            <LogoBadge name={d.orgName} />{d.orgName}
+                            <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                          </div>
+                          {reportModal.type === "group" && (
+                            <span className="text-[10px] text-navy font-bold shrink-0 ml-2">{formatWon(d.contractAmount)}</span>
+                          )}
+                        </div>
+                      ))}
+
+                  {items.length === 0 && <div className="text-center text-xs text-gray-300 py-8">해당하는 내역이 없습니다.</div>}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {profileModalKey && (() => {
+        const isFav = profileModalKey === "favorites";
+        const title = isFav ? "내 관심업체" : "액션 필요";
+        const favCompanies = companyRows.filter((o) => favorites.includes(o.name));
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setProfileModalKey(null)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] flex items-center justify-between sticky top-0 bg-white">
+                  <div className="flex items-center gap-2">
+                    {isFav ? <Star className="w-4 h-4 text-amber-400" /> : <Flag className="w-4 h-4 text-orange-500" />}
+                    <span className="text-sm font-extrabold text-navy">{title}</span>
+                  </div>
+                  <button className="text-gray-400 hover:text-navy" onClick={() => setProfileModalKey(null)}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-3">
+                  {isFav ? (
+                    <>
+                      <div className="text-[11px] text-gray-400 px-2 mb-1">{favCompanies.length}개 기관</div>
+                      {favCompanies.map((o) => (
+                        <div
+                          key={o.name}
+                          onClick={() => { openDeal(o.deals[0]); setProfileModalKey(null); }}
+                          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy">
+                            <LogoBadge name={o.name} />{o.name}
+                          </div>
+                          <span className={"text-[10px] px-1.5 py-0.5 rounded-md font-semibold " + RECENCY_LABEL[o.dominant][1]}>
+                            {RECENCY_LABEL[o.dominant][0]}
+                          </span>
+                        </div>
+                      ))}
+                      {favCompanies.length === 0 && <div className="text-center text-xs text-gray-300 py-8">별표를 눌러 관심업체를 등록해보세요.</div>}
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[11px] text-gray-400 px-2 mb-1">{myActionNeededDeals.length}건</div>
+                      {myActionNeededDeals.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setProfileModalKey(null); }}
+                          className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy">
+                            <LogoBadge name={d.orgName} />{d.orgName}
+                            <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                          </div>
+                          <span className="text-[10px] text-orange-500 shrink-0 ml-2">
+                            {dealKpiCat[d.id]?.future === "actionDue" ? "도래" : "예정"}
+                          </span>
+                        </div>
+                      ))}
+                      {myActionNeededDeals.length === 0 && <div className="text-center text-xs text-gray-300 py-8">해당하는 딜이 없습니다.</div>}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {kpiModalKey && (() => {
         const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
-        const matched = deals.filter((d) => {
-          const c = dealKpiCat[d.id];
-          return c?.recency === kpiModalKey || c?.future === kpiModalKey;
-        });
+        const matched = deals
+          .filter((d) => {
+            const c = dealKpiCat[d.id];
+            return c?.recency === kpiModalKey || c?.future === kpiModalKey;
+          })
+          .sort((a, b) => (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || ""));
         return (
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
@@ -1677,6 +1897,7 @@ export default function Dashboard() {
                         <LogoBadge name={d.orgName} />{d.orgName}
                         <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                       </div>
+                      <span className="text-[10px] text-gray-400 shrink-0 ml-2">{lastActionByDeal[d.id] || ""}</span>
                     </div>
                   ))}
                   {matched.length === 0 && (
