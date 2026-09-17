@@ -18,6 +18,7 @@ const S = {
 };
 
 export default function Signup() {
+  const [accessCode, setAccessCode] = useState("");
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -29,7 +30,7 @@ export default function Signup() {
 
   const handleSubmit = async () => {
     setError("");
-    if (!id || !password || !name || !department) {
+    if (!accessCode || !id || !password || !name || !department) {
       setError("모든 항목을 입력해주세요.");
       return;
     }
@@ -39,6 +40,17 @@ export default function Signup() {
     }
     setSubmitting(true);
     try {
+      const codeRes = await fetch("/api/check-signup-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: accessCode }),
+      });
+      const codeData = await codeRes.json();
+      if (!codeRes.ok) {
+        setError(codeData.error || "승인 코드가 올바르지 않습니다.");
+        return;
+      }
+
       const cred = await createUserWithEmailAndPassword(auth, `${id}@${EMAIL_DOMAIN}`, password);
       await setDoc(doc(db, "users", cred.user.uid), {
         loginId: id,
@@ -71,6 +83,7 @@ export default function Signup() {
   return (
     <main style={S.wrap}>
       <h1 style={S.title}>회원가입</h1>
+      <input style={S.input} placeholder="승인 코드" value={accessCode} onChange={(e) => setAccessCode(e.target.value)} />
       <input style={S.input} placeholder="아이디" value={id} onChange={(e) => setId(e.target.value)} />
       <input style={S.input} type="password" placeholder="비밀번호 (6자 이상)" value={password} onChange={(e) => setPassword(e.target.value)} />
       <input style={S.input} placeholder="이름" value={name} onChange={(e) => setName(e.target.value)} />
