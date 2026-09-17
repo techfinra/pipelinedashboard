@@ -14,7 +14,7 @@ import {
   CalendarClock, Flag, FileText, LayoutGrid, List, Landmark, CreditCard,
   Building2, Handshake, Cpu, ShieldCheck, Truck, PartyPopper, Factory,
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
-  LayoutDashboard, Workflow, BarChart3, Settings,
+  LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -323,6 +323,7 @@ export default function Dashboard() {
   const [allActivity, setAllActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeGroup, setActiveGroup] = useState("전체");
   const [activeKpi, setActiveKpi] = useState(null);
   const [search, setSearch] = useState("");
@@ -840,34 +841,51 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] flex">
-      <aside className="w-60 shrink-0 bg-gradient-to-b from-navy-deep to-navy text-white flex flex-col">
-        <div className="px-6 py-5 flex items-center gap-2.5 border-b border-white/10">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden">
+      <aside
+        className={
+          "shrink-0 bg-white border-r border-[#ECEEF1] text-gray-700 flex flex-col relative transition-all duration-200 " +
+          (sidebarCollapsed ? "w-[68px]" : "w-60")
+        }
+      >
+        <div className={"flex items-center gap-2.5 border-b border-[#ECEEF1] " + (sidebarCollapsed ? "px-4 py-5 justify-center" : "px-5 py-5")}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
             <img src="/logo.png" alt="logo" className="w-full h-full object-contain" />
           </div>
-          <div>
-            <div className="font-bold text-sm leading-tight">TechFin Pipeline</div>
-            <div className="text-[10px] text-white/50 leading-tight">Sales Growth Together</div>
-          </div>
+          {!sidebarCollapsed && (
+            <div>
+              <div className="font-bold text-sm leading-tight text-gray-900">TechFin Pipeline</div>
+              <div className="text-[10px] text-gray-400 leading-tight">Sales Growth Together</div>
+            </div>
+          )}
         </div>
         <nav className="flex-1 py-4">
           {NAV_ITEMS.map((item) => (
             <div
               key={item.key}
               onClick={() => setView(item.key)}
+              title={sidebarCollapsed ? item.label : undefined}
               className={
-                "mx-3 mb-1 px-3 py-2.5 rounded-lg text-sm flex items-center gap-2 cursor-pointer " +
-                (view === item.key ? "bg-white/10 text-white font-semibold" : "text-white/60 hover:bg-white/5")
+                "mx-3 mb-1 py-2.5 rounded-lg text-sm flex items-center gap-2.5 cursor-pointer " +
+                (sidebarCollapsed ? "justify-center px-0" : "px-3") + " " +
+                (view === item.key ? "bg-[#F1F3F6] text-gray-900 font-semibold" : "text-gray-500 hover:bg-[#F8F9FB]")
               }
             >
-              <item.icon className="w-4 h-4" strokeWidth={2} />
-              {item.label}
+              <item.icon className="w-4 h-4 shrink-0" strokeWidth={2} />
+              {!sidebarCollapsed && item.label}
             </div>
           ))}
         </nav>
-        <div className="p-4 text-[11px] text-white/40 border-t border-white/10">
-          TechFin Ratings<br />세일즈추진팀
-        </div>
+        {!sidebarCollapsed && (
+          <div className="p-4 text-[11px] text-gray-400 border-t border-[#ECEEF1]">
+            TechFin Ratings<br />세일즈추진팀
+          </div>
+        )}
+        <button
+          onClick={() => setSidebarCollapsed((v) => !v)}
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-white border border-[#E7EAF0] shadow-sm flex items-center justify-center text-gray-400 hover:text-navy"
+        >
+          {sidebarCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+        </button>
       </aside>
 
       <div className="flex-1 min-w-0">
