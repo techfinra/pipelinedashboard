@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
@@ -864,6 +864,27 @@ export default function Dashboard() {
     }
   }
 
+  const nlLastFieldFetchKey = useRef("");
+
+  useEffect(() => {
+    if (!nlResult || nlResult.intent === "cancel") return;
+    if (!nlOverrideDealId || !nlText.trim()) return;
+    const key = nlOverrideDealId + "|" + nlText;
+    if (nlLastFieldFetchKey.current === key) return;
+    nlLastFieldFetchKey.current = key;
+    (async () => {
+      try {
+        const res = await fetch("/api/parse-nl", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: nlText, dealId: nlOverrideDealId }),
+        });
+        const data = await res.json();
+        if (res.ok) setNlFieldSuggestions(data.fieldSuggestions || []);
+      } catch (e) {}
+    })();
+  }, [nlOverrideDealId, nlText, nlResult]);
+
   async function handleAnalyzeNL() {
     setNlError("");
     if (!nlText.trim()) return;
@@ -896,7 +917,9 @@ export default function Dashboard() {
         const exists = companyRows.find((o) => o.name === data.orgName);
         if (exists) {
           setNlSelectedOrg(data.orgName);
-          setNlOverrideDealId(data.dealId || (exists.deals.length === 1 ? exists.deals[0].id : ""));
+          const resolvedDealId = data.dealId || (exists.deals.length === 1 ? exists.deals[0].id : "");
+          setNlOverrideDealId(resolvedDealId);
+          if (resolvedDealId) nlLastFieldFetchKey.current = resolvedDealId + "|" + nlText;
         } else {
           setNlSelectedOrg("");
           setNlOverrideDealId("");
@@ -929,6 +952,7 @@ export default function Dashboard() {
     setNlRelatedFileUrl("");
     setNlRelatedFileLabel("");
     setNlApplyRelatedFile(false);
+    nlLastFieldFetchKey.current = "";
   }
 
   async function handleConfirmNL() {
