@@ -767,10 +767,10 @@ export default function Dashboard() {
   }, [companyRows, myCompaniesFilter, profile, favorites, aiFlaggedDeals]);
 
   const actionDueDeals = useMemo(() => {
-    return deals
+    return activeDeals
       .filter((d) => dealKpiCat[d.id]?.future === "actionDue")
-      .sort((a, b) => (a.nextMeetingDate || "").localeCompare(b.nextMeetingDate || ""));
-  }, [deals, dealKpiCat]);
+      .sort((a, b) => (dealKpiCat[a.id]?.futureDate || "").localeCompare(dealKpiCat[b.id]?.futureDate || ""));
+  }, [activeDeals, dealKpiCat]);
 
   const orgRows = useMemo(() => {
     const map = {};
@@ -1292,9 +1292,9 @@ export default function Dashboard() {
                 className="text-gray-400 hover:text-navy p-1.5 relative"
               >
                 <Bell className="w-4 h-4" />
-                {(actionDueDeals.length + aiFlaggedDeals.length) > 0 && (
+                {actionDueDeals.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
-                    {actionDueDeals.length + aiFlaggedDeals.length}
+                    {actionDueDeals.length}
                   </span>
                 )}
               </button>
