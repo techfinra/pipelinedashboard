@@ -269,28 +269,39 @@ export default function Dashboard() {
     });
   }, [deals, activeGroup, search]);
 
+  const lastActionByDeal = useMemo(() => {
+    const map = {};
+    allActivity.forEach((a) => {
+      if (!a.date || !a.dealId) return;
+      if (!map[a.dealId] || a.date > map[a.dealId]) map[a.dealId] = a.date;
+    });
+    return map;
+  }, [allActivity]);
+
   const kpis = useMemo(() => {
     const now = new Date();
-    const curMonth = now.getMonth() + 1;
-    const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
-    const orgSet = new Set(deals.map((d) => (d.orgName || "").trim()).filter(Boolean));
-    let inProgress = 0, dueSoon = 0, delayed = 0;
+    let active7 = 0, followUp = 0, stale = 0, actionDue = 0, actionPlanned = 0;
+
     deals.forEach((d) => {
-      if (isDone(d)) return;
-      inProgress++;
-      const gm = parseGoalMonth(d.contractGoal);
-      if (gm === null) return;
-      if (gm === curMonth || gm === nextMonth) dueSoon++;
-      else if (gm < curMonth) delayed++;
+      const lastDate = lastActionByDeal[d.id];
+      if (lastDate) {
+        const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
+        if (diffDays <= 7) active7++;
+        else if (diffDays <= 30) followUp++;
+        else stale++;
+      } else {
+        stale++;
+      }
+
+      if (d.nextMeetingDate) {
+        const diffFuture = Math.floor((new Date(d.nextMeetingDate) - now) / 86400000);
+        if (diffFuture >= 0 && diffFuture <= 7) actionDue++;
+        else if (diffFuture > 7) actionPlanned++;
+      }
     });
-    const mon = mondayOf(now);
-    const sun = new Date(mon);
-    sun.setDate(sun.getDate() + 6);
-    const monStr = toYMD(mon);
-    const sunStr = toYMD(sun);
-    const meetingsThisWeek = allActivity.filter((a) => a.date && a.date >= monStr && a.date <= sunStr).length;
-    return { totalOrgs: orgSet.size, inProgress, dueSoon, delayed, meetingsThisWeek };
-  }, [deals, allActivity]);
+
+    return { active7, followUp, stale, actionDue, actionPlanned };
+  }, [deals, lastActionByDeal]);
 
   const groupCards = useMemo(() => {
     const now = new Date();
@@ -475,24 +486,24 @@ export default function Dashboard() {
         <div className="p-7">
           <div className="grid grid-cols-5 gap-3.5 mb-6">
             <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-navy">{kpis.totalOrgs}</div>
-              <div className="text-xs text-gray-500 mt-1">전체 기관</div>
+              <div className="text-2xl font-extrabold text-green-600">{kpis.active7}</div>
+              <div className="text-xs text-gray-500 mt-1">🟢 활발 진행 <span className="text-gray-300">(최근 7일)</span></div>
             </div>
             <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-green-600">{kpis.inProgress}</div>
-              <div className="text-xs text-gray-500 mt-1">진행중</div>
+              <div className="text-2xl font-extrabold text-blue-600">{kpis.followUp}</div>
+              <div className="text-xs text-gray-500 mt-1">🔵 후속 필요 <span className="text-gray-300">(8~30일)</span></div>
             </div>
             <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-amber-500">{kpis.dueSoon}</div>
-              <div className="text-xs text-gray-500 mt-1">마감임박</div>
+              <div className="text-2xl font-extrabold text-red-600">{kpis.stale}</div>
+              <div className="text-xs text-gray-500 mt-1">🔴 장기 정체 <span className="text-gray-300">(30일 초과)</span></div>
             </div>
             <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-red-600">{kpis.delayed}</div>
-              <div className="text-xs text-gray-500 mt-1">지연</div>
+              <div className="text-2xl font-extrabold text-orange-500">{kpis.actionDue}</div>
+              <div className="text-xs text-gray-500 mt-1">🟠 액션 도래 <span className="text-gray-300">(7일 이내)</span></div>
             </div>
             <div className="bg-white border border-[#E7EAF0] rounded-2xl p-4">
-              <div className="text-2xl font-extrabold text-navy">{kpis.meetingsThisWeek}</div>
-              <div className="text-xs text-gray-500 mt-1">이번주 활동</div>
+              <div className="text-2xl font-extrabold text-purple-600">{kpis.actionPlanned}</div>
+              <div className="text-xs text-gray-500 mt-1">🟣 액션 예정 <span className="text-gray-300">(8일 이후)</span></div>
             </div>
           </div>
 
