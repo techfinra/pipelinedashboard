@@ -830,8 +830,13 @@ export default function Dashboard() {
       if (data.orgName) {
         setNlCompanySearch(data.orgName);
         const exists = companyRows.find((o) => o.name === data.orgName);
-        setNlSelectedOrg(exists ? data.orgName : "");
-        setNlOverrideDealId(data.dealId || "");
+        if (exists) {
+          setNlSelectedOrg(data.orgName);
+          setNlOverrideDealId(data.dealId || (exists.deals.length === 1 ? exists.deals[0].id : ""));
+        } else {
+          setNlSelectedOrg("");
+          setNlOverrideDealId("");
+        }
       } else {
         setNlCompanySearch("");
         setNlSelectedOrg("");
@@ -919,6 +924,8 @@ export default function Dashboard() {
     } else if (field === "contractAmount") {
       const num = editValue.replace(/[^0-9]/g, "");
       await saveDealField({ contractAmount: num ? parseInt(num, 10) : null });
+    } else if (field === "contractRenewalDate") {
+      await saveDealField({ contractRenewalDate: editValue, contractRenewalInferredByAI: false });
     } else {
       await saveDealField({ [field]: editValue });
     }
@@ -1936,7 +1943,12 @@ export default function Dashboard() {
                     <GridCell icon={TrendingUp} label="기대실적" field="expectedPerformanceRaw" displayValue={formatWon(selected.expectedPerformance)} />
                     <GridCell icon={Wallet} label="계약금액" field="contractAmount" displayValue={formatWon(selected.contractAmount)} />
                     <GridCell icon={CalendarClock} label="계약목표" field="contractGoal" displayValue={selected.contractGoal || "-"} />
-                    <GridCell icon={CalendarClock} label="계약갱신일" field="contractRenewalDate" displayValue={selected.contractRenewalDate || "-"} />
+                    <GridCell
+                      icon={CalendarClock}
+                      label={"계약갱신일" + (selected.contractRenewalInferredByAI ? " (AI 추정)" : "")}
+                      field="contractRenewalDate"
+                      displayValue={selected.contractRenewalDate || "-"}
+                    />
 
                     <div className="bg-white dark:bg-[#111827] px-4 py-3">
                       <div className="text-[10px] text-gray-400 mb-0.5 flex items-center gap-1"><Layers className="w-3 h-3" />진행단계</div>
