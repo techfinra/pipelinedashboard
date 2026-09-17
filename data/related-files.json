@@ -3,629 +3,1202 @@
     "company": "신한은행",
     "targetProduct": "Raw Data(부동산)",
     "relatedFiles": [
-      "📄 [회의록] 신한은행_테크핀 데이터 활용 협의_26.05.13"
+      {
+        "label": "📄 [회의록] 신한은행_테크핀 데이터 활용 협의_26.05.13",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTI2YzU5RzMxM0RlOWVjMzRhMzQ3MjQyZUJCMWEyNDM4"
+      }
     ]
   },
   {
     "company": "신한은행",
     "targetProduct": "Raw Data(퇴직연금)",
     "relatedFiles": [
-      "📧 [테크핀레이팅스] 퇴직연금 검토 요청자료 및 샘플데이터 전달드립니다"
+      {
+        "label": "📧 [테크핀레이팅스] 퇴직연금 검토 요청자료 및 샘플데이터 전달드립니다",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신한은행",
     "targetProduct": "기업모니터링",
     "relatedFiles": [
-      "📄 [20260430] 신한은행 플랫폼영업부 - 기업모니터링 미팅"
+      {
+        "label": "📄 [20260430] 신한은행 플랫폼영업부 - 기업모니터링 미팅",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWVjZUdCN2FCY2FlZUdCNDMxQjQ2YzJGQjEzNkQ3YzI3"
+      }
     ]
   },
   {
     "company": "신한캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 신한캐피탈 단계적 활용 로드맵(안)",
-      "📧 Re: [이미지 메일 반입] Re: 기업모니터링서비스 질의 드립니다."
+      {
+        "label": "📄 신한캐피탈 단계적 활용 로드맵(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=F6ca871711c4D2B9c5G8eGG956FaF7131B3BG4aF542a8233a27ce2a32F2F4c51"
+      },
+      {
+        "label": "📧 Re: [이미지 메일 반입] Re: 기업모니터링서비스 질의 드립니다.",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신한투자증권",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]신한투자증권_데이터 소개미팅_2026.05.14",
-      "📧 [테크핀레이팅스] 크레디뷰 서비스 이용견적서 전달의 건"
+      {
+        "label": "📄 [회의록]신한투자증권_데이터 소개미팅_2026.05.14",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTVhNEc4YURGRjY1MzFGYTE1Y0Q5NkczM2VHQjI0MzEz"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 크레디뷰 서비스 이용견적서 전달의 건",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신한지주",
     "targetProduct": "Raw Data(생산적금융)",
     "relatedFiles": [
-      "📧 [테크핀레이팅스] 기업 성장성 신용평가시스템 개발 프로젝트 CPS 데이터 공급 견적서 송부의 건"
+      {
+        "label": "📧 [테크핀레이팅스] 기업 성장성 신용평가시스템 개발 프로젝트 CPS 데이터 공급 견적서 송부의 건",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신한저축은행",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📧 신한저축은행_법인 명세"
+      {
+        "label": "📧 신한저축은행_법인 명세",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "SGI서울보증",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📧 [테크핀레이팅스] DB조회플랫폼 설명회 관련 문의회신 등 회신드립니다.",
-      "📄 [회의록] 서울보증보험 크레디뷰 서비스 무상 이용 및 테스트 계정 협의_2026.06.02",
-      "📨 서울보증보험 후속 조치 필요건 정리"
+      {
+        "label": "📧 [테크핀레이팅스] DB조회플랫폼 설명회 관련 문의회신 등 회신드립니다.",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 [회의록] 서울보증보험 크레디뷰 서비스 무상 이용 및 테스트 계정 협의_2026.06.02",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPThhRjE1NTM4NkQ2NWMxZTU0RDZERjZCOWU5M0Q0YTYx"
+      },
+      {
+        "label": "📨 서울보증보험 후속 조치 필요건 정리",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "제주은행",
     "targetProduct": "Raw Data(월재무제표)",
     "relatedFiles": [
-      "📄 260416_제주은행 미팅 회의록",
-      "📄 제주은행 AI-CFO서비스 제휴 검토",
-      "📄 260427_제주은행 미팅 회의록",
-      "📄 [회의록] 제주은행 AI-CFO 인프라 연동방안_2026.06.01"
+      {
+        "label": "📄 260416_제주은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUdhYTU4RDZlQkY1NzFlRmU4RmMxOUJhMTVCOEcyOWFH"
+      },
+      {
+        "label": "📄 제주은행 AI-CFO서비스 제휴 검토",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUY5RzI0Njc5MUZEMWVjMzYxOEY5QjkxYzljQjc2Qjkz"
+      },
+      {
+        "label": "📄 260427_제주은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWUyNDU0NzNHMzdERDY3ODRCOGM4NkYxMmU2Qjk5MWM4"
+      },
+      {
+        "label": "📄 [회의록] 제주은행 AI-CFO 인프라 연동방안_2026.06.01",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUc5M2M4N0RGR0c4NUI3YzQ2OUI4N0dlMzg5NEc0YTQx"
+      }
     ]
   },
   {
     "company": "신한카드",
     "targetProduct": "Raw Data(월재무제표)",
     "relatedFiles": [
-      "📄 [회의록]신한카드_데이터 활용 방안 논의_26.05.27",
-      "📧 FW: [KCB] 신한카드 프로젝트 일정 (안)",
-      "📄 [회의록]KCB_신한카드 코피티션 프로젝트 추진 전략 협의_26.06.23"
+      {
+        "label": "📄 [회의록]신한카드_데이터 활용 방안 논의_26.05.27",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=B2339Ba3GDDc33291e6a3FD239GBF4c6FF9DDc64B7B6227F1556177F58313483"
+      },
+      {
+        "label": "📧 FW: [KCB] 신한카드 프로젝트 일정 (안)",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 [회의록]KCB_신한카드 코피티션 프로젝트 추진 전략 협의_26.06.23",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=1884GcaDGB44B3aFae6144e3FF5eeceFG71Fc26cF83DD193e8G75F67Dc39F788"
+      }
     ]
   },
   {
     "company": "우리은행",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "260402_우리은행 미팅 회의록",
-      "[우리은행]기업DB조회 플랫폼 제안서_v1.pdf",
-      "📄 [회의록]우리은행_데이터 서비스 및 활용 사례 소개_26.06.23"
+      {
+        "label": "260402_우리은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUY3NDFHODg4NEc5ODJGNDlCYWVGNzU2YzJEM0JhNEJC"
+      },
+      {
+        "label": "[우리은행]기업DB조회 플랫폼 제안서_v1.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=3G3Be2Fe6B1B5cFDBDB3a5632419Fe47a3GDD8c1eFGaD76949D41618ce9D2G6G"
+      },
+      {
+        "label": "📄 [회의록]우리은행_데이터 서비스 및 활용 사례 소개_26.06.23",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=6626G88111G48aF37F246F764811958D2e2FF28BFDae65227c51c841c51e3F37"
+      }
     ]
   },
   {
     "company": "NH농협은행",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "260205_NH농협금융지주 미팅 회의록"
+      {
+        "label": "260205_NH농협금융지주 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPURCRDcyQjkyMjM2N0RHR2FjRkY0YTFhNDUxMTM4Mkc0Jl90PWNkNTA%3D"
+      }
     ]
   },
   {
     "company": "NH농협은행",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "📄 [회의록] 농협은행 기업 성장성모형 및 테크핀 데이터 활용방안_2026.06.25"
+      {
+        "label": "📄 [회의록] 농협은행 기업 성장성모형 및 테크핀 데이터 활용방안_2026.06.25",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=5G672847717eF2aeFeD6Fa6G6Bc1G63G5B9368c1aBaca1e259DeGaaBFa4eFa7G"
+      }
     ]
   },
   {
     "company": "KB국민은행",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "260206_KB국민은행 미팅 회의록",
-      "제안서 KB국민은행 기업신용 인사이트 플랫폼 제안f",
-      "KB국민은행 데이터 상품 관련 질의응답(2차)",
-      "KB국민은행 데이터 상품 가격 정책(안)",
-      "『기업금융 AX Suite』가격 정책(안)",
-      "260220_KB국민은행 미팅 회의록",
-      "KB국민은행_기업여신 고도화 데이터 활용 방안.pdf",
-      "Coverage 분석 데이터.xlsx",
-      "Coverage 분석 보고서.pdf",
-      "KB국민은행 데이터 질의응답(4차)",
-      "고객 분석 자료(엑셀).xlsx",
-      "고객 분석 자료(PPT).pdf",
-      "KB국민은행 거래 고객 분석 자료(PPT).pdf",
-      "국민은행_PoC 플랫폼 제안_v1.0",
-      "260416_국민은행 미팅 회의록",
-      "[국민은행]_PoC 플랫폼 제안2차_v0.5.pdf",
-      "📧 ERP 기반 데이터 활용 DB조회 플랫폼 PoC 제안(안)",
-      "🗃️ [KB국민은행]_DB조회플랫폼_활용제안_v1.0.pdf",
-      "📄 국민은행 플랫폼 제안 협의 진행(안)",
-      "📄 260612_회의록(기업고객분석부)",
-      "📄 260612_회의록(신용평가모델부)"
+      {
+        "label": "260206_KB국민은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWU1M2M3RkIyMzlhNDdCRjk0NkQ4NTY3YTlENTQ4RzRGJl90PWMwYTM%3D"
+      },
+      {
+        "label": "제안서 KB국민은행 기업신용 인사이트 플랫폼 제안f",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=276F7D8B7c18875BB29cG449c7346BaD2D612c6ea632BB68DBc6DG634ccFFFaF"
+      },
+      {
+        "label": "KB국민은행 데이터 상품 관련 질의응답(2차)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTRGRkc5OEQyRzk3ZTY0Yzk5MzQ3YWVERDRHN0Q0OWM3Jl90PWM3YzM%3D&sso=Y"
+      },
+      {
+        "label": "KB국민은행 데이터 상품 가격 정책(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTNEOEczYzdHYTI0M2NGMzJlREc1NUI4MWEzRDhlYWE0&_t=1770885186082"
+      },
+      {
+        "label": "『기업금융 AX Suite』가격 정책(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=B84a4c896BBF5c7FFDa2D2c1a517B771"
+      },
+      {
+        "label": "260220_KB국민은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=B91F8Ba28997e611c96B775Fea7218aaD51BF42GD6G6Da7G492F1636FBG6751D"
+      },
+      {
+        "label": "KB국민은행_기업여신 고도화 데이터 활용 방안.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=3G2D97765234aGcB56BF6BD148B7BFa7aD2722caBe13c182a29aa17944864G4B"
+      },
+      {
+        "label": "Coverage 분석 데이터.xlsx",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=22Bc442Ga1aDG1B29B9B1BF4B739c8D8F231e72a2B655e3D23cF27c7a8D82D3c"
+      },
+      {
+        "label": "Coverage 분석 보고서.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=a63GBe3c9e821D5a583eF919G62ea21a9Fc196c356FBFc33G5a21a7BccGea835"
+      },
+      {
+        "label": "KB국민은행 데이터 질의응답(4차)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTZjR2U1RDk1Y2FGRmU0Y2EyM2NjOWVhZWVjNUREN2Fl"
+      },
+      {
+        "label": "고객 분석 자료(엑셀).xlsx",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=8eBF4B5G2G6e33Ga72F2955eD4176D3e258D85D882G7Be7a6e3cG8238FB3DGGc"
+      },
+      {
+        "label": "고객 분석 자료(PPT).pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=6FGcDF4eca6aa4143ee1c855666e6771Gc3c488F73BBeF286BF94BDcDD33D825"
+      },
+      {
+        "label": "KB국민은행 거래 고객 분석 자료(PPT).pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=6a71B6DG8e4e3BFaFF54249e6Ge2c4eF2ecc9e7ceea9aaGF5445eDGe66aF829D"
+      },
+      {
+        "label": "국민은행_PoC 플랫폼 제안_v1.0",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=aG146c76111F34aG3B3893e17F485c157e59B2584B2aD22e3GDeD716D24336D5"
+      },
+      {
+        "label": "260416_국민은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=2GGe3e54F8De68a53545144GG9eFFFF77711B28FD7c7eB5eGae6G18Dc11e2a7F"
+      },
+      {
+        "label": "[국민은행]_PoC 플랫폼 제안2차_v0.5.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=D24F513FB9cG137e6435e563Ba1G2297D8378c2e88D5D938F56577289F11c1a6"
+      },
+      {
+        "label": "📧 ERP 기반 데이터 활용 DB조회 플랫폼 PoC 제안(안)",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "🗃️ [KB국민은행]_DB조회플랫폼_활용제안_v1.0.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=3B4Fa5c4a3F67GeD148c7a97DB4ce8aBec1341194e8aDF4588F8Ge1D2B14D52F"
+      },
+      {
+        "label": "📄 국민은행 플랫폼 제안 협의 진행(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=4915DB9F67eB9F38DFBF76D84aa73cB592G5c22c5867c3718a3F2c469c1e87a2"
+      },
+      {
+        "label": "📄 260612_회의록(기업고객분석부)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTQ1NEJGMjY1NDVGRGE0QmFhREY5Yzc4RzdlMTFCZTYx&sso=Y"
+      },
+      {
+        "label": "📄 260612_회의록(신용평가모델부)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUY5RjgzOUJhRjE1NTIyMTU2Qjk2RDc2NDU2MzY0OGE1&sso=Y"
+      }
     ]
   },
   {
     "company": "부산은행",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "260312_BNK부산은행(수도권)_미팅 회의록",
-      "📧 BNK부산은행 중소·비외감 기업데이터 제안의 건",
-      "📄 [회의록]BNK부산은행(신용리스크관리부)_성장성 평가 모형 활용 방안 논의_26.05.28",
-      "📧 FW: 기업모니터링 플랫폼 계정 권한 승인 안내 - Re: BNK부산은행 전용 기업모니터링 플랫폼 베타 이용 지원 안내",
-      "📝 [업무 협조 요청] BNK부산은행 대상 법인기업 신용등급 데이터 적재 처리 건",
-      "📧 Re: [부산은행] 테크핀레이팅스 등급 유효성 검토자료 송부",
-      "📧 Re: RE: [부산은행] 테크핀레이팅스 데이터(CPS) 상세내용 송부"
+      {
+        "label": "260312_BNK부산은행(수도권)_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWVHNDRlNjJGMjMzRjRjMTRHNTZCY0ZjOEJCNGM0NkZC"
+      },
+      {
+        "label": "📧 BNK부산은행 중소·비외감 기업데이터 제안의 건",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 [회의록]BNK부산은행(신용리스크관리부)_성장성 평가 모형 활용 방안 논의_26.05.28",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=D86D1e512eG1796e1eF63Be69Da5eGc9e77FFD14Bc274a9335B42Da2G3aD2DG7"
+      },
+      {
+        "label": "📧 FW: 기업모니터링 플랫폼 계정 권한 승인 안내 - Re: BNK부산은행 전용 기업모니터링 플랫폼 베타 이용 지원 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📝 [업무 협조 요청] BNK부산은행 대상 법인기업 신용등급 데이터 적재 처리 건",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 Re: [부산은행] 테크핀레이팅스 등급 유효성 검토자료 송부",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 Re: RE: [부산은행] 테크핀레이팅스 데이터(CPS) 상세내용 송부",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "부산은행",
     "targetProduct": "패키지(기업DB조회\n, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]BNK부산은행(기업고객부)_데이터 기반 금융 솔루션 협업 방안 논의_26.05.28",
-      "📧 [테크핀레이팅스]기업모니터링서비스 계정 생성 및 관리기업 등록 관련 안내드립니다."
+      {
+        "label": "📄 [회의록]BNK부산은행(기업고객부)_데이터 기반 금융 솔루션 협업 방안 논의_26.05.28",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=67195ce41D7B8c77637e53c3FFac4c8c64cG877DF2DeB36143D2628Ba6eF7888"
+      },
+      {
+        "label": "📧 [테크핀레이팅스]기업모니터링서비스 계정 생성 및 관리기업 등록 관련 안내드립니다.",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "수협은행",
     "targetProduct": "기업DB조회",
     "relatedFiles": [
-      "📄 260317_수협은행_회의록",
-      "🗃️ 수협은행 고객 분석 요약(PPT).pdf",
-      "🗃️ 고객 분석 데이터(엑셀).xlsx",
-      "🗃️ 기업DB조회 플랫폼 제안.pdf"
+      {
+        "label": "📄 260317_수협은행_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTMzQjhCY0ZlY2VhY0JHNjM2NmVCNTE5RjVjOTdCMkY5"
+      },
+      {
+        "label": "🗃️ 수협은행 고객 분석 요약(PPT).pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=11ea14F6D7e53eeD487728c51a8GG1DBF3D9cB13233F25117B7e2GGDB55F7772"
+      },
+      {
+        "label": "🗃️ 고객 분석 데이터(엑셀).xlsx",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=DcFF1F65a29ece9D4D2F2F3Ga94F8BG76e9eGe14G7299cDF95D8Bee6cc57e652"
+      },
+      {
+        "label": "🗃️ 기업DB조회 플랫폼 제안.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=9a5c854G5c69349ac88FcaG75635aeBG5DGD35c919D79643Gc5GF9B7844418ce"
+      }
     ]
   },
   {
     "company": "카카오뱅크(직영업)",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "260330_카카오뱅크 미팅 회의록",
-      "📄 260909_카카오뱅크 미팅 회의록"
+      {
+        "label": "260330_카카오뱅크 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=7c1aFG3a196ae81aG1G7a45e9BFBaFc7"
+      },
+      {
+        "label": "📄 260909_카카오뱅크 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUc0NDg5MTJENEcxRDFCOTg2NDUzNUdCNEZhODM1OEdj&sso=Y"
+      }
     ]
   },
   {
     "company": "케이뱅크(직영업)",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "📄 251230_K뱅크_미팅 회의록",
-      "📧 문의사항 답변 및 고객 커버리지 분석 자료 공유",
-      "📧 기업 연락처 조회 정보 공유 - 문의사항 답변"
+      {
+        "label": "📄 251230_K뱅크_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTM5Y0c3NWM3OTQ3OGM3OUY2NGNjREQxZURhOTlCMjk0"
+      },
+      {
+        "label": "📧 문의사항 답변 및 고객 커버리지 분석 자료 공유",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 기업 연락처 조회 정보 공유 - 문의사항 답변",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "토스뱅크(직영업)",
     "targetProduct": "Raw Data",
     "relatedFiles": [
-      "📄 토스뱅크 제휴 검토",
-      "🗃️ 제안서_토스뱅크(초안)_v1_20250818.pdf",
-      "📄 250826_토스뱅크 미팅 회의록",
-      "📄 250925_토스뱅크_미팅 회의록"
+      {
+        "label": "📄 토스뱅크 제휴 검토",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTVHOGM5RDZjZTJjNDI4OWNjNzc0QmM5OGEyNkJCREI0"
+      },
+      {
+        "label": "🗃️ 제안서_토스뱅크(초안)_v1_20250818.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=53D66aG248GFBDB773DGa3F7Gae7F4ecc9FGcB18a211G478D9B5c7B11567D34G"
+      },
+      {
+        "label": "📄 250826_토스뱅크 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTU1R2E3NUY5REQ3OUJERjE5MThCRzlHRmM3NkdlYzMx"
+      },
+      {
+        "label": "📄 250925_토스뱅크_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUI5NDExNzM2REJCYTZCMUY0YTVGREdGYzdGOTkxZTEyJl90PUFYYlA%3D&sso=Y"
+      }
     ]
   },
   {
     "company": "비바리퍼블리카",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260701_비바리퍼블리카_회의록"
+      {
+        "label": "📄 260701_비바리퍼블리카_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTdjOWNhZTQ2NTkxRjVGOGMyNkZENmNlMTg5YzQ3Rzg3"
+      }
     ]
   },
   {
     "company": "우리카드",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260325_우리카드 미팅 회의록",
-      "🗃️ 우리카드 고객 분석(PPT).pdf",
-      "🗃️ 우리카드 분석 데이터(엑셀).xlsx",
-      "🗃️ 기업DB조회 플랫폼 제안_v1.0.pdf",
-      "🗃️ [우리카드]_DB조회플랫폼 제안(안)_v1.0.pdf",
-      "📄 260602_우리카드 미팅 회의록",
-      "📧 DB조회플랫폼 서비스 제공 및 운영 절차 안내",
-      "📄 우리카드 DB조회플랫폼 시범운영(안)_V2",
-      "📧 플랫폼이용 절차 안내(6/10)",
-      "📄 우리카드 플랫폼 시범 운영 현황",
-      "📄 260630_우리카드 미팅 회의록",
-      "📄 260716_우리카드_회의록",
-      "부도기업 분석 사례 공유"
+      {
+        "label": "📄 260325_우리카드 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=15B8aBcF3G48999669G1G18353586F23"
+      },
+      {
+        "label": "🗃️ 우리카드 고객 분석(PPT).pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=cGc4196DaFc916G834G3c7562G54ecF175acDD43292482G57aa29D5c9B69383B"
+      },
+      {
+        "label": "🗃️ 우리카드 분석 데이터(엑셀).xlsx",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=B2cc4GcB2621F58e5D9a71G1B169cDG4G434G9c9c751D853327FB1862FBGD621"
+      },
+      {
+        "label": "🗃️ 기업DB조회 플랫폼 제안_v1.0.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=8c23c58D1811c4B6a11Bca387FGFB2ca4D74cD1DFFaF4a4249G3F2G84F8728a2"
+      },
+      {
+        "label": "🗃️ [우리카드]_DB조회플랫폼 제안(안)_v1.0.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=49Fc8FcFF9c7GGDFe8cD7c3774G29368827BGFceFa839642e8e77146GBBG8B45"
+      },
+      {
+        "label": "📄 260602_우리카드 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=c4cGFB1B722GFe23228a1B9686aacFF899F824e275B1B12F2G9B933a2F7cD2aG"
+      },
+      {
+        "label": "📧 DB조회플랫폼 서비스 제공 및 운영 절차 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 우리카드 DB조회플랫폼 시범운영(안)_V2",
+        "url": "http://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTJlOThHRmFHZUI5RDdhQkdGNTkzODZhYThlMzhCNUdj"
+      },
+      {
+        "label": "📧 플랫폼이용 절차 안내(6/10)",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 우리카드 플랫폼 시범 운영 현황",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUdGRzUyRzFlMWUzOTc4RDI5YUczRjkyRjE0ZTJHOWMz"
+      },
+      {
+        "label": "📄 260630_우리카드 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTk2MTdGRDI2YUI1MzgzZUc1ODRCY0RlN2VENUIzY2U2"
+      },
+      {
+        "label": "📄 260716_우리카드_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=1D6931DF12194BD43Fec99G64ee747D9aGc77622FBF5e6a6D1a37cac541ca47G"
+      },
+      {
+        "label": "부도기업 분석 사례 공유",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "하나카드",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260609_하나카드 미팅 회의록"
+      {
+        "label": "📄 260609_하나카드 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWNlOGNhMUI0NTRGRDU2MjVHYTFjMjk1YTU4RjY3ZUQ4"
+      }
     ]
   },
   {
     "company": "NH카드(NICE)",
     "targetProduct": "Raw Data(분석용)",
     "relatedFiles": [
-      "📄 [회의록] NH농협카드 테크핀 데이터 활용방안_20260706"
+      {
+        "label": "📄 [회의록] NH농협카드 테크핀 데이터 활용방안_20260706",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWFGY0Y2ZWM1RzQ3OWM5OEY0Nzc1RzE3OTE0OGE2YTE4"
+      }
     ]
   },
   {
     "company": "하나캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]하나캐피탈_플랫폼 제안_26.05.18"
+      {
+        "label": "📄 [회의록]하나캐피탈_플랫폼 제안_26.05.18",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTM5ZUdGMTFjNzk4MjUzRkdhQjVhODZERjU4QjVEYWM0&sso=Y"
+      }
     ]
   },
   {
     "company": "우리금융캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 251211_우리금융캐피탈_미팅 회의록"
+      {
+        "label": "📄 251211_우리금융캐피탈_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTJhRDMyYTRHMTEzZUZlY0I5NkJCMTk1OUdEY0ZEOEJHJl90PTczYjk%3D"
+      }
     ]
   },
   {
     "company": "NH농협캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "🗃️ [NH농협캐피탈]월데이터기반 기업금융 활성화...자료_v2.pdf",
-      "📧 NH농협캐피탈 기업 발굴·여신심사·사후관리를 위한 비즈니스 소개"
+      {
+        "label": "🗃️ [NH농협캐피탈]월데이터기반 기업금융 활성화...자료_v2.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=c6DBGcF5aGe3a2eB3121DB5a22FD79F41165G958237981663Fa3c2a8eFB47cDa"
+      },
+      {
+        "label": "📧 NH농협캐피탈 기업 발굴·여신심사·사후관리를 위한 비즈니스 소개",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "롯데캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260311_롯데캐피탈_미팅 회의록",
-      "📄 260608_롯데캐피탈_회의록",
-      "📧 DB조회플랫폼 및 기업모니터링 서비스 이용 안내",
-      "📄 롯데캐피탈 플랫폼 시범 운영 현황",
-      "📄 260709_롯데캐피탈_회의록"
+      {
+        "label": "📄 260311_롯데캐피탈_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWM5M2E0NkJHRDQxQjJjRzgzN2FlMjRGMzM2MWMxNjU3Jl90PWJkOTQ%3D"
+      },
+      {
+        "label": "📄 260608_롯데캐피탈_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTU2NUI5N2E3MTlCNDc5NTI3ODdGNGU2R2FjNzQ3ZUdH"
+      },
+      {
+        "label": "📧 DB조회플랫폼 및 기업모니터링 서비스 이용 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 롯데캐피탈 플랫폼 시범 운영 현황",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=4F6c6GDD34D5383G2c9F65764926F4ea5214aGDF2a8GDFF5BGaFD4Fe324249F2"
+      },
+      {
+        "label": "📄 260709_롯데캐피탈_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=593B84GD9F87448694G7a717G3Dae414Fc87191e17Dc69Dc555435B7597BcB53"
+      }
     ]
   },
   {
     "company": "MG캐피탈",
     "targetProduct": "기업모니터링",
     "relatedFiles": [
-      "📄 260520_MG캐피탈 미팅 회의록",
-      "📧 [테크핀레이팅스] 담당자 안내 및 비밀보호협정서(NDA) 법무검토본 송부",
-      "📄 (MG캐피탈 회의록 0702) 커버리지·맵핑 이슈 대응 및 향후 활용 방안 논의"
+      {
+        "label": "📄 260520_MG캐피탈 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=7D5aBFaFe9B1eF9c2a9FFGc79a2ccGe8"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 담당자 안내 및 비밀보호협정서(NDA) 법무검토본 송부",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 (MG캐피탈 회의록 0702) 커버리지·맵핑 이슈 대응 및 향후 활용 방안 논의",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=G843947F4D953D7B32ae2c1D48B7748B97B1B3DFG4cD83DF51F26Bc32BaGBcD7"
+      }
     ]
   },
   {
     "company": "KB캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]KB캐피탈_데이터 서비스 소개 및 협력 방안 논의_26.06.05",
-      "📄 (KB캐피탈 회의록 0701)커버리지 분석 결과 설명 및 협력 방안 논의(2차방문)",
-      "📧 [테크핀레이팅스] 견적서, 분석 자료 및 테스트 계정 안내",
-      "📄 (회의록_07.31)KB캐피탈_테스트결과_및_팔로우업(3차방문)",
-      "📧 [테크핀레이팅스] 크레디뷰 서비스 매뉴얼 및 데이터소개(레퍼런스 참고자료) 전달드립니다"
+      {
+        "label": "📄 [회의록]KB캐피탈_데이터 서비스 소개 및 협력 방안 논의_26.06.05",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=D743cDF154G2DaD6GGDDc99878G3198DF4cG4D81G739F2e1BF3F67D96282282c"
+      },
+      {
+        "label": "📄 (KB캐피탈 회의록 0701)커버리지 분석 결과 설명 및 협력 방안 논의(2차방문)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=B9899F7B8eBG994D2772D561Fe52FD27c2e4e98aFD7G2cD72c722eGG1D557cBG"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 견적서, 분석 자료 및 테스트 계정 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 (회의록_07.31)KB캐피탈_테스트결과_및_팔로우업(3차방문)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=72a169B89D5F17F2755FGc328eF33e2B2586812a933G1BD84524Be2G4e81D977"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 크레디뷰 서비스 매뉴얼 및 데이터소개(레퍼런스 참고자료) 전달드립니다",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "오릭스캐피탈코리아",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]오릭스캐피탈코리아_플랫폼 서비스 소개_26.06.18"
+      {
+        "label": "📄 [회의록]오릭스캐피탈코리아_플랫폼 서비스 소개_26.06.18",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=3D37BB6D7eF6494D54GG8DF579246e89351G6c84a34733ac8cD2389ae5G62988"
+      }
     ]
   },
   {
     "company": "JB우리캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260708_JB우리캐피탈",
-      "📧미팅내용 및신용평가 자료 공유",
-      "📧 JB우리캐피탈 후속 미팅 가능 일정 문의",
-      "📄 260812_JB우리캐피탈_회의록"
+      {
+        "label": "📄 260708_JB우리캐피탈",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=8eF61c4FG343De7417FaBcD886194BBa18e7c38288Gcea18G9F18D7eaB15e5a2"
+      },
+      {
+        "label": "📧미팅내용 및신용평가 자료 공유",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 JB우리캐피탈 후속 미팅 가능 일정 문의",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 260812_JB우리캐피탈_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=cc644e2eG415Ba83a4G733a5FaB79cFa"
+      }
     ]
   },
   {
     "company": "BNK캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 (회의록 0716)BNK캐피탈_서비스소개 및 데이터 활용 방안 논의"
+      {
+        "label": "📄 (회의록 0716)BNK캐피탈_서비스소개 및 데이터 활용 방안 논의",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=B5F3724c1885cDFcGGc422F5FDe5a44e316e7F9a87B6B5319G59952363D2D65D"
+      }
     ]
   },
   {
     "company": "메이슨캐피탈",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260723_메이슨캐피탈_회의록",
-      "📧 [crediview] 기업탐색 기능 오픈(8.3) 및 이용 안내"
+      {
+        "label": "📄 260723_메이슨캐피탈_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=DG67eG24eBG189B9B31129BFcF6DBe1G3GB65c7e229G7BeDcF7eeDGcD5eD1D9B"
+      },
+      {
+        "label": "📧 [crediview] 기업탐색 기능 오픈(8.3) 및 이용 안내",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "토스페이먼츠",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260709_토스페이먼츠_회의록",
-      "📧 후속 검토사항 안내",
-      "📧 [crediview] 기업탐색 기능 오픈(8.3) 및 이용 안내"
+      {
+        "label": "📄 260709_토스페이먼츠_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=17B9GcF73a3Dc6G5Gee5aB7e7Gee1264D3D1D2547D631eF2661F1678F75B3F48"
+      },
+      {
+        "label": "📧 후속 검토사항 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 [crediview] 기업탐색 기능 오픈(8.3) 및 이용 안내",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "올라핀테크",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260819_올라핀테크_회의록",
-      "📄 260902_올라핀테크_회의록"
+      {
+        "label": "📄 260819_올라핀테크_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=F8aG3e45G4F1468aB3B2F76BB7eD4358"
+      },
+      {
+        "label": "📄 260902_올라핀테크_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=1Fa72D6e9c256G4712a2D3G311e7DG99ac94897Da782c4G54c2c87225a283e5D"
+      }
     ]
   },
   {
     "company": "워룸몬스터",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260824_워룸몬스터 회의록"
+      {
+        "label": "📄 260824_워룸몬스터 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTE0NmU5ZWFHMzgzMzY2ODNjMzY2OUY0QjIxNDZlYUQ5"
+      }
     ]
   },
   {
     "company": "중진공창업지원처",
     "targetProduct": "기업DB조회",
     "relatedFiles": [
-      "📄 250925_중진공 창업지원처 미팅 정리",
-      "📧 [테크핀레이팅스] 중진공 창업지원처_사기거래탐지 (DB조회플랫폼) 문의건 회신드립니다.",
-      "📧 Re: RE: [테크핀레이팅스] DB조회플랫폼(사기거라탐지 등) 견적서v3 송부 드립니다."
+      {
+        "label": "📄 250925_중진공 창업지원처 미팅 정리",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=ac99c7e7c1e87cce67F71B89Da17F9893B2546c6B62429ce27FcFc3F2D13cce2"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 중진공 창업지원처_사기거래탐지 (DB조회플랫폼) 문의건 회신드립니다.",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 Re: RE: [테크핀레이팅스] DB조회플랫폼(사기거라탐지 등) 견적서v3 송부 드립니다.",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "경기신용보증재단",
     "targetProduct": "Raw Data\n(월별매출매입)",
     "relatedFiles": [
-      "📄 [회의록]경기신용보증재단_차세대 시스템(이지원) 데이터 연동_26.05.20",
-      "📧 경기신용보증재단_동의서 양식 공유",
-      "📧 [(주)테크핀레이팅스] 동의서 문구 변경(안) 검토 요청의 건"
+      {
+        "label": "📄 [회의록]경기신용보증재단_차세대 시스템(이지원) 데이터 연동_26.05.20",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTc5YTJjNDNlMzU1MzNCNzI4OURCMUJlYWM5RDlGNjVG"
+      },
+      {
+        "label": "📧 경기신용보증재단_동의서 양식 공유",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 [(주)테크핀레이팅스] 동의서 문구 변경(안) 검토 요청의 건",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신용보증기금",
     "targetProduct": "Raw Data\n(매출채권보험 사고일 산정용)",
     "relatedFiles": [
-      "260430_신용보증기금 미팅 회의록"
+      {
+        "label": "260430_신용보증기금 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTY3YTZGYzg4NWE4ZTdlRDNhQjJCNzJEMTMxNUZCRjZj"
+      }
     ]
   },
   {
     "company": "사회적기업진흥원",
     "targetProduct": "크레디뷰",
     "relatedFiles": [
-      "[현황 보고]사회적기업 대상 크레디뷰 서비스 연계 방안 추진 검토(안)",
-      "📄 [회의록]한국사회적기업진흥원 MOU 체결 관련 논의_2026.06.05",
-      "📧 (㈜테크핀레이팅스) 업무협약 제안서 송부",
-      "📝 [법무검토] 한국사회적기업진흥원과의 「업무협약서(MOU)」 법무검토 요청의 건",
-      "📄 (회의록_07.27)한국사회적기업진흥원_MOU 세부 협력 내용 협의 및 서비스 소개"
+      {
+        "label": "[현황 보고]사회적기업 대상 크레디뷰 서비스 연계 방안 추진 검토(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTEyOTJEM2FGMjdCODFHZUQ0YTM3ZTVGNkdHNUJGZUQ0&sso=Y"
+      },
+      {
+        "label": "📄 [회의록]한국사회적기업진흥원 MOU 체결 관련 논의_2026.06.05",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTk0YTcxYUY5NjJhQmNlM2U3Y2FjRDc4OWUxMTQ3YTc0"
+      },
+      {
+        "label": "📧 (㈜테크핀레이팅스) 업무협약 제안서 송부",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📝 [법무검토] 한국사회적기업진흥원과의 「업무협약서(MOU)」 법무검토 요청의 건",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 (회의록_07.27)한국사회적기업진흥원_MOU 세부 협력 내용 협의 및 서비스 소개",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=FB6742F87G63637BcDB284B6D6F3B1DeDG56D26a5aa746G9e45437919BBcF9a3"
+      }
     ]
   },
   {
     "company": "자본재공제조합",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 『기업모니터링』 실사용 기반 정식버전 검증 결과_v2",
-      "📄 260528_미팅 회의록",
-      "📧 미팅 감사 및 논의사항 정리"
+      {
+        "label": "📄 『기업모니터링』 실사용 기반 정식버전 검증 결과_v2",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWM0Y0I1ODFlMzdjRmFjNjE2MmVHNzc0QkZlNkYyYTg4Jl90PWY5YWI%3D"
+      },
+      {
+        "label": "📄 260528_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=c2aF1a32c8G9e7352aD59eec91G6cBGe"
+      },
+      {
+        "label": "📧 미팅 감사 및 논의사항 정리",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "하나벤처스",
     "targetProduct": "기업모니터링",
     "relatedFiles": [
-      "📄 260514_하나벤처스 미팅 회의록"
+      {
+        "label": "📄 260514_하나벤처스 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTY4ZTRGQmM2OERhMzdHRGFGRDdGRzY3NDIxNGVjMjZH"
+      }
     ]
   },
   {
     "company": "키움인베스트먼트",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260624_키움인베트스먼트 미팅"
+      {
+        "label": "📄 260624_키움인베트스먼트 미팅",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTgxNDgzN2UxQjM1OTFlMjg1RmU1NjFhNzJCQjZhYzk0"
+      }
     ]
   },
   {
     "company": "아주IB투자",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📧 차주 인사 방문 가능 일정 문의",
-      "📄 260728_아주IB투자_회의록",
-      "📧 Re: 아주IB투자 관심기업",
-      "📧 [제안]시범서비스 운영"
+      {
+        "label": "📧 차주 인사 방문 가능 일정 문의",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 260728_아주IB투자_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTNCODk5MUQ4N2M1NkZCRjZhMkc4OUYzZTIzNWMyRkZl"
+      },
+      {
+        "label": "📧 Re: 아주IB투자 관심기업",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧 [제안]시범서비스 운영",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "신한벤처투자",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📧차주 인사 방문 가능 일정 문의",
-      "📄 260806_신한벤처투자_회의록",
-      "📄 시범운영 기업 전체 현황",
-      "📧현황 공유 및 이용 의견 문의"
+      {
+        "label": "📧차주 인사 방문 가능 일정 문의",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📄 260806_신한벤처투자_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTRlRkQ0OGEyOWM3ZTFGNzM4N0dGYURGYTdjRzQ3ZUdG"
+      },
+      {
+        "label": "📄 시범운영 기업 전체 현황",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTRlMkI1NzQ1OWNCYWNlOTI1MmU2R0dhNzc1MkI3OTNh"
+      },
+      {
+        "label": "📧현황 공유 및 이용 의견 문의",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "엑스플로인베스트",
     "targetProduct": "기업모니터링",
     "relatedFiles": [
-      "📄 260427_엑스플로인베스트먼트 미팅 회의록"
+      {
+        "label": "📄 260427_엑스플로인베스트먼트 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUY2MjE3NzExNEJEM0JCRjlEQkI1NDM2NmE4QjJGREI4"
+      }
     ]
   },
   {
     "company": "PACM",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록]PACM_서비스 소개 및 투자 포트폴리오 활용 방안 탐색_26.06.05",
-      "📄 [회의록]PACM_서비스 상세 소개 및 시연_26.06.12"
+      {
+        "label": "📄 [회의록]PACM_서비스 소개 및 투자 포트폴리오 활용 방안 탐색_26.06.05",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=a59a3a727Ga3GB584BcF6BG11D4e1FB89998DG7676Feca77aa326ce33G7FBc1a"
+      },
+      {
+        "label": "📄 [회의록]PACM_서비스 상세 소개 및 시연_26.06.12",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=F57DBGe7D1BD9Dc9513cacB5DB9FD95Dc8837163BF3Bc57F8F6cF659a722FacF"
+      }
     ]
   },
   {
     "company": "저축은행중앙회",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260915_저축은행중앙회_회의록"
+      {
+        "label": "📄 260915_저축은행중앙회_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTU3NmFHM0I1YTljYWVjM0JHMzg2ZUYzRjQ1NzFHRzY2&sso=Y"
+      }
     ]
   },
   {
     "company": "기계설비건설공제조합",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "260204_기계설비건설공제조합 미팅 회의록"
+      {
+        "label": "260204_기계설비건설공제조합 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=ce8e6a9G16DD2a971467F81387eaFe6cGBG1557aGe658145G4ecDGa6D3272e27"
+      }
     ]
   },
   {
     "company": "전문건설공제조합",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260512_전문건설공제조합 미팅 회의록"
+      {
+        "label": "📄 260512_전문건설공제조합 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTJGOUQ5YWFERzhjMUJhNDZlRDhGMzdERzJhZTI5Nzc1"
+      }
     ]
   },
   {
     "company": "방위산업공제조합",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 (회의록 0713)방위산업공제조합_테크핀레이팅스 크레디뷰 및 데이터 소개"
+      {
+        "label": "📄 (회의록 0713)방위산업공제조합_테크핀레이팅스 크레디뷰 및 데이터 소개",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=G57acDBe23e53aDB49BFa861D6456cBcB59GG9D51Ba66e5459543G2F2B6F3e8F"
+      }
     ]
   },
   {
     "company": "정부조달마스협회",
     "targetProduct": "크레디뷰(기업신용평가, 경영진단보고서)",
     "relatedFiles": [
-      "📄 (회의록)정부조달마스협회_세부 협력 내용 협의_0709",
-      "📧 [테크핀레이팅스] 정부조달마스협회 회원사 기업신용평가 안내자료 송부의 건"
+      {
+        "label": "📄 (회의록)정부조달마스협회_세부 협력 내용 협의_0709",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=8aG6ea127Da16GBcB68699ae4eaF86B434D7c3Fc8D42F3B7F5c6FFBF9cc6e2GD"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 정부조달마스협회 회원사 기업신용평가 안내자료 송부의 건",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "정부조달기술진흥협회",
     "targetProduct": "크레디뷰(기업신용평가, 경영진단보고서)",
     "relatedFiles": [
-      "📄 (회의록_0723)정부조달기술진흥협회_서비스소개_및_제휴논의",
-      "📧 [테크핀레이팅스] 협회 회원사 크레디뷰 이용현황 및 관련 내용 공유"
+      {
+        "label": "📄 (회의록_0723)정부조달기술진흥협회_서비스소개_및_제휴논의",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=95FF6795ca4FF336a9D1G83DeD6229ec64FDF414c865c2542a9F69BD3GFGD19D"
+      },
+      {
+        "label": "📧 [테크핀레이팅스] 협회 회원사 크레디뷰 이용현황 및 관련 내용 공유",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "AJ네트웍스",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260602_AJ네트웍스 회의록",
-      "📄 260703_AJ네트웍스 회의록",
-      "📧 커버리지 차주 중 안내 예정",
-      "📧887개사 데이터 보유 분석 결과 안내",
-      "🗃️ AJ네트웍스_커버리지.xlsx"
+      {
+        "label": "📄 260602_AJ네트웍스 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTcxY0JhMkZEOTgyMTRGNzY2NzQ1YTYyRmU4NjQyR2NC&sso=Y"
+      },
+      {
+        "label": "📄 260703_AJ네트웍스 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=49a29eD34F85Be7516B7BcBe9B6FacG86a253195F97676B44e955ec7747Gae3F"
+      },
+      {
+        "label": "📧 커버리지 차주 중 안내 예정",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "📧887개사 데이터 보유 분석 결과 안내",
+        "url": "https://gwa.douzone.com/"
+      },
+      {
+        "label": "🗃️ AJ네트웍스_커버리지.xlsx",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=54769F19e679cBD5B8cGD312D6G6381c37537B4F95F93Dc468aBFB93BDeaB7ec"
+      }
     ]
   },
   {
     "company": "리드코프",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 251212_리드코프_미팅 회의록",
-      "📄 20260714_리드코프(메이슨캐피탈) 회의록"
+      {
+        "label": "📄 251212_리드코프_미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPURlMzZlNTJGNUczNTE1MzM1OGNENDQ3NDlGYTM4ODgyJl90PTE4Y2M%3D"
+      },
+      {
+        "label": "📄 20260714_리드코프(메이슨캐피탈) 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTM1RDk5RzZCNjc2OWNEZTdHMjFGODljNmE5NDY0RDlh"
+      }
     ]
   },
   {
     "company": "티알엔",
     "targetProduct": "패키지(크레디뷰, 기업모니터링)",
     "relatedFiles": [
-      "🗃️ TechFin_쇼핑엔티_제안서_단독.pdf"
+      {
+        "label": "🗃️ TechFin_쇼핑엔티_제안서_단독.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=2DDe3D6BDc9Baa1F28Fc3c84646F1GD8ccaD98a65127aFD19B942BB58G82ce7D"
+      }
     ]
   },
   {
     "company": "대상홀딩스",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260709_대상홀딩스_회의록",
-      "📄 260715_대상홀딩스_회의록"
+      {
+        "label": "📄 260709_대상홀딩스_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTlhQjFENzNENmUyRzlhOEc5YWM2ZTZlYTY4QjZhZTZj"
+      },
+      {
+        "label": "📄 260715_대상홀딩스_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=65Gaa9Be89FDe98a96F15BF4D8F167eG1aGa4BF4D44aea6998561D4e3e9G1788"
+      }
     ]
   },
   {
     "company": "NHCMS\n(효성그룹)",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260722_NHCMS(효성그룹) 회의록"
+      {
+        "label": "📄 260722_NHCMS(효성그룹) 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTY5NzlGNzVhMjJCMTU0YTRjNTQ5RjdEYzJGZUJHQjYx"
+      }
     ]
   },
   {
     "company": "김태완 경영지도사 사무소",
     "targetProduct": "패키지(기업신용평가, 경영진단보고서)",
     "relatedFiles": [
-      "📄 260825_김태완경영지도사사무소_회의록",
-      "📄 한국경영기술지도사회 X Crediview 사업제휴 검토",
-      "📄 한국경영기술지도사회 X Crediview 사업제휴 검토",
-      "📄 260907_김태완경영지도사사무소_회의록"
+      {
+        "label": "📄 260825_김태완경영지도사사무소_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWU5MkQ4M2VlYTU1Y0Y1YTdlYzI1MzFHMzk5NDJlNGU1"
+      },
+      {
+        "label": "📄 한국경영기술지도사회 X Crediview 사업제휴 검토",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTRCY0Y1YzlGNjdlNWVjOTVhZWM5MTc2NGFlOGExMzU3"
+      },
+      {
+        "label": "📄 한국경영기술지도사회 X Crediview 사업제휴 검토",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTkzRzM3NkcyMUZGMkdjZWNhMzc5MUZEMzgyN0Q1YURl&sso=Y"
+      },
+      {
+        "label": "📄 260907_김태완경영지도사사무소_회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUQ3QjlhMTdhOWFCMjM4OTE1Y0Y2N0c0NWEzZTVGZWEz"
+      }
     ]
   },
   {
     "company": "한국수출입은행",
     "targetProduct": "디지털공급망팩토링",
     "relatedFiles": [
-      "📄 260610_한국수출입은행 미팅 회의록"
+      {
+        "label": "📄 260610_한국수출입은행 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUJGYTlGM0Y1MmE1Y2NjYTdhQjlHMkY5OWNjYzRhRjgx"
+      }
     ]
   },
   {
     "company": "더존",
     "targetProduct": "패키지(경영진단보고서, 기업모니터링)",
     "relatedFiles": [
-      "📄 [회의록] 택스워치_세무법인 - 테크핀레이팅스 협업 논의_2026.06.04",
-      "📄 [회의록] 더존-삼일PwC-테크핀레이팅스 협업 논의_2026.06.04"
+      {
+        "label": "📄 [회의록] 택스워치_세무법인 - 테크핀레이팅스 협업 논의_2026.06.04",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTIzZTE1M2VjZTFjNzY5Y0JjMzUxM2MxN0YxRjhhQjVl"
+      },
+      {
+        "label": "📄 [회의록] 더존-삼일PwC-테크핀레이팅스 협업 논의_2026.06.04",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWUxNjNlRDc5Mzk0MjY0Yzc1NmFERDhCNmVENTkxQjJj"
+      }
     ]
   },
   {
     "company": "2026 금융권 공동채용 박람회",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 2026 금융권 공동채용 박람회 마케팅 계획",
-      "📄 금융기관 대상 제안 전략(안)"
+      {
+        "label": "📄 2026 금융권 공동채용 박람회 마케팅 계획",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=1eG99e2G1FBGDDa954a3932ec2ceB661"
+      },
+      {
+        "label": "📄 금융기관 대상 제안 전략(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=2B6735cGBe43e5c5eG638G7F8G7845Gaa4D13B1c87G88c5G91BF13373F8ec322"
+      }
     ]
   },
   {
     "company": "DCAMP",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄",
-      "디캠프 오피스아워 플랫폼 홍보(안)",
-      "📄 Dcamp_상담VC명단_260624",
-      "📧기업지원 업무 관련 미팅 제안"
+      {
+        "label": "📄",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTY2ODM2ZTE0ZTE3RjY0QmFHR0ZlNzZHNjg0QmFjYzhj"
+      },
+      {
+        "label": "디캠프 오피스아워 플랫폼 홍보(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTY2ODM2ZTE0ZTE3RjY0QmFHR0ZlNzZHNjg0QmFjYzhj"
+      },
+      {
+        "label": "📄 Dcamp_상담VC명단_260624",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=62893ae713D7642G1D1793136FBBc1356c63D841767F5Ga9a971Ge15252G31ca"
+      },
+      {
+        "label": "📧기업지원 업무 관련 미팅 제안",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "넥스트 라이즈 2026",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 넥스트라이즈_플랫폼홍보(안)_260617",
-      "📄 상담VC명단_NextRise2026",
-      "📧ERP데이터 전문기관 테크핀레이팅스"
+      {
+        "label": "📄 넥스트라이즈_플랫폼홍보(안)_260617",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=81B177a1cB1a1F6F8F1B6281GaaD244556B1c99a4acD176GcF3eeB1291a62aF2"
+      },
+      {
+        "label": "📄 상담VC명단_NextRise2026",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWU5YTg3RkcyZUJGMmFGRERGOWNhRGFCRGMzR2M0ODY3"
+      },
+      {
+        "label": "📧ERP데이터 전문기관 테크핀레이팅스",
+        "url": "https://gwa.douzone.com/"
+      }
     ]
   },
   {
     "company": "KVCA 스케일업\n팁스 딜데이",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 KVCA 스케일업팁스 행사 개요 및 마케팅 계획",
-      "📄 2026 스케일업 팁스 딜데이 VC_상담명단"
+      {
+        "label": "📄 KVCA 스케일업팁스 행사 개요 및 마케팅 계획",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWMyM0QxZTlhYWVHYTlHMzdENjFHNmNjODQ3YTZHREdj"
+      },
+      {
+        "label": "📄 2026 스케일업 팁스 딜데이 VC_상담명단",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUJGMTczNTRHNGE1MzU2NkZEYTRGZTI4OTE1NEREY0Jl"
+      }
     ]
   },
   {
     "company": "tryeverything",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 트라이에브리띵_플랫폼홍보(안)_260707",
-      "📄 TryEverything_상담고객취합명단"
+      {
+        "label": "📄 트라이에브리띵_플랫폼홍보(안)_260707",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPWVGQkdGZTRlQjhhMjVEMTZHYUcxYWU0ZURHRDk1M2E0&sso=Y"
+      },
+      {
+        "label": "📄 TryEverything_상담고객취합명단",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=4DDeBD521Ge1BF7BBGe7DDFcD49629GeG9Bc28BFF744a876cecGe6F793Be464e"
+      }
     ]
   },
   {
     "company": "전략경제와 중소기업 AI 전환 세미나",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 [중기중앙회]전략경제와 중소기업 AI전환 세미나 홍보 계획",
-      "📄 260901_중기중앙회 AI 전환 세미나-주요 시사점 및 당사 사업 추진방향(안)",
-      "🗃️ 전략경제와 중소기업 AI전환 세미나 자료_260901.pdf"
+      {
+        "label": "📄 [중기중앙회]전략경제와 중소기업 AI전환 세미나 홍보 계획",
+        "url": "https://gwa.douzone.com/ecm/oneffice/?token=541794ae498F6GF7B1Gc725Baccce71788889eF5D8a3993DacFeG5G961Baa976"
+      },
+      {
+        "label": "📄 260901_중기중앙회 AI 전환 세미나-주요 시사점 및 당사 사업 추진방향(안)",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPUQxQmFHNGNGRjNlMkI3RzQ3RzFHREI4OEczYTZlY2VH"
+      },
+      {
+        "label": "🗃️ 전략경제와 중소기업 AI전환 세미나 자료_260901.pdf",
+        "url": "https://gwa.douzone.com/ecm/onechamber/?token=65393588Gca9G4Fe579F2BBa98cD93e1D98G7e73518c53D3FGcea4e68c3caBeF"
+      }
     ]
   },
   {
     "company": "국제환경산업기술 & 그린에너지전(ENVEX 2026)",
     "targetProduct": "크레디뷰",
     "relatedFiles": [
-      "📄 ENVEX 2026 행사 개요 및 마케팅 계획 요약"
+      {
+        "label": "📄 ENVEX 2026 행사 개요 및 마케팅 계획 요약",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTdERDJGYTY4MUdEMkZEYUY4RkdEMkZHOTY4OTgxR2Vj"
+      }
     ]
   },
   {
     "company": "코리아빌드위크",
     "targetProduct": "크레디뷰",
     "relatedFiles": [
-      "📄 코리아빌드위크 홍보 계획",
-      "📄 코리아빌드위크2026_상담고객취합명단",
-      "📄 코리아빌드위크2026_상담고객취합명단"
+      {
+        "label": "📄 코리아빌드위크 홍보 계획",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTNGRzFGN2FlRjlCZURCYWM3ZUY2ODI3R0Q2MUQ1Rkcx"
+      },
+      {
+        "label": "📄 코리아빌드위크2026_상담고객취합명단",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTNGN0REODFjNDcxOWVhNURjNkQ3OUYzOUdHN2M3Y2NH"
+      },
+      {
+        "label": "📄 코리아빌드위크2026_상담고객취합명단",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTNGN0REODFjNDcxOWVhNURjNkQ3OUYzOUdHN2M3Y2NH"
+      }
     ]
   },
   {
     "company": "행사 고객명단 홍보",
     "targetProduct": "크레디뷰",
     "relatedFiles": [
-      "📄 행사별VC_상담고객취합명단"
+      {
+        "label": "📄 행사별VC_상담고객취합명단",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?seq=3Fea77Dc46Dc22F8ccG2G7e61F3GDc55"
+      }
     ]
   },
   {
     "company": "더존>전략투자Unit",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260122_더존전략투자Unit 미팅 회의록"
+      {
+        "label": "📄 260122_더존전략투자Unit 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPTVGQjllY0dHN0RjYTFGMzNGMzc0NDVjRDRjQmMzRmM3"
+      }
     ]
   },
   {
     "company": "KVCA \n한국벤처캐피탈협회",
     "targetProduct": "패키지(기업DB조회, 기업모니터링)",
     "relatedFiles": [
-      "📄 260122_한국벤처캐피탈협회 미팅 회의록"
+      {
+        "label": "📄 260122_한국벤처캐피탈협회 미팅 회의록",
+        "url": "https://gwa.douzone.com/ecm/oneffice/one003A06?c2VxPURGQjY1YTFhNzZEOTZCR2M3NjJEMTFGYzc5NUIxN2UyJl90PWUxNTY%3D&sso=Y"
+      }
     ]
   }
 ]
