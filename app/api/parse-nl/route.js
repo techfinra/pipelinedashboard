@@ -74,7 +74,7 @@ async function getFieldSuggestions(db, dealId, text) {
 [{"field": "contactPerson 또는 stage 또는 probability 또는 memo 또는 nextAction", "label": "한글 라벨", "currentValue": "현재값(짧게)", "suggestedValue": "제안값", "reason": "왜 이렇게 제안하는지 한 문장"}]`;
 
   try {
-    const { text: raw } = await callClaude(fieldPrompt, 600);
+    const { text: raw } = await callClaude(fieldPrompt, 400);
     const arrMatch = raw.match(/\[[\s\S]*\]/);
     const parsed = arrMatch ? JSON.parse(arrMatch[0]) : [];
     return Array.isArray(parsed) ? parsed : [];
