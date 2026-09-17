@@ -1260,15 +1260,21 @@ export default function Dashboard() {
                   </div>
                 </div>
                 {(() => {
-                  const dd = ddayFromGoal(selected.contractGoal);
-                  if (!dd) return null;
-                  const overdue = dd.diff < 0;
+                  const lastDate = lastActionByDeal[selected.id];
+                  if (!lastDate) return null;
+                  const days = Math.floor((new Date() - new Date(lastDate)) / 86400000);
+                  const cat = dealKpiCat[selected.id]?.recency;
+                  const colorMap = {
+                    active7: ["bg-green-50", "text-green-600"],
+                    followUp: ["bg-blue-50", "text-blue-600"],
+                    stale: ["bg-red-50", "text-red-600"],
+                  };
+                  const [bg, textColor] = colorMap[cat] || ["bg-gray-50", "text-gray-500"];
+                  const label = cat ? RECENCY_LABEL[cat][0] : "";
                   return (
-                    <div className={"rounded-xl px-3 py-2 text-center " + (overdue ? "bg-red-50" : "bg-green-50")}>
-                      <div className={"text-sm font-extrabold " + (overdue ? "text-red-600" : "text-green-600")}>
-                        {overdue ? `D+${Math.abs(dd.diff)}` : `D-${dd.diff}`}
-                      </div>
-                      <div className="text-[9px] text-gray-400 mt-0.5">목표월 {dd.label}</div>
+                    <div className={"rounded-xl px-3 py-2 text-center " + bg}>
+                      <div className={"text-sm font-extrabold " + textColor}>D+{days}</div>
+                      <div className="text-[9px] text-gray-400 mt-0.5">{label} · {lastDate}</div>
                     </div>
                   );
                 })()}
