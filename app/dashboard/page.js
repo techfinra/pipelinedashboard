@@ -1340,34 +1340,6 @@ export default function Dashboard() {
                         <div className="px-4 py-4 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
                       )}
                     </div>
-                    <div className="px-4 py-3 border-b border-t border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-pink-600 flex items-center gap-1"><Sparkles className="w-3.5 h-3.5" />다음 액션 추천 (AI기반)</span>
-                      <span className="text-[10px] text-gray-400">{aiFlaggedDeals.length}건</span>
-                    </div>
-                    <div>
-                      {aiFlaggedDeals.map((d) => (
-                        <div
-                          key={d.id}
-                          className="px-4 py-2.5 border-b border-[#F4F6F9] dark:border-gray-800 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 flex items-start justify-between gap-2"
-                        >
-                          <div onClick={() => { openDeal(d); setNotifOpen(false); }} className="flex-1 min-w-0 cursor-pointer">
-                            <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
-                              <LogoBadge name={d.orgName} />{d.orgName}
-                            </div>
-                            <div className="text-[10px] text-pink-600 mt-0.5 ml-[28px]">{d.aiInsight}</div>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); dismissAiInsight(d.id, d.aiInsightForAction); }}
-                            className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {aiFlaggedDeals.length === 0 && (
-                        <div className="px-4 py-4 text-center text-[11px] text-gray-300">추천 항목이 없습니다.</div>
-                      )}
-                    </div>
                   </div>
                 </>
               )}
