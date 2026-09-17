@@ -106,7 +106,7 @@ function LogoBadge({ name }) {
   if (domain && !broken) {
     return (
       <img
-        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+        src={`https://img.logo.dev/${domain}?token=pk_dj9Yvu0VRguqwmAbY-tGzg&size=64&format=png&fallback=404`}
         alt=""
         onError={() => setBroken(true)}
         className="w-[22px] h-[22px] rounded-[5px] mr-1.5 inline-block align-middle"
