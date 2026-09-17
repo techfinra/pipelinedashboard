@@ -1266,13 +1266,16 @@ export default function Dashboard() {
                       </div>
                       {nlConfirmDeleteId === a.id ? (
                         <div className="flex items-center gap-1 shrink-0">
-                          <span className="text-[10px] text-red-500">취소할까요?</span>
-                          <button className="text-[10px] bg-red-600 text-white px-2 py-1 rounded" onClick={() => deleteQuickEntry(a)}>확인</button>
+                          <span className="text-[10px] text-red-500">이전으로 되돌릴까요?</span>
+                          <button className="text-[10px] bg-red-600 text-white px-2 py-1 rounded font-semibold" onClick={() => deleteQuickEntry(a)}>확인</button>
                           <button className="text-[10px] text-gray-400" onClick={() => setNlConfirmDeleteId(null)}>아니오</button>
                         </div>
                       ) : (
-                        <button className="text-gray-300 hover:text-red-500 shrink-0" onClick={() => setNlConfirmDeleteId(a.id)}>
-                          <X className="w-3.5 h-3.5" />
+                        <button
+                          className="text-[10px] text-red-400 hover:text-red-600 shrink-0 border border-red-200 dark:border-red-900 rounded px-2 py-1 font-semibold"
+                          onClick={() => setNlConfirmDeleteId(a.id)}
+                        >
+                          취소
                         </button>
                       )}
                     </div>
