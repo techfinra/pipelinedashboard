@@ -2470,11 +2470,7 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="text-gray-400 block mb-1">담당자</label>
-                    <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.contactPerson} onChange={(e) => setNewDeal({ ...newDeal, contactPerson: e.target.value })} />
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-gray-400 block mb-1">RM</label>
                     <input className="w-full border border-[#E7EAF0] rounded-lg px-2 py-2" value={newDeal.rm} onChange={(e) => setNewDeal({ ...newDeal, rm: e.target.value })} />
