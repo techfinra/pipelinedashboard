@@ -30,6 +30,16 @@ function isDone(deal) {
   return (deal.stage || "").includes("4") || deal.probability === "완료";
 }
 
+function classifyDeal(d, curMonth, nextMonth) {
+  if (isDone(d)) return "done";
+  const gm = parseGoalMonth(d.contractGoal);
+  if (gm !== null) {
+    if (gm === curMonth || gm === nextMonth) return "due";
+    if (gm < curMonth) return "delayed";
+  }
+  return "progress";
+}
+
 function mondayOf(d) {
   const date = new Date(d);
   const day = date.getDay();
@@ -78,6 +88,33 @@ function LogoBadge({ name }) {
     <span className="inline-flex w-[22px] h-[22px] rounded-[5px] mr-1.5 bg-navy text-white text-[9px] font-bold items-center justify-center align-middle">
       {initials}
     </span>
+  );
+}
+
+function Donut({ progress, due, delayed, done }) {
+  const total = progress + due + delayed + done || 1;
+  const pct = Math.round(((progress + done) / total) * 100);
+  const segs = [
+    { v: done + progress, color: "#16A34A" },
+    { v: due, color: "#D97706" },
+    { v: delayed, color: "#DC2626" },
+  ];
+  let acc = 0;
+  const stops = segs.map((s) => {
+    const start = (acc / total) * 360;
+    acc += s.v;
+    const end = (acc / total) * 360;
+    return `${s.color} ${start}deg ${end}deg`;
+  });
+  return (
+    <div
+      className="w-16 h-16 rounded-full flex items-center justify-center shrink-0"
+      style={{ background: `conic-gradient(${stops.join(",")})` }}
+    >
+      <div className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-xs font-extrabold text-navy">
+        {pct}%
+      </div>
+    </div>
   );
 }
 
@@ -176,6 +213,35 @@ export default function Dashboard() {
 
     return { totalOrgs: orgSet.size, inProgress, dueSoon, delayed, meetingsThisWeek };
   }, [deals, allActivity]);
+
+  const groupCards = useMemo(() => {
+    const now = new Date();
+    const curMonth = now.getMonth() + 1;
+    const nextMonth = curMonth === 12 ? 1 : curMonth + 1;
+
+    const map = {};
+    deals.forEach((d) => {
+      const g = (d.orgGroup || "미분류").replace(/\n/g, " ").trim() || "미분류";
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, orgAmount: {} };
+      map[g].orgs.add((d.orgName || "").trim());
+      const cls = classifyDeal(d, curMonth, nextMonth);
+      map[g][cls]++;
+      const key = (d.orgName || "").trim();
+      map[g].orgAmount[key] = (map[g].orgAmount[key] || 0) + (d.expectedPerformance || 0);
+    });
+
+    return Object.values(map)
+      .map((g) => ({
+        ...g,
+        orgCount: g.orgs.size,
+        topOrgs: Object.entries(g.orgAmount)
+          .filter(([name]) => name)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name]) => name),
+      }))
+      .sort((a, b) => b.orgCount - a.orgCount);
+  }, [deals]);
 
   async function openDeal(deal) {
     setSelected(deal);
@@ -280,14 +346,50 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group-row">
-            {groups.map((g) => (
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-extrabold text-navy">산업군별 주요 기관</h2>
+              <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
+            </div>
+            {activeGroup !== "전체" && (
+              <button className="text-xs text-navy underline" onClick={() => setActiveGroup("전체")}>
+                전체 보기
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-7">
+            {groupCards.map((g) => (
               <div
-                key={g}
-                className={"group-chip" + (activeGroup === g ? " active" : "")}
-                onClick={() => setActiveGroup(g)}
+                key={g.name}
+                onClick={() => setActiveGroup(activeGroup === g.name ? "전체" : g.name)}
+                className={
+                  "bg-white rounded-2xl border p-4 cursor-pointer transition " +
+                  (activeGroup === g.name ? "border-navy ring-1 ring-navy" : "border-[#E7EAF0] hover:border-navy/40")
+                }
               >
-                {g}
+                <div className="flex items-center justify-between mb-1">
+                  <div className="font-bold text-sm text-navy">{g.name}</div>
+                  <span className="text-gray-300">›</span>
+                </div>
+                <div className="text-[11px] text-gray-400 mb-3">총 {g.orgCount}개 기관</div>
+                <div className="flex items-center gap-3 mb-3">
+                  <Donut progress={g.progress} due={g.due} delayed={g.delayed} done={g.done} />
+                  <div className="text-[11px] space-y-1">
+                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" /> 진행 {g.progress + g.done}</div>
+                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" /> 마감임박 {g.due}</div>
+                    <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" /> 지연 {g.delayed}</div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-gray-400 mb-1.5">주요 기업</div>
+                <div className="space-y-1">
+                  {g.topOrgs.map((name) => (
+                    <div key={name} className="flex items-center text-xs bg-[#F8FAFC] rounded-lg px-2 py-1.5">
+                      <LogoBadge name={name} />{name}
+                    </div>
+                  ))}
+                  {g.topOrgs.length === 0 && <div className="text-[11px] text-gray-300">기관명 미상</div>}
+                </div>
               </div>
             ))}
           </div>
