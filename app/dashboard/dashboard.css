@@ -89,3 +89,19 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
 .dark .search-input, .dark .group-chip { background: var(--card); color: var(--ink); border-color: var(--line); }
 .dark .panel, .dark .panel-head { background: var(--card); }
 .dark .kv, .dark .activity-item { border-bottom-color: var(--line); }
+
+@media print {
+  body * { visibility: hidden; }
+  #quote-print-area, #quote-print-area * { visibility: visible; }
+  #quote-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    max-width: 210mm;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  @page { size: A4; margin: 0; }
+}
+
