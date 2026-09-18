@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, query, where, doc, getDoc, updateDoc, addDoc, arrayUnion, arrayRemove, deleteDoc, setDoc, writeBatch, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 import "./dashboard.css";
 import {
@@ -498,6 +498,15 @@ export default function Dashboard() {
     try {
       await setDoc(doc(db, "droppedCompanies", name), { droppedAt: serverTimestamp(), droppedBy: profile?.name || null });
       setDroppedOrgNames((prev) => new Set([...prev, name]));
+
+      // 해당 업체의 모든 딜 계약가능성을 "드랍"(빈값)으로 일괄 변경
+      const matchingDeals = deals.filter((d) => (d.orgName || "").trim() === name);
+      if (matchingDeals.length > 0) {
+        const batch = writeBatch(db);
+        matchingDeals.forEach((d) => batch.update(doc(db, "deals", d.id), { probability: "" }));
+        await batch.commit();
+        setDeals((prev) => prev.map((d) => ((d.orgName || "").trim() === name ? { ...d, probability: "" } : d)));
+      }
     } catch (e) {
       alert("삭제 실패: " + (e.message || e));
     }
@@ -651,11 +660,11 @@ export default function Dashboard() {
   }, [deals, dealKpiCat]);
 
   const probDist = useMemo(() => {
-    const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 미상: 0 };
+    const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 드랍: 0 };
     activeDeals.forEach((d) => {
       const p = d.probability;
       if (p && counts[p] !== undefined) counts[p]++;
-      else counts["미상"]++;
+      else counts["드랍"]++;
     });
     return Object.entries(counts).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
   }, [activeDeals]);
@@ -1960,7 +1969,7 @@ export default function Dashboard() {
                               <td style={{ fontWeight: 700 }}><LogoBadge name={o.name} />{o.name}</td>
                               <td>{(o.deal.targetProduct || "").replace(/\n/g, " ")}</td>
                               <td>{info && <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + info[1]}>{info[0]}</span>}</td>
-                              <td><span className={probPillClass(o.deal.probability)}>{o.deal.probability || "-"}</span></td>
+                              <td><span className={probPillClass(o.deal.probability)}>{o.deal.probability || "드랍"}</span></td>
                               <td>{[o.deal.rm, o.deal.so].filter(Boolean).join(" / ")}</td>
                               <td>{formatWon(o.deal.expectedPerformance)}</td>
                             </tr>
@@ -1991,7 +2000,7 @@ export default function Dashboard() {
                     <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
                     <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
                     <td>{formatWon(d.expectedPerformance)}</td>
-                    <td><span className={probPillClass(d.probability)}>{d.probability || "-"}</span></td>
+                    <td><span className={probPillClass(d.probability)}>{d.probability || "드랍"}</span></td>
                     <td>{d.stage || "-"}</td>
                   </tr>
                 ))}
@@ -2505,7 +2514,7 @@ export default function Dashboard() {
                       value={selected.probability || ""}
                       onChange={(e) => saveDealField({ probability: e.target.value })}
                     >
-                      <option value="">미상</option>
+                      <option value="">드랍</option>
                       {["상", "중", "하", "완료"].map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
@@ -2901,13 +2910,17 @@ export default function Dashboard() {
               <div className="p-3">
                 <div className="text-[11px] text-gray-400 px-2 mb-1">{droppedCompanyList.length}개 기업 — 산업군·기관현황·담당업체 등 모든 화면에서 제외되어 있습니다.</div>
                 {droppedCompanyList.map((o) => (
-                  <div key={o.name} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800">
+                  <div
+                    key={o.name}
+                    onClick={() => { openDeal(o.deals[0]); setShowDroppedModal(false); }}
+                    className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                  >
                     <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100 min-w-0">
                       <LogoBadge name={o.name} /><span className="truncate">{o.name}</span>
                       <span className="text-gray-300 font-normal ml-1.5 shrink-0">{o.group}</span>
                     </div>
                     <button
-                      onClick={() => restoreCompany(o.name)}
+                      onClick={(e) => { e.stopPropagation(); restoreCompany(o.name); }}
                       className="text-[10px] bg-navy text-white px-2.5 py-1 rounded-lg font-semibold shrink-0 ml-2"
                     >
                       복구
