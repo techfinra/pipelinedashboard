@@ -736,6 +736,14 @@ export default function Dashboard() {
     return (Math.round((won || 0) / 1e8 * 10) / 10) + "억원";
   }
 
+  const renewalUpcomingDeals = useMemo(() => {
+    return activeDeals
+      .filter((d) => d.probability === "완료")
+      .map((d) => ({ ...d, _daysLeft: daysUntilDate(d.contractRenewalDate) }))
+      .filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60)
+      .sort((a, b) => a._daysLeft - b._daysLeft);
+  }, [activeDeals]);
+
   const contractRenewalList = useMemo(() => {
     return activeDeals
       .filter((d) => d.probability === "완료")
@@ -1557,6 +1565,32 @@ export default function Dashboard() {
                       ))}
                       {actionDueDeals.length === 0 && (
                         <div className="px-4 py-4 text-center text-[11px] text-gray-300">임박한 액션이 없습니다.</div>
+                      )}
+                    </div>
+
+                    <div className="px-4 py-3 border-b border-t border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-navy dark:text-gray-100 flex items-center gap-1.5">
+                        <CalendarClock className="w-3.5 h-3.5 text-purple-500" />계약갱신 (2개월 이내)
+                      </span>
+                      <span className="text-[10px] text-gray-400">{renewalUpcomingDeals.length}건</span>
+                    </div>
+                    <div>
+                      {renewalUpcomingDeals.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setNotifOpen(false); }}
+                          className="px-4 py-2.5 border-b border-[#F4F6F9] dark:border-gray-800 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                        >
+                          <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                            <LogoBadge name={d.orgName} />{d.orgName}
+                          </div>
+                          <div className="text-[10px] text-purple-500 mt-0.5 ml-[28px]">
+                            D-{d._daysLeft} · {d.contractRenewalDate} 만기
+                          </div>
+                        </div>
+                      ))}
+                      {renewalUpcomingDeals.length === 0 && (
+                        <div className="px-4 py-4 text-center text-[11px] text-gray-300">2개월 이내 갱신 예정이 없습니다.</div>
                       )}
                     </div>
                   </div>
