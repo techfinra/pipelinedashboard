@@ -2101,7 +2101,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h2 className="text-sm font-extrabold text-navy dark:text-gray-100">
-                    산업군별 주요 기관 <span className="text-xs font-normal text-gray-400">(총 {new Set(activeDeals.map((d) => (d.orgName || "").trim())).size}개 업체)</span>
+                    산업군별 주요 기관 <span className="text-xs font-normal text-gray-400">(총 {new Set(activeDeals.map((d) => (d.orgName || "").trim())).size}개 업체(드랍 기업 제외))</span>
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
                 </div>
