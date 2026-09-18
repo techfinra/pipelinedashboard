@@ -798,7 +798,6 @@ export default function Dashboard() {
 
   const probSummary = useMemo(() => {
     const isFinal = (p) => p === "완료";
-    const isDrop = (p) => !["상", "중", "하", "완료"].includes(p || "");
     const isQuote = (p) => ["상", "중", "하"].includes(p);
     const uniqOrgs = (list) => new Set(list.map((d) => (d.orgName || "").trim())).size;
 
@@ -808,7 +807,8 @@ export default function Dashboard() {
     });
     const quoteAll = activeDeals.filter((d) => isQuote(d.probability));
     const contractAll = activeDeals.filter((d) => isFinal(d.probability));
-    const dropAll = activeDeals.filter((d) => isDrop(d.probability));
+    // 드랍 카드는 실제로 "기업 드랍" 처리된 기업만 집계 (전체 deals 기준, activeDeals 아님)
+    const dropAll = deals.filter((d) => droppedOrgNames.has((d.orgName || "").trim()));
 
     return {
       quote: {
@@ -828,7 +828,7 @@ export default function Dashboard() {
         totalAmount: dropAll.reduce((a, d) => a + (d.expectedPerformance || 0), 0),
       },
     };
-  }, [activeDeals]);
+  }, [activeDeals, deals, droppedOrgNames]);
 
   function formatEok(won) {
     return (Math.round((won || 0) / 1e8 * 10) / 10) + "억원";
@@ -3595,7 +3595,7 @@ export default function Dashboard() {
           } else if (bucket === "contract") {
             items = activeDeals.filter((d) => d.probability === "완료");
           } else if (bucket === "drop") {
-            items = activeDeals.filter((d) => !["상", "중", "하", "완료"].includes(d.probability || ""));
+            items = deals.filter((d) => droppedOrgNames.has((d.orgName || "").trim()));
           }
           items = items.sort((a, b) => (b.expectedPerformance || 0) - (a.expectedPerformance || 0));
         } else if (reportModal.type === "month") {
