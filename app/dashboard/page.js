@@ -2309,7 +2309,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <div className="overflow-x-auto">
-                      <table className="deals">
+                      <table className="deals" style={{ whiteSpace: "nowrap" }}>
                         <thead>
                           <tr>
                             <th>업체명</th><th>상품/서비스</th><th>계약시작일</th><th>계약만기일</th>
