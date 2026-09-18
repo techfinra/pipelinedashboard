@@ -1373,16 +1373,51 @@ export default function Dashboard() {
                   </span>
                 )}
               </button>
-              {notifOpen && (
+              {notifOpen && (() => {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const todayDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
+                const restDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate !== todayStr);
+                const reasonText = (d) =>
+                  dealKpiCat[d.id]?.futureReason === "renewal"
+                    ? `계약갱신 예정 · ${d.contractRenewalDate}`
+                    : dealKpiCat[d.id]?.futureReason === "nextAction"
+                    ? `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`
+                    : `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`;
+                return (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
                   <div className="absolute right-0 top-10 w-72 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden max-h-96 overflow-y-auto">
+                    {todayDeals.length > 0 && (
+                      <>
+                        <div className="px-4 py-3 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between bg-green-50/50 dark:bg-green-950/20">
+                          <span className="text-xs font-extrabold text-green-600 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />오늘 진행
+                          </span>
+                          <span className="text-[10px] text-gray-400">{todayDeals.length}건</span>
+                        </div>
+                        <div>
+                          {todayDeals.map((d) => (
+                            <div
+                              key={d.id}
+                              onClick={() => { openDeal(d); setNotifOpen(false); }}
+                              className="px-4 py-2.5 border-b border-[#F4F6F9] dark:border-gray-800 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                            >
+                              <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1.5 shrink-0" />
+                                <LogoBadge name={d.orgName} />{d.orgName}
+                              </div>
+                              <div className="text-[10px] text-green-600 mt-0.5 ml-[28px]">{reasonText(d)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                     <div className="px-4 py-3 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
                       <span className="text-xs font-extrabold text-navy dark:text-gray-100">🟠 액션 도래 (7일 이내)</span>
                       <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
                     </div>
                     <div>
-                      {actionDueDeals.map((d) => (
+                      {restDeals.map((d) => (
                         <div
                           key={d.id}
                           onClick={() => { openDeal(d); setNotifOpen(false); }}
@@ -1391,13 +1426,7 @@ export default function Dashboard() {
                           <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
                             <LogoBadge name={d.orgName} />{d.orgName}
                           </div>
-                          <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">
-                            {dealKpiCat[d.id]?.futureReason === "renewal"
-                              ? `계약갱신 예정 · ${d.contractRenewalDate}`
-                              : dealKpiCat[d.id]?.futureReason === "nextAction"
-                              ? `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`
-                              : `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`}
-                          </div>
+                          <div className="text-[10px] text-red-500 mt-0.5 ml-[28px]">{reasonText(d)}</div>
                         </div>
                       ))}
                       {actionDueDeals.length === 0 && (
@@ -1406,7 +1435,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </>
-              )}
+                );
+              })()}
             </div>
             <div className="relative">
               <div
