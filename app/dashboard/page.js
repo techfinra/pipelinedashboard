@@ -2279,13 +2279,30 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm text-gray-400 mb-3">협의가 완료되어 실제 계약으로 확정된 건의 현황입니다.</div>
                   <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 text-xs">
+                        <th className="text-left font-normal pb-2">구분</th>
+                        <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">금액</th>
+                        <th className="w-4"></th>
+                      </tr>
+                    </thead>
                     <tbody>
+                      <tr
+                        onClick={() => setReportModal({ type: "probBucket", key: "contract:total" })}
+                        className="border-t border-[#F4F6F9] dark:border-gray-800 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
+                      >
+                        <td className="py-2.5 font-semibold text-navy dark:text-gray-100">계약</td>
+                        <td className="py-2.5 text-right">{probSummary.contract.totalCount}</td>
+                        <td className="py-2.5 text-right font-semibold text-green-600">{formatEok(probSummary.contract.totalAmount)}</td>
+                        <td className="py-2.5 text-right text-gray-300">›</td>
+                      </tr>
                       <tr
                         onClick={() => setReportModal({ type: "probBucket", key: "contract:total" })}
                         className="border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer bg-green-50/60 dark:bg-green-950/30"
                       >
                         <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
-                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.contract.totalCount}건</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.contract.totalCount}</td>
                         <td className="py-2.5 text-right text-green-600">{formatEok(probSummary.contract.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300 w-4">›</td>
                       </tr>
@@ -2306,13 +2323,30 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm text-gray-400 mb-3">검토 후 진행이 중단되었거나 계약으로 이어지지 않은 건의 현황입니다.</div>
                   <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 text-xs">
+                        <th className="text-left font-normal pb-2">구분</th>
+                        <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">금액</th>
+                        <th className="w-4"></th>
+                      </tr>
+                    </thead>
                     <tbody>
+                      <tr
+                        onClick={() => setReportModal({ type: "probBucket", key: "drop:total" })}
+                        className="border-t border-[#F4F6F9] dark:border-gray-800 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
+                      >
+                        <td className="py-2.5 font-semibold text-navy dark:text-gray-100">드랍</td>
+                        <td className="py-2.5 text-right">{probSummary.drop.totalCount}</td>
+                        <td className="py-2.5 text-right font-semibold text-red-600">{formatEok(probSummary.drop.totalAmount)}</td>
+                        <td className="py-2.5 text-right text-gray-300">›</td>
+                      </tr>
                       <tr
                         onClick={() => setReportModal({ type: "probBucket", key: "drop:total" })}
                         className="border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer bg-red-50/60 dark:bg-red-950/30"
                       >
                         <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
-                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.drop.totalCount}건</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.drop.totalCount}</td>
                         <td className="py-2.5 text-right text-red-600">{formatEok(probSummary.drop.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300 w-4">›</td>
                       </tr>
