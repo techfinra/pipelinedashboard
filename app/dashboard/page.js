@@ -3214,6 +3214,11 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-navy dark:text-gray-100">
                                 {(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}
+                                {d.targetProduct === "Raw Data(분석용)" && d.dataChannel && (
+                                  <span className="ml-1.5 text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-md font-semibold align-middle">
+                                    {d.dataChannel}
+                                  </span>
+                                )}
                               </span>
                               {recInfo && (
                                 <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + recInfo[1]}>{recInfo[0]}</span>
@@ -3320,7 +3325,21 @@ export default function Dashboard() {
               {detailTab === "info" && (
                 <>
                   <div className="grid grid-cols-2 gap-px bg-[#E7EAF0] dark:bg-gray-700 border-b border-[#E7EAF0] dark:border-gray-700">
-                    <GridCell icon={Layers} label="타겟제품" field="targetProduct" displayValue={(selected.targetProduct || "").replace(/\n/g, " ") || "-"} />
+                    <GridCell
+                      icon={Layers}
+                      label="타겟제품"
+                      field="targetProduct"
+                      displayValue={
+                        <>
+                          {(selected.targetProduct || "").replace(/\n/g, " ") || "-"}
+                          {selected.targetProduct === "Raw Data(분석용)" && selected.dataChannel && (
+                            <span className="ml-1.5 text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-md font-semibold align-middle">
+                              {selected.dataChannel}
+                            </span>
+                          )}
+                        </>
+                      }
+                    />
                     <GridCell icon={User} label="담당자" field="contactPerson" displayValue={selected.contactPerson || "-"} />
                     <GridCell icon={Users} label="RM" field="rm" displayValue={selected.rm || "-"} />
                     <GridCell icon={Users} label="SO" field="so" displayValue={selected.so || "-"} />
