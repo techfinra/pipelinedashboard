@@ -2132,7 +2132,7 @@ export default function Dashboard() {
                       </div>
                       <span className="text-gray-300">›</span>
                     </div>
-                    <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기관</div>
+                    <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기업</div>
                     <div className="flex items-center gap-1 mb-4 -ml-1">
                       <GroupDonut active7={g.active7} followUp={g.followUp} stale={g.stale} />
                       <div className="flex-1 space-y-2.5 pl-2">
@@ -2292,7 +2292,7 @@ export default function Dashboard() {
                       <GroupIcon name={groupName} className="w-3.5 h-3.5 text-navy dark:text-gray-100" />
                     </div>
                     <div className="text-sm font-extrabold text-navy dark:text-gray-100">{groupName}</div>
-                    <div className="text-[11px] text-gray-400">{orgs.length}개 기관</div>
+                    <div className="text-[11px] text-gray-400">{orgs.length}개 기업</div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {orgs.map((o) => {
@@ -3703,7 +3703,7 @@ export default function Dashboard() {
                 <div className="p-3">
                   {isFav ? (
                     <>
-                      <div className="text-[11px] text-gray-400 px-2 mb-1">{favCompanies.length}개 기관</div>
+                      <div className="text-[11px] text-gray-400 px-2 mb-1">{favCompanies.length}개 기업</div>
                       {favCompanies.map((o) => (
                         <div
                           key={o.name}
