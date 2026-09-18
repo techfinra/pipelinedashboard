@@ -3310,7 +3310,7 @@ export default function Dashboard() {
                 { key: "info", label: "상세정보" },
                 { key: "history", label: "액션 히스토리" },
                 { key: "files", label: "관련파일" },
-                { key: "related", label: "연관기관" },
+                { key: "related", label: "연관기업" },
               ].map((t) => (
                 <button
                   key={t.key}
@@ -3579,6 +3579,36 @@ export default function Dashboard() {
                               key={d.id}
                               onClick={() => openDeal(d)}
                               className="flex items-center justify-between text-xs bg-orange-50 hover:bg-orange-100 rounded-lg px-3 py-2 cursor-pointer"
+                            >
+                              <div className="flex items-center">
+                                <LogoBadge name={d.orgName} />
+                                <div>
+                                  <div className="font-semibold">{d.orgName}</div>
+                                  <div className="text-[10px] text-gray-400">{(d.targetProduct || "").replace(/\n/g, " ")}</div>
+                                </div>
+                              </div>
+                              <span className="text-gray-300">›</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {(() => {
+                    const channelMatch = { "나이스평가정보": "NICE", "KCB": "KCB" }[selected.orgName];
+                    if (!channelMatch) return null;
+                    const channelDeals = deals.filter((d) => d.dataChannel === channelMatch);
+                    if (channelDeals.length === 0) return null;
+                    return (
+                      <div>
+                        <div className="text-xs font-extrabold text-navy dark:text-gray-100 mb-2">{channelMatch} 데이터 연동 기업</div>
+                        <div className="space-y-1.5">
+                          {channelDeals.map((d) => (
+                            <div
+                              key={d.id}
+                              onClick={() => openDeal(d)}
+                              className="flex items-center justify-between text-xs bg-purple-50 hover:bg-purple-100 rounded-lg px-3 py-2 cursor-pointer"
                             >
                               <div className="flex items-center">
                                 <LogoBadge name={d.orgName} />
