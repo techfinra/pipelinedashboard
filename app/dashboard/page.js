@@ -43,6 +43,25 @@ function todayLocalStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function daysUntilDate(dateStr) {
+  if (!dateStr) return null;
+  const target = new Date(dateStr + "T00:00:00");
+  if (isNaN(target)) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target - today) / 86400000);
+}
+
+function renewalStatusInfo(days) {
+  if (days === null) return { label: "미설정", cls: "bg-gray-100 text-gray-500" };
+  if (days < 0) return { label: "만료", cls: "bg-gray-800 text-white" };
+  if (days <= 14) return { label: "긴급확인", cls: "bg-red-100 text-red-600" };
+  if (days <= 30) return { label: "우선확인", cls: "bg-orange-100 text-orange-600" };
+  if (days <= 45) return { label: "갱신검토", cls: "bg-amber-100 text-amber-700" };
+  if (days <= 60) return { label: "알림예정", cls: "bg-blue-100 text-blue-600" };
+  return { label: "정상", cls: "bg-green-100 text-green-600" };
+}
+
 function parseAmountKR(text) {
   if (!text) return null;
   const t = text.trim();
@@ -321,6 +340,7 @@ const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
   { key: "mycompanies", label: "담당업체", icon: UserCheck },
   { key: "orgs", label: "기관현황", icon: Building2 },
+  { key: "contracts", label: "계약관리", icon: Handshake },
   { key: "report", label: "리포트", icon: BarChart3 },
   { key: "settings", label: "설정", icon: Settings },
 ];
@@ -409,6 +429,7 @@ export default function Dashboard() {
   const [editNextActionDate, setEditNextActionDate] = useState("");
   const [showMemoHistory, setShowMemoHistory] = useState(false);
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
+  const [contractTab, setContractTab] = useState("all");
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -706,6 +727,31 @@ export default function Dashboard() {
   function formatEok(won) {
     return (Math.round((won || 0) / 1e8 * 10) / 10) + "억원";
   }
+
+  const contractRenewalList = useMemo(() => {
+    return activeDeals
+      .filter((d) => d.probability === "완료")
+      .map((d) => {
+        const days = daysUntilDate(d.contractRenewalDate);
+        return { ...d, _daysLeft: days, _status: renewalStatusInfo(days) };
+      })
+      .sort((a, b) => {
+        if (a._daysLeft === null) return 1;
+        if (b._daysLeft === null) return -1;
+        return a._daysLeft - b._daysLeft;
+      });
+  }, [activeDeals]);
+
+  const contractKpis = useMemo(() => {
+    const total = contractRenewalList.length;
+    const within60 = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60).length;
+    const within30 = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 30).length;
+    const thisMonth = todayLocalStr().slice(0, 7);
+    const thisMonthAmount = contractRenewalList
+      .filter((d) => (d.contractRenewalDate || "").slice(0, 7) === thisMonth)
+      .reduce((a, d) => a + (d.contractAmount || 0), 0);
+    return { total, within60, within30, thisMonthAmount };
+  }, [contractRenewalList]);
 
   const monthlyActivity = useMemo(() => {
     const map = {};
@@ -1365,6 +1411,7 @@ export default function Dashboard() {
                 {view === "pipeline" && "파이프라인 전체 목록"}
                 {view === "mycompanies" && "담당업체"}
                 {view === "orgs" && "기관현황"}
+                {view === "contracts" && "계약·갱신 관리"}
                 {view === "report" && "리포트"}
                 {view === "settings" && "설정"}
               </h1>
@@ -2169,6 +2216,152 @@ export default function Dashboard() {
             </div>
           )}
 
+          {view === "contracts" && (() => {
+            const filteredList =
+              contractTab === "pending" ? contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60)
+              : contractTab === "done" ? []
+              : contractRenewalList;
+            const upcoming = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0).slice(0, 4);
+            const thisMonth = todayLocalStr().slice(0, 7);
+            const calendarItems = contractRenewalList
+              .filter((d) => (d.contractRenewalDate || "").slice(0, 7) === thisMonth)
+              .sort((a, b) => (a.contractRenewalDate || "").localeCompare(b.contractRenewalDate || ""));
+
+            return (
+              <div>
+                <div className="text-sm text-blue-700 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl px-4 py-3 mb-5 flex items-start gap-2">
+                  <span className="font-bold shrink-0">운영 안내</span>
+                  <span className="text-blue-300">|</span>
+                  <span>별도 입력이 없을 경우 기본 계약기간은 1년이며, 만기 60일 전에 갱신 확인이 필요합니다.</span>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  {[
+                    { icon: FileText, color: "text-blue-600 bg-blue-50", label: "전체 계약", value: `${contractKpis.total}건` },
+                    { icon: Clock3, color: "text-amber-600 bg-amber-50", label: "60일 이내 갱신 예정", value: `${contractKpis.within60}건` },
+                    { icon: AlertTriangle, color: "text-red-600 bg-red-50", label: "30일 이내 우선 확인", value: `${contractKpis.within30}건` },
+                    { icon: Wallet, color: "text-green-600 bg-green-50", label: "이번 달 예상 갱신금액", value: formatEok(contractKpis.thisMonthAmount) },
+                  ].map((k) => (
+                    <div key={k.label} className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                      <div className={"w-9 h-9 rounded-lg flex items-center justify-center mb-2 " + k.color}>
+                        <k.icon className="w-4.5 h-4.5" />
+                      </div>
+                      <div className="text-2xl font-extrabold text-navy dark:text-gray-100">{k.value}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{k.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="lg:col-span-2 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-base font-extrabold text-navy dark:text-gray-100">계약 완료 업체 현황</div>
+                      <button onClick={() => setShowNewDeal(true)} className="text-xs bg-navy text-white px-3 py-2 rounded-lg font-semibold">+ 계약 등록</button>
+                    </div>
+                    <div className="flex items-center gap-1 mb-3 border-b border-[#E7EAF0] dark:border-gray-700">
+                      {[
+                        { key: "all", label: `전체 (${contractRenewalList.length})` },
+                        { key: "pending", label: `갱신 예정 (${contractKpis.within60})` },
+                        { key: "done", label: "갱신 완료 (0)" },
+                      ].map((t) => (
+                        <button
+                          key={t.key}
+                          onClick={() => setContractTab(t.key)}
+                          className={"text-sm px-3 py-2 border-b-2 -mb-px font-semibold " + (contractTab === t.key ? "border-navy text-navy dark:text-gray-100" : "border-transparent text-gray-400")}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="deals">
+                        <thead>
+                          <tr>
+                            <th>업체명</th><th>상품/서비스</th><th>계약시작일</th><th>계약만기일</th>
+                            <th>남은기간</th><th>계약금액</th><th>담당자</th><th>상태</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredList.map((d) => (
+                            <tr key={d.id} onClick={() => openDeal(d)}>
+                              <td style={{ fontWeight: 700 }}><LogoBadge name={d.orgName} />{d.orgName}</td>
+                              <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
+                              <td>{d.contractStartDate || "-"}</td>
+                              <td>{d.contractRenewalDate || "-"}</td>
+                              <td>
+                                {d._daysLeft === null ? (
+                                  <span className="text-gray-300">-</span>
+                                ) : (
+                                  <span className={"font-bold " + (d._daysLeft <= 14 ? "text-red-600" : d._daysLeft <= 30 ? "text-orange-500" : "text-gray-500")}>
+                                    D{d._daysLeft < 0 ? "+" + Math.abs(d._daysLeft) : "-" + d._daysLeft}
+                                  </span>
+                                )}
+                              </td>
+                              <td>{formatWon(d.contractAmount)}</td>
+                              <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
+                              <td><span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + d._status.cls}>{d._status.label}</span></td>
+                            </tr>
+                          ))}
+                          {filteredList.length === 0 && (
+                            <tr><td colSpan={8} style={{ textAlign: "center", color: "#9CA3AF" }}>해당하는 계약이 없습니다.</td></tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">다가오는 갱신</div>
+                      <div className="space-y-2.5">
+                        {upcoming.map((d, i) => (
+                          <div key={d.id} onClick={() => openDeal(d)} className="flex items-center gap-2.5 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800 rounded-lg p-1.5 -m-1.5">
+                            <div className="w-5 h-5 rounded-full bg-[#F0F2F5] dark:bg-gray-700 text-[10px] font-bold text-gray-500 flex items-center justify-center shrink-0">{i + 1}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-semibold text-navy dark:text-gray-100 truncate">{d.orgName}</div>
+                            </div>
+                            <span className={"text-[10px] px-1.5 py-0.5 rounded-md font-bold shrink-0 " + d._status.cls}>D-{d._daysLeft}</span>
+                          </div>
+                        ))}
+                        {upcoming.length === 0 && <div className="text-xs text-gray-300 text-center py-4">예정된 갱신이 없습니다.</div>}
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">갱신 메모</div>
+                      <div className="space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                        <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>만기 60일 전부터 갱신 검토 시작</div>
+                        <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>조건 변경 시 내부 승인 후 고객 협의</div>
+                        <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>갱신 완료 시 계약갱신일을 새 만기일로 업데이트</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mt-4">
+                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">이번 달 갱신 캘린더</div>
+                  {calendarItems.length > 0 ? (
+                    <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                      {calendarItems.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => openDeal(d)}
+                          className="shrink-0 border border-[#E7EAF0] dark:border-gray-700 rounded-xl px-3 py-2 cursor-pointer hover:border-navy/40 min-w-[140px]"
+                        >
+                          <div className="text-[10px] text-gray-400 mb-1">{d.contractRenewalDate}</div>
+                          <div className="text-xs font-bold text-navy dark:text-gray-100 truncate">{d.orgName}</div>
+                          <div className="text-[10px] text-gray-400">계약 만기</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-300 text-center py-6">이번 달 갱신 예정 건이 없습니다.</div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {view === "report" && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -2678,6 +2871,7 @@ export default function Dashboard() {
                     <GridCell icon={TrendingUp} label="기대실적" field="expectedPerformanceRaw" displayValue={formatWon(selected.expectedPerformance)} />
                     <GridCell icon={Wallet} label="계약금액" field="contractAmount" displayValue={formatWon(selected.contractAmount)} />
                     <GridCell icon={CalendarClock} label="계약목표" field="contractGoal" displayValue={selected.contractGoal || "-"} />
+                    <GridCell icon={CalendarClock} label="계약시작일" field="contractStartDate" displayValue={selected.contractStartDate || "-"} />
                     <GridCell
                       icon={CalendarClock}
                       label={"계약갱신일" + (selected.contractRenewalInferredByAI ? " (AI 추정)" : "")}
