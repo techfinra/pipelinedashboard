@@ -336,6 +336,7 @@ const RECENCY_LABEL = {
   followUp: ["후속 필요", "text-blue-600 bg-blue-50"],
   stale: ["장기 정체", "text-red-600 bg-red-50"],
   completed: ["계약 완료", "text-navy bg-blue-100"],
+  dropped: ["드랍", "text-gray-500 bg-gray-100"],
 };
 
 const SHORTCUT_LINKS = [
@@ -624,13 +625,13 @@ export default function Dashboard() {
       await setDoc(doc(db, "droppedCompanies", name), { droppedAt: serverTimestamp(), droppedBy: profile?.name || null });
       setDroppedOrgNames((prev) => new Set([...prev, name]));
 
-      // 해당 업체의 모든 딜 계약가능성을 "드랍"(빈값)으로 일괄 변경
+      // 해당 업체의 모든 딜 계약가능성을 명시적으로 "드랍"으로 일괄 변경
       const matchingDeals = deals.filter((d) => (d.orgName || "").trim() === name);
       if (matchingDeals.length > 0) {
         const batch = writeBatch(db);
-        matchingDeals.forEach((d) => batch.update(doc(db, "deals", d.id), { probability: "" }));
+        matchingDeals.forEach((d) => batch.update(doc(db, "deals", d.id), { probability: "드랍" }));
         await batch.commit();
-        setDeals((prev) => prev.map((d) => ((d.orgName || "").trim() === name ? { ...d, probability: "" } : d)));
+        setDeals((prev) => prev.map((d) => ((d.orgName || "").trim() === name ? { ...d, probability: "드랍" } : d)));
       }
     } catch (e) {
       alert("삭제 실패: " + (e.message || e));
@@ -676,6 +677,9 @@ export default function Dashboard() {
       let recency;
       if (d.probability === "완료") {
         recency = "completed";
+      } else if (d.probability === "드랍") {
+        // 계약가능성을 명시적으로 "드랍"으로 표시한 딜은 활발진행/후속필요/장기정체 집계에서 제외
+        recency = "dropped";
       } else if (lastDate) {
         const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
         recency = diffDays <= 7 ? "active7" : diffDays <= 30 ? "followUp" : "stale";
@@ -754,7 +758,7 @@ export default function Dashboard() {
     const map = {};
     activeDeals.forEach((d) => {
       const g = mapGroupName(d.orgGroup);
-      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, completed: 0, orgReps: {}, expected: 0, contract: 0 };
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, completed: 0, dropped: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
       map[g][cls]++;
@@ -808,7 +812,17 @@ export default function Dashboard() {
     const quoteAll = activeDeals.filter((d) => isQuote(d.probability));
     const contractAll = activeDeals.filter((d) => isFinal(d.probability));
     // 드랍 카드는 실제로 "기업 드랍" 처리된 기업만 집계 (전체 deals 기준, activeDeals 아님)
-    const dropAll = deals.filter((d) => droppedOrgNames.has((d.orgName || "").trim()));
+    // 드랍 카드 = 기업 전체가 드랍 처리된 곳 + 개별 딜의 계약가능성을 드랍으로 표시한 것 (중복 제거)
+    const dropIds = new Set();
+    const dropAll = [];
+    deals.forEach((d) => {
+      const isCompanyDropped = droppedOrgNames.has((d.orgName || "").trim());
+      const isDealDropped = d.probability === "드랍";
+      if ((isCompanyDropped || isDealDropped) && !dropIds.has(d.id)) {
+        dropIds.add(d.id);
+        dropAll.push(d);
+      }
+    });
 
     return {
       quote: {
@@ -928,7 +942,7 @@ export default function Dashboard() {
     activeDeals.forEach((d) => {
       const name = (d.orgName || "").trim();
       if (!name) return;
-      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0, completed: 0 };
+      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0, completed: 0, dropped: 0 };
       map[name].deals.push(d);
       const recency = dealKpiCat[d.id]?.recency;
       if (recency) map[name][recency]++;
@@ -938,7 +952,7 @@ export default function Dashboard() {
         const counts = { "Raw Data": 0, "플랫폼": 0, "기타": 0 };
         o.deals.forEach((d) => counts[classifyTargetProduct(d.targetProduct)]++);
         const totalExpected = o.deals.reduce((a, d) => a + (d.expectedPerformance || 0), 0);
-        const dominant = o.stale > 0 ? "stale" : o.followUp > 0 ? "followUp" : o.active7 > 0 ? "active7" : "completed";
+        const dominant = o.stale > 0 ? "stale" : o.followUp > 0 ? "followUp" : o.active7 > 0 ? "active7" : o.completed > 0 ? "completed" : "dropped";
         return { ...o, counts, totalCount: o.deals.length, totalExpected, dominant };
       })
       .sort((a, b) => b.totalCount - a.totalCount);
@@ -2177,6 +2191,7 @@ export default function Dashboard() {
                       <option value="followUp">후속 필요</option>
                       <option value="stale">장기 정체</option>
                       <option value="completed">계약 완료</option>
+                      <option value="dropped">드랍</option>
                     </select>
                   </div>
                   <div className="overflow-x-auto">
@@ -2200,7 +2215,7 @@ export default function Dashboard() {
                               <td style={{ fontWeight: 700 }}><LogoBadge name={o.name} />{o.name}</td>
                               <td>{(o.deal.targetProduct || "").replace(/\n/g, " ")}</td>
                               <td>{info && <span className={"text-[9px] px-1.5 py-0.5 rounded-md font-semibold " + info[1]}>{info[0]}</span>}</td>
-                              <td><span className={probPillClass(o.deal.probability)}>{o.deal.probability || "드랍"}</span></td>
+                              <td><span className={probPillClass(o.deal.probability)}>{o.deal.probability || "미상"}</span></td>
                               <td>{[o.deal.rm, o.deal.so].filter(Boolean).join(" / ")}</td>
                               <td>{formatWon(o.deal.expectedPerformance)}</td>
                             </tr>
@@ -2231,7 +2246,7 @@ export default function Dashboard() {
                     <td>{(d.targetProduct || "").replace(/\n/g, " ")}</td>
                     <td>{[d.rm, d.so].filter(Boolean).join(" / ")}</td>
                     <td>{formatWon(d.expectedPerformance)}</td>
-                    <td><span className={probPillClass(d.probability)}>{d.probability || "드랍"}</span></td>
+                    <td><span className={probPillClass(d.probability)}>{d.probability || "미상"}</span></td>
                     <td>{d.stage || "-"}</td>
                   </tr>
                 ))}
@@ -3108,7 +3123,7 @@ export default function Dashboard() {
                     )}
                     {(() => {
                       const cat = dealKpiCat[selected.id];
-                      const labelMap = { active7: ["활발 진행", "text-green-600 bg-green-50"], followUp: ["후속 필요", "text-blue-600 bg-blue-50"], stale: ["장기 정체", "text-red-600 bg-red-50"], completed: ["계약 완료", "text-navy bg-blue-100"] };
+                      const labelMap = { active7: ["활발 진행", "text-green-600 bg-green-50"], followUp: ["후속 필요", "text-blue-600 bg-blue-50"], stale: ["장기 정체", "text-red-600 bg-red-50"], completed: ["계약 완료", "text-navy bg-blue-100"], dropped: ["드랍", "text-gray-500 bg-gray-100"] };
                       const info = cat ? labelMap[cat.recency] : null;
                       return info ? <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + info[1]}>{info[0]}</span> : null;
                     })()}
@@ -3332,8 +3347,8 @@ export default function Dashboard() {
                       value={selected.probability || ""}
                       onChange={(e) => saveDealField({ probability: e.target.value })}
                     >
-                      <option value="">드랍</option>
-                      {["상", "중", "하", "완료"].map((p) => <option key={p} value={p}>{p}</option>)}
+                      <option value="">미상</option>
+                      {["상", "중", "하", "완료", "드랍"].map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
 
@@ -3595,7 +3610,7 @@ export default function Dashboard() {
           } else if (bucket === "contract") {
             items = activeDeals.filter((d) => d.probability === "완료");
           } else if (bucket === "drop") {
-            items = deals.filter((d) => droppedOrgNames.has((d.orgName || "").trim()));
+            items = deals.filter((d) => droppedOrgNames.has((d.orgName || "").trim()) || d.probability === "드랍");
           }
           items = items.sort((a, b) => (b.expectedPerformance || 0) - (a.expectedPerformance || 0));
         } else if (reportModal.type === "month") {
