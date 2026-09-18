@@ -16,17 +16,32 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
   const expected = (process.env.ACCESS_CODE || "").trim();
-  const id = searchParams.get("id");
-  const org = searchParams.get("org");
-  const group = searchParams.get("group");
+  const q = searchParams.get("q") || "";
   if (!code || code !== expected) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
 
   const app = getAdminApp();
   const db = admin.firestore(app);
-  const patch = {};
-  if (org) patch.orgName = org;
-  if (group) patch.orgGroup = group;
-  await db.collection("deals").doc(id).update(patch);
-  return NextResponse.json({ message: "완료", patch });
+  const [dealsSnap, droppedSnap] = await Promise.all([
+    db.collection("deals").get(),
+    db.collection("droppedCompanies").get(),
+  ]);
+  const droppedNames = droppedSnap.docs.map((d) => d.id);
+  const matches = dealsSnap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        orgName: data.orgName,
+        orgGroup: data.orgGroup,
+        targetProduct: data.targetProduct,
+        nextMeetingDate: data.nextMeetingDate,
+        nextMeetingDateType: typeof data.nextMeetingDate,
+        nextMeetingNote: data.nextMeetingNote,
+        stage: data.stage,
+        probability: data.probability,
+        isDropped: droppedNames.includes((data.orgName || "").trim()),
+      };
+    })
+    .filter((d) => (d.orgName || "").includes(q));
+  return NextResponse.json({ matches, droppedNames });
 }
