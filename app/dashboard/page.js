@@ -192,9 +192,9 @@ function GroupDonut({ active7, followUp, stale }) {
   );
 }
 
-function DonutLegendRow({ color, label, value }) {
+function DonutLegendRow({ color, label, value, onClick }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className={"flex items-center gap-2 " + (onClick ? "cursor-pointer hover:opacity-70" : "")} onClick={onClick}>
       <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
         {label}
@@ -440,6 +440,7 @@ export default function Dashboard() {
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [contractTab, setContractTab] = useState("all");
   const [contractKpiModal, setContractKpiModal] = useState(null);
+  const [groupRecencyModal, setGroupRecencyModal] = useState(null);
 
   const [quoteEditMode, setQuoteEditMode] = useState(false);
   const [editedQuoteHtml, setEditedQuoteHtml] = useState(null);
@@ -2135,9 +2136,9 @@ export default function Dashboard() {
                     <div className="flex items-center gap-1 mb-4 -ml-1">
                       <GroupDonut active7={g.active7} followUp={g.followUp} stale={g.stale} />
                       <div className="flex-1 space-y-2.5 pl-2">
-                        <DonutLegendRow color="#16A34A" label="활발 진행 (최근 7일)" value={g.active7} />
-                        <DonutLegendRow color="#2563EB" label="후속 필요 (8~30일)" value={g.followUp} />
-                        <DonutLegendRow color="#DC2626" label="장기 정체 (30일 초과)" value={g.stale} />
+                        <DonutLegendRow color="#16A34A" label="활발 진행 (최근 7일)" value={g.active7} onClick={() => setGroupRecencyModal({ groupName: g.name, recency: "active7" })} />
+                        <DonutLegendRow color="#2563EB" label="후속 필요 (8~30일)" value={g.followUp} onClick={() => setGroupRecencyModal({ groupName: g.name, recency: "followUp" })} />
+                        <DonutLegendRow color="#DC2626" label="장기 정체 (30일 초과)" value={g.stale} onClick={() => setGroupRecencyModal({ groupName: g.name, recency: "stale" })} />
                       </div>
                     </div>
                     <div className="flex items-center justify-between mb-1.5">
@@ -3347,7 +3348,6 @@ export default function Dashboard() {
                       value={selected.probability || ""}
                       onChange={(e) => saveDealField({ probability: e.target.value })}
                     >
-                      <option value="">미상</option>
                       {["상", "중", "하", "완료", "드랍"].map((p) => <option key={p} value={p}>{p}</option>)}
                     </select>
                   </div>
@@ -3784,6 +3784,45 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {items.length === 0 && <div className="text-center text-xs text-gray-300 py-10">해당하는 계약이 없습니다.</div>}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {groupRecencyModal && (() => {
+        const items = activeDeals
+          .filter((d) => mapGroupName(d.orgGroup) === groupRecencyModal.groupName && dealKpiCat[d.id]?.recency === groupRecencyModal.recency)
+          .sort((a, b) => (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || ""));
+        const info = RECENCY_LABEL[groupRecencyModal.recency];
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setGroupRecencyModal(null)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
+                  <span className="text-sm font-extrabold text-navy dark:text-gray-100">{groupRecencyModal.groupName} · {info[0]}</span>
+                  <button className="text-gray-400 hover:text-navy" onClick={() => setGroupRecencyModal(null)}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-3">
+                  <div className="text-[11px] text-gray-400 px-2 mb-1">{items.length}건</div>
+                  {items.map((d) => (
+                    <div
+                      key={d.id}
+                      onClick={() => { openDeal(d); setGroupRecencyModal(null); }}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                    >
+                      <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100 min-w-0">
+                        <LogoBadge name={d.orgName} /><span className="truncate">{d.orgName}</span>
+                        <span className="text-gray-300 font-normal ml-1.5 shrink-0">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 shrink-0 ml-2">{lastActionByDeal[d.id] || ""}</span>
+                    </div>
+                  ))}
+                  {items.length === 0 && <div className="text-center text-xs text-gray-300 py-10">해당하는 딜이 없습니다.</div>}
                 </div>
               </div>
             </div>
