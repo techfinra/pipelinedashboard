@@ -3103,9 +3103,12 @@ export default function Dashboard() {
                     <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-1 rounded-md font-semibold">
                       {mapGroupName(selected.orgGroup)}
                     </span>
+                    {droppedOrgNames.has((selected.orgName || "").trim()) && (
+                      <span className="text-[10px] bg-gray-800 text-white px-2 py-1 rounded-md font-semibold">드랍</span>
+                    )}
                     {(() => {
                       const cat = dealKpiCat[selected.id];
-                      const labelMap = { active7: ["활발 진행", "text-green-600 bg-green-50"], followUp: ["후속 필요", "text-blue-600 bg-blue-50"], stale: ["장기 정체", "text-red-600 bg-red-50"] };
+                      const labelMap = { active7: ["활발 진행", "text-green-600 bg-green-50"], followUp: ["후속 필요", "text-blue-600 bg-blue-50"], stale: ["장기 정체", "text-red-600 bg-red-50"], completed: ["계약 완료", "text-navy bg-blue-100"] };
                       const info = cat ? labelMap[cat.recency] : null;
                       return info ? <span className={"text-[10px] px-2 py-1 rounded-md font-semibold " + info[1]}>{info[0]}</span> : null;
                     })()}
