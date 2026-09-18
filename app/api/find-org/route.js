@@ -16,32 +16,17 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
   const expected = (process.env.ACCESS_CODE || "").trim();
-  const q = searchParams.get("q") || "";
   if (!code || code !== expected) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const app = getAdminApp();
   const db = admin.firestore(app);
-  const [dealsSnap, droppedSnap] = await Promise.all([
-    db.collection("deals").get(),
-    db.collection("droppedCompanies").get(),
-  ]);
-  const droppedNames = droppedSnap.docs.map((d) => d.id);
-  const matches = dealsSnap.docs
-    .map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        orgName: data.orgName,
-        orgGroup: data.orgGroup,
-        targetProduct: data.targetProduct,
-        nextMeetingDate: data.nextMeetingDate,
-        nextMeetingDateType: typeof data.nextMeetingDate,
-        nextMeetingNote: data.nextMeetingNote,
-        stage: data.stage,
-        probability: data.probability,
-        isDropped: droppedNames.includes((data.orgName || "").trim()),
-      };
-    })
-    .filter((d) => (d.orgName || "").includes(q));
-  return NextResponse.json({ matches, droppedNames });
+  const snap = await db.collection("deals").get();
+  const queries = ["신한은행", "신한카드", "제주은행", "PACM", "신한캐피탈"];
+  const result = {};
+  queries.forEach((q) => {
+    result[q] = snap.docs
+      .map((d) => ({ id: d.id, orgName: d.data().orgName, targetProduct: d.data().targetProduct, contractStartDate: d.data().contractStartDate, contractRenewalDate: d.data().contractRenewalDate }))
+      .filter((d) => (d.orgName || "").includes(q));
+  });
+  return NextResponse.json(result);
 }
