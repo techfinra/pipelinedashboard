@@ -3214,7 +3214,7 @@ export default function Dashboard() {
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-semibold text-navy dark:text-gray-100">
                                 {(d.targetProduct || "").replace(/\n/g, " ") || "(제품명 없음)"}
-                                {d.targetProduct === "Raw Data(분석용)" && d.dataChannel && (
+                                {d.dataChannel && (
                                   <span className="ml-1.5 text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-md font-semibold align-middle">
                                     {d.dataChannel}
                                   </span>
@@ -3332,7 +3332,7 @@ export default function Dashboard() {
                       displayValue={
                         <>
                           {(selected.targetProduct || "").replace(/\n/g, " ") || "-"}
-                          {selected.targetProduct === "Raw Data(분석용)" && selected.dataChannel && (
+                          {selected.dataChannel && (
                             <span className="ml-1.5 text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-md font-semibold align-middle">
                               {selected.dataChannel}
                             </span>
