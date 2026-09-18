@@ -20,13 +20,11 @@ export async function GET(request) {
 
   const app = getAdminApp();
   const db = admin.firestore(app);
-  const snap = await db.collection("deals").get();
-  const counts = {};
-  snap.forEach((d) => {
-    const raw = (d.data().targetProduct || "").replace(/\n/g, " ").trim();
-    if (!raw) return;
-    counts[raw] = (counts[raw] || 0) + 1;
-  });
-  const sorted = Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0]));
-  return NextResponse.json({ total: sorted.length, products: sorted });
+  const snap = await db.collection("deals").where("orgName", "==", "신한은행").get();
+  const result = snap.docs.map((d) => ({
+    id: d.id,
+    targetProduct: d.data().targetProduct,
+    relatedFiles: d.data().relatedFiles || [],
+  }));
+  return NextResponse.json(result);
 }
