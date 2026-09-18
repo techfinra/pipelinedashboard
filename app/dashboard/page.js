@@ -350,7 +350,6 @@ const NAV_ITEMS = [
   { key: "orgs", label: "기관현황", icon: Building2 },
   { key: "contracts", label: "계약관리", icon: Handshake },
   { key: "report", label: "리포트", icon: BarChart3 },
-  { key: "quote", label: "견적서 작성", icon: FileText },
   { key: "settings", label: "설정", icon: Settings },
 ];
 
