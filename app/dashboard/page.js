@@ -1770,7 +1770,10 @@ export default function Dashboard() {
         <div className="p-4 md:p-7">
           <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <div className="text-sm font-extrabold text-navy dark:text-gray-100">⚡ 빠른 등록/취소</div>
+              <div className="flex items-center gap-1.5 text-sm font-extrabold text-navy dark:text-gray-100">
+                <img src="/tebi-mascot.png" alt="테비" className="w-6 h-6 object-contain -my-1" />
+                빠른 등록/취소
+              </div>
               <button className="text-[11px] text-navy dark:text-gray-300 underline" onClick={() => setNlHistoryOpen((v) => !v)}>
                 최근 이력 {nlHistoryOpen ? "접기" : `보기 (${quickEntries.length})`}
               </button>
