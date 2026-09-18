@@ -1273,7 +1273,7 @@ export default function Dashboard() {
     }
   }
 
-  function GridCell({ icon: Icon, label, field, displayValue }) {
+  function GridCell({ icon: Icon, label, field, displayValue, type }) {
     const editing = editingField === field;
     return (
       <div className="bg-white dark:bg-[#111827] px-4 py-3 group">
@@ -1290,7 +1290,8 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-1">
             <input
-              className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1"
+              type={type || "text"}
+              className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-2 py-1"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               autoFocus
@@ -2869,11 +2870,12 @@ export default function Dashboard() {
                     <GridCell icon={TrendingUp} label="기대실적" field="expectedPerformanceRaw" displayValue={formatWon(selected.expectedPerformance)} />
                     <GridCell icon={Wallet} label="계약금액" field="contractAmount" displayValue={formatWon(selected.contractAmount)} />
                     <GridCell icon={CalendarClock} label="계약목표" field="contractGoal" displayValue={selected.contractGoal || "-"} />
-                    <GridCell icon={CalendarClock} label="계약시작일" field="contractStartDate" displayValue={selected.contractStartDate || "-"} />
+                    <GridCell icon={CalendarClock} label="계약시작일" field="contractStartDate" type="date" displayValue={selected.contractStartDate || "-"} />
                     <GridCell
                       icon={CalendarClock}
                       label={"계약갱신일" + (selected.contractRenewalInferredByAI ? " (AI 추정)" : "")}
                       field="contractRenewalDate"
+                      type="date"
                       displayValue={selected.contractRenewalDate || "-"}
                     />
 
