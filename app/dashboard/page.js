@@ -2378,9 +2378,8 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm text-gray-400 mb-4">고객사에 제안한 견적 건을 기준으로 집계한 현황입니다.</div>
 
-                  <div className="flex items-center gap-6 mb-5">
-                    <div className="flex-1 flex justify-center">
-                      <div className="relative w-[180px] h-[180px] shrink-0">
+                  <div className="flex items-center justify-center gap-8 mb-5">
+                    <div className="relative w-[180px] h-[180px] shrink-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -2410,9 +2409,8 @@ export default function Dashboard() {
                         <span className="text-3xl font-extrabold text-navy dark:text-gray-100 leading-none">{probSummary.quote.totalCount}</span>
                         <span className="text-xs text-gray-400 mt-1">총 견적건</span>
                       </div>
-                      </div>
                     </div>
-                    <div className="flex-1 space-y-3">
+                    <div className="space-y-3">
                       {[
                         { key: "상", color: "#16A34A" },
                         { key: "중", color: "#D97706" },
