@@ -673,10 +673,11 @@ export default function Dashboard() {
     const isFinal = (p) => p === "완료";
     const isDrop = (p) => !["상", "중", "하", "완료"].includes(p || "");
     const isQuote = (p) => ["상", "중", "하"].includes(p);
+    const uniqOrgs = (list) => new Set(list.map((d) => (d.orgName || "").trim())).size;
 
     const quoteRows = ["상", "중", "하"].map((lvl) => {
       const list = activeDeals.filter((d) => d.probability === lvl);
-      return { key: lvl, label: lvl, count: list.length, amount: list.reduce((a, d) => a + (d.expectedPerformance || 0), 0) };
+      return { key: lvl, label: lvl, count: list.length, orgCount: uniqOrgs(list), amount: list.reduce((a, d) => a + (d.expectedPerformance || 0), 0) };
     });
     const quoteAll = activeDeals.filter((d) => isQuote(d.probability));
     const contractAll = activeDeals.filter((d) => isFinal(d.probability));
@@ -686,14 +687,17 @@ export default function Dashboard() {
       quote: {
         rows: quoteRows,
         totalCount: quoteAll.length,
+        totalOrgCount: uniqOrgs(quoteAll),
         totalAmount: quoteAll.reduce((a, d) => a + (d.expectedPerformance || 0), 0),
       },
       contract: {
         totalCount: contractAll.length,
+        totalOrgCount: uniqOrgs(contractAll),
         totalAmount: contractAll.reduce((a, d) => a + (d.contractAmount || 0), 0),
       },
       drop: {
         totalCount: dropAll.length,
+        totalOrgCount: uniqOrgs(dropAll),
         totalAmount: dropAll.reduce((a, d) => a + (d.expectedPerformance || 0), 0),
       },
     };
@@ -2209,7 +2213,7 @@ export default function Dashboard() {
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none translate-x-[3px]">
                         <span className="text-3xl font-extrabold text-navy dark:text-gray-100 leading-none">{probSummary.quote.totalCount}</span>
                         <span className="text-xs text-gray-400 mt-1">총 견적건</span>
                       </div>
@@ -2238,6 +2242,7 @@ export default function Dashboard() {
                       <tr className="text-gray-400 text-xs">
                         <th className="text-left font-normal pb-2">구분</th>
                         <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">업체수</th>
                         <th className="text-right font-normal pb-2">금액</th>
                         <th className="w-4"></th>
                       </tr>
@@ -2251,6 +2256,7 @@ export default function Dashboard() {
                         >
                           <td className="py-2.5 font-semibold text-navy dark:text-gray-100">{r.label}</td>
                           <td className="py-2.5 text-right">{r.count}</td>
+                          <td className="py-2.5 text-right text-gray-500">{r.orgCount}개사</td>
                           <td className="py-2.5 text-right font-semibold text-blue-600">{formatEok(r.amount)}</td>
                           <td className="py-2.5 text-right text-gray-300">›</td>
                         </tr>
@@ -2261,6 +2267,7 @@ export default function Dashboard() {
                       >
                         <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
                         <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.quote.totalCount}</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.quote.totalOrgCount}개사</td>
                         <td className="py-2.5 text-right text-blue-600">{formatEok(probSummary.quote.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300">›</td>
                       </tr>
@@ -2285,6 +2292,7 @@ export default function Dashboard() {
                       <tr className="text-gray-400 text-xs">
                         <th className="text-left font-normal pb-2">구분</th>
                         <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">업체수</th>
                         <th className="text-right font-normal pb-2">금액</th>
                         <th className="w-4"></th>
                       </tr>
@@ -2296,6 +2304,7 @@ export default function Dashboard() {
                       >
                         <td className="py-2.5 font-semibold text-navy dark:text-gray-100">계약</td>
                         <td className="py-2.5 text-right">{probSummary.contract.totalCount}</td>
+                        <td className="py-2.5 text-right text-gray-500">{probSummary.contract.totalOrgCount}개사</td>
                         <td className="py-2.5 text-right font-semibold text-green-600">{formatEok(probSummary.contract.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300">›</td>
                       </tr>
@@ -2305,6 +2314,7 @@ export default function Dashboard() {
                       >
                         <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
                         <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.contract.totalCount}</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.contract.totalOrgCount}개사</td>
                         <td className="py-2.5 text-right text-green-600">{formatEok(probSummary.contract.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300 w-4">›</td>
                       </tr>
@@ -2329,6 +2339,7 @@ export default function Dashboard() {
                       <tr className="text-gray-400 text-xs">
                         <th className="text-left font-normal pb-2">구분</th>
                         <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">업체수</th>
                         <th className="text-right font-normal pb-2">금액</th>
                         <th className="w-4"></th>
                       </tr>
@@ -2340,6 +2351,7 @@ export default function Dashboard() {
                       >
                         <td className="py-2.5 font-semibold text-navy dark:text-gray-100">드랍</td>
                         <td className="py-2.5 text-right">{probSummary.drop.totalCount}</td>
+                        <td className="py-2.5 text-right text-gray-500">{probSummary.drop.totalOrgCount}개사</td>
                         <td className="py-2.5 text-right font-semibold text-red-600">{formatEok(probSummary.drop.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300">›</td>
                       </tr>
@@ -2349,6 +2361,7 @@ export default function Dashboard() {
                       >
                         <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
                         <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.drop.totalCount}</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.drop.totalOrgCount}개사</td>
                         <td className="py-2.5 text-right text-red-600">{formatEok(probSummary.drop.totalAmount)}</td>
                         <td className="py-2.5 text-right text-gray-300 w-4">›</td>
                       </tr>
