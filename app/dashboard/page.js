@@ -52,6 +52,13 @@ function daysUntilDate(dateStr) {
   return Math.round((target - today) / 86400000);
 }
 
+const CONTRACT_MGMT_EXCLUDE = [
+  { org: "중진공", product: "네트워크론" },
+  { org: "신한은행", product: "팩토링" },
+  { org: "중진공", product: "팩토링" },
+  { org: "한국수출입은행", product: "디지털공급망팩토링" },
+];
+
 function renewalStatusInfo(days) {
   if (days === null) return { label: "미설정", cls: "bg-gray-100 text-gray-500" };
   if (days < 0) return { label: "만료", cls: "bg-gray-800 text-white" };
@@ -430,6 +437,7 @@ export default function Dashboard() {
   const [showMemoHistory, setShowMemoHistory] = useState(false);
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [contractTab, setContractTab] = useState("all");
+  const [contractKpiModal, setContractKpiModal] = useState(null);
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -731,6 +739,7 @@ export default function Dashboard() {
   const contractRenewalList = useMemo(() => {
     return activeDeals
       .filter((d) => d.probability === "완료")
+      .filter((d) => !CONTRACT_MGMT_EXCLUDE.some((ex) => ex.org === (d.orgName || "").trim() && ex.product === (d.targetProduct || "").replace(/\n/g, "")))
       .map((d) => {
         const days = daysUntilDate(d.contractRenewalDate);
         return { ...d, _daysLeft: days, _status: renewalStatusInfo(days) };
@@ -2230,6 +2239,27 @@ export default function Dashboard() {
 
             return (
               <div>
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-5">
+                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">이번 달 갱신 캘린더</div>
+                  {calendarItems.length > 0 ? (
+                    <div className="flex items-center gap-3 overflow-x-auto pb-1">
+                      {calendarItems.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => openDeal(d)}
+                          className="shrink-0 border border-[#E7EAF0] dark:border-gray-700 rounded-xl px-3 py-2 cursor-pointer hover:border-navy/40 min-w-[140px]"
+                        >
+                          <div className="text-[10px] text-gray-400 mb-1">{d.contractRenewalDate}</div>
+                          <div className="text-xs font-bold text-navy dark:text-gray-100 truncate">{d.orgName}</div>
+                          <div className="text-[10px] text-gray-400">계약 만기</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-300 text-center py-6">이번 달 갱신 예정 건이 없습니다.</div>
+                  )}
+                </div>
+
                 <div className="text-sm text-blue-700 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl px-4 py-3 mb-5 flex items-start gap-2">
                   <span className="font-bold shrink-0">운영 안내</span>
                   <span className="text-blue-300">|</span>
@@ -2238,12 +2268,16 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
                   {[
-                    { icon: FileText, color: "text-blue-600 bg-blue-50", label: "전체 계약", value: `${contractKpis.total}건` },
-                    { icon: Clock3, color: "text-amber-600 bg-amber-50", label: "60일 이내 갱신 예정", value: `${contractKpis.within60}건` },
-                    { icon: AlertTriangle, color: "text-red-600 bg-red-50", label: "30일 이내 우선 확인", value: `${contractKpis.within30}건` },
-                    { icon: Wallet, color: "text-green-600 bg-green-50", label: "이번 달 예상 갱신금액", value: formatEok(contractKpis.thisMonthAmount) },
+                    { key: "total", icon: FileText, color: "text-blue-600 bg-blue-50", label: "전체 계약", value: `${contractKpis.total}건` },
+                    { key: "within60", icon: Clock3, color: "text-amber-600 bg-amber-50", label: "60일 이내 갱신 예정", value: `${contractKpis.within60}건` },
+                    { key: "within30", icon: AlertTriangle, color: "text-red-600 bg-red-50", label: "30일 이내 우선 확인", value: `${contractKpis.within30}건` },
+                    { key: "thisMonth", icon: Wallet, color: "text-green-600 bg-green-50", label: "이번 달 예상 갱신금액", value: formatEok(contractKpis.thisMonthAmount) },
                   ].map((k) => (
-                    <div key={k.label} className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                    <div
+                      key={k.label}
+                      onClick={() => setContractKpiModal(k.key)}
+                      className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 cursor-pointer hover:border-navy/40"
+                    >
                       <div className={"w-9 h-9 rounded-lg flex items-center justify-center mb-2 " + k.color}>
                         <k.icon className="w-4.5 h-4.5" />
                       </div>
@@ -2337,27 +2371,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mt-4">
-                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">이번 달 갱신 캘린더</div>
-                  {calendarItems.length > 0 ? (
-                    <div className="flex items-center gap-3 overflow-x-auto pb-1">
-                      {calendarItems.map((d) => (
-                        <div
-                          key={d.id}
-                          onClick={() => openDeal(d)}
-                          className="shrink-0 border border-[#E7EAF0] dark:border-gray-700 rounded-xl px-3 py-2 cursor-pointer hover:border-navy/40 min-w-[140px]"
-                        >
-                          <div className="text-[10px] text-gray-400 mb-1">{d.contractRenewalDate}</div>
-                          <div className="text-xs font-bold text-navy dark:text-gray-100 truncate">{d.orgName}</div>
-                          <div className="text-[10px] text-gray-400">계약 만기</div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-gray-300 text-center py-6">이번 달 갱신 예정 건이 없습니다.</div>
-                  )}
                 </div>
               </div>
             );
@@ -3293,6 +3306,49 @@ export default function Dashboard() {
                       {myActionNeededDeals.length === 0 && <div className="text-center text-xs text-gray-300 py-8">해당하는 딜이 없습니다.</div>}
                     </>
                   )}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
+      {contractKpiModal && (() => {
+        const thisMonth = todayLocalStr().slice(0, 7);
+        const titleMap = { total: "전체 계약", within60: "60일 이내 갱신 예정", within30: "30일 이내 우선 확인", thisMonth: "이번 달 예상 갱신금액" };
+        let items = contractRenewalList;
+        if (contractKpiModal === "within60") items = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60);
+        else if (contractKpiModal === "within30") items = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 30);
+        else if (contractKpiModal === "thisMonth") items = contractRenewalList.filter((d) => (d.contractRenewalDate || "").slice(0, 7) === thisMonth);
+        return (
+          <>
+            <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setContractKpiModal(null)} />
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+              <div className="bg-white dark:bg-[#111827] rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto pointer-events-auto shadow-2xl">
+                <div className="px-5 py-4 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between sticky top-0 bg-white dark:bg-[#111827]">
+                  <span className="text-sm font-extrabold text-navy dark:text-gray-100">{titleMap[contractKpiModal]}</span>
+                  <button className="text-gray-400 hover:text-navy" onClick={() => setContractKpiModal(null)}>
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-3">
+                  <div className="text-[11px] text-gray-400 px-2 mb-1">{items.length}건</div>
+                  {items.map((d) => (
+                    <div
+                      key={d.id}
+                      onClick={() => { openDeal(d); setContractKpiModal(null); }}
+                      className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
+                    >
+                      <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100 min-w-0">
+                        <LogoBadge name={d.orgName} /><span className="truncate">{d.orgName}</span>
+                        <span className="text-gray-300 font-normal ml-1.5 shrink-0">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                      </div>
+                      <span className={"text-[10px] px-1.5 py-0.5 rounded-md font-semibold shrink-0 ml-2 " + d._status.cls}>
+                        {d._daysLeft === null ? "미설정" : `D${d._daysLeft < 0 ? "+" + Math.abs(d._daysLeft) : "-" + d._daysLeft}`}
+                      </span>
+                    </div>
+                  ))}
+                  {items.length === 0 && <div className="text-center text-xs text-gray-300 py-10">해당하는 계약이 없습니다.</div>}
                 </div>
               </div>
             </div>
