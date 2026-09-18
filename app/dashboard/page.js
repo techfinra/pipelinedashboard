@@ -335,6 +335,7 @@ const RECENCY_LABEL = {
   active7: ["활발 진행", "text-green-600 bg-green-50"],
   followUp: ["후속 필요", "text-blue-600 bg-blue-50"],
   stale: ["장기 정체", "text-red-600 bg-red-50"],
+  completed: ["계약 완료", "text-navy bg-blue-100"],
 };
 
 const SHORTCUT_LINKS = [
@@ -617,7 +618,9 @@ export default function Dashboard() {
     activeDeals.forEach((d) => {
       const lastDate = lastActionByDeal[d.id];
       let recency;
-      if (lastDate) {
+      if (d.probability === "완료") {
+        recency = "completed";
+      } else if (lastDate) {
         const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
         recency = diffDays <= 7 ? "active7" : diffDays <= 30 ? "followUp" : "stale";
       } else {
@@ -681,7 +684,7 @@ export default function Dashboard() {
     Object.values(dealKpiCat).forEach((c) => {
       if (c.recency === "active7") active7++;
       else if (c.recency === "followUp") followUp++;
-      else stale++;
+      else if (c.recency === "stale") stale++;
       if (c.future === "actionDue") actionDue++;
       else if (c.future === "actionPlanned") actionPlanned++;
     });
@@ -695,7 +698,7 @@ export default function Dashboard() {
     const map = {};
     activeDeals.forEach((d) => {
       const g = mapGroupName(d.orgGroup);
-      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, orgReps: {}, expected: 0, contract: 0 };
+      if (!map[g]) map[g] = { name: g, orgs: new Set(), progress: 0, due: 0, delayed: 0, done: 0, active7: 0, followUp: 0, stale: 0, completed: 0, orgReps: {}, expected: 0, contract: 0 };
       map[g].orgs.add((d.orgName || "").trim());
       const cls = classifyDeal(d, curMonth, nextMonth);
       map[g][cls]++;
@@ -867,7 +870,7 @@ export default function Dashboard() {
     activeDeals.forEach((d) => {
       const name = (d.orgName || "").trim();
       if (!name) return;
-      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0 };
+      if (!map[name]) map[name] = { name, group: mapGroupName(d.orgGroup), deals: [], active7: 0, followUp: 0, stale: 0, completed: 0 };
       map[name].deals.push(d);
       const recency = dealKpiCat[d.id]?.recency;
       if (recency) map[name][recency]++;
@@ -877,7 +880,7 @@ export default function Dashboard() {
         const counts = { "Raw Data": 0, "플랫폼": 0, "기타": 0 };
         o.deals.forEach((d) => counts[classifyTargetProduct(d.targetProduct)]++);
         const totalExpected = o.deals.reduce((a, d) => a + (d.expectedPerformance || 0), 0);
-        const dominant = o.stale > 0 ? "stale" : o.followUp > 0 ? "followUp" : "active7";
+        const dominant = o.stale > 0 ? "stale" : o.followUp > 0 ? "followUp" : o.active7 > 0 ? "active7" : "completed";
         return { ...o, counts, totalCount: o.deals.length, totalExpected, dominant };
       })
       .sort((a, b) => b.totalCount - a.totalCount);
@@ -2115,6 +2118,7 @@ export default function Dashboard() {
                       <option value="active7">활발 진행</option>
                       <option value="followUp">후속 필요</option>
                       <option value="stale">장기 정체</option>
+                      <option value="completed">계약 완료</option>
                     </select>
                   </div>
                   <div className="overflow-x-auto">
