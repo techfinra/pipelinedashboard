@@ -669,6 +669,40 @@ export default function Dashboard() {
     return Object.entries(counts).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
   }, [activeDeals]);
 
+  const probSummary = useMemo(() => {
+    const isFinal = (p) => p === "완료";
+    const isDrop = (p) => !["상", "중", "하", "완료"].includes(p || "");
+    const isQuote = (p) => ["상", "중", "하"].includes(p);
+
+    const quoteRows = ["상", "중", "하"].map((lvl) => {
+      const list = activeDeals.filter((d) => d.probability === lvl);
+      return { key: lvl, label: lvl, count: list.length, amount: list.reduce((a, d) => a + (d.expectedPerformance || 0), 0) };
+    });
+    const quoteAll = activeDeals.filter((d) => isQuote(d.probability));
+    const contractAll = activeDeals.filter((d) => isFinal(d.probability));
+    const dropAll = activeDeals.filter((d) => isDrop(d.probability));
+
+    return {
+      quote: {
+        rows: quoteRows,
+        totalCount: quoteAll.length,
+        totalAmount: quoteAll.reduce((a, d) => a + (d.expectedPerformance || 0), 0),
+      },
+      contract: {
+        totalCount: contractAll.length,
+        totalAmount: contractAll.reduce((a, d) => a + (d.contractAmount || 0), 0),
+      },
+      drop: {
+        totalCount: dropAll.length,
+        totalAmount: dropAll.reduce((a, d) => a + (d.expectedPerformance || 0), 0),
+      },
+    };
+  }, [activeDeals]);
+
+  function formatEok(won) {
+    return (Math.round((won || 0) / 1e8 * 10) / 10) + "억원";
+  }
+
   const monthlyActivity = useMemo(() => {
     const map = {};
     allActivity.forEach((a) => {
@@ -2133,50 +2167,91 @@ export default function Dashboard() {
 
           {view === "report" && (
             <>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
-                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">구분별 계약금액 실적</div>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={groupCards.map((g) => ({ name: g.name, 계약금액: Math.round(g.contract / 1e8 * 100) / 100 }))}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E7EAF0" />
-                      <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={60} />
-                      <YAxis tick={{ fontSize: 10 }} unit="억" />
-                      <Tooltip formatter={(v) => `${v}억원`} />
-                      <Bar
-                        dataKey="계약금액"
-                        fill="#0D1F4E"
-                        radius={[4, 4, 0, 0]}
-                        cursor="pointer"
-                        onClick={(data) => setReportModal({ type: "group", key: data.name })}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
-                  <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">계약가능성 분포</div>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <PieChart>
-                      <Pie
-                        data={probDist}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        label={(e) => `${e.name} ${e.value}`}
-                        cursor="pointer"
-                        onClick={(entry) => setReportModal({ type: "prob", key: entry.name })}
-                      >
-                        {probDist.map((entry, i) => (
-                          <Cell key={i} fill={["#16A34A", "#D97706", "#DC2626", "#0D1F4E", "#9CA3AF"][i % 5]} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {[
+                  {
+                    key: "quote",
+                    icon: FileText,
+                    color: "text-blue-600 bg-blue-50",
+                    title: "견적",
+                    desc: "고객이 제안받은 견적 현황입니다.",
+                    totalCount: probSummary.quote.totalCount,
+                    totalAmount: probSummary.quote.totalAmount,
+                    rows: probSummary.quote.rows,
+                    totalRowClass: "bg-blue-50/60 dark:bg-blue-950/30",
+                    amountClass: "text-blue-600",
+                  },
+                  {
+                    key: "contract",
+                    icon: UserCheck,
+                    color: "text-green-600 bg-green-50",
+                    title: "계약",
+                    desc: "계약이 확정된 건의 현황입니다.",
+                    totalCount: probSummary.contract.totalCount,
+                    totalAmount: probSummary.contract.totalAmount,
+                    rows: [],
+                    totalRowClass: "bg-green-50/60 dark:bg-green-950/30",
+                    amountClass: "text-green-600",
+                  },
+                  {
+                    key: "drop",
+                    icon: X,
+                    color: "text-red-600 bg-red-50",
+                    title: "드랍",
+                    desc: "계약가능성 미상에서 드랍으로 변경된 건입니다.",
+                    totalCount: probSummary.drop.totalCount,
+                    totalAmount: probSummary.drop.totalAmount,
+                    rows: [],
+                    totalRowClass: "bg-red-50/60 dark:bg-red-950/30",
+                    amountClass: "text-red-600",
+                  },
+                ].map((card) => (
+                  <div key={card.key} className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <div className={"w-8 h-8 rounded-lg flex items-center justify-center shrink-0 " + card.color}>
+                        <card.icon className="w-4 h-4" />
+                      </div>
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100">{card.title}</div>
+                      <div className="ml-auto text-[11px] text-gray-400 text-right">
+                        총 {card.totalCount}건 <span className="text-gray-300">|</span> {formatEok(card.totalAmount)}
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-gray-400 mb-3">{card.desc}</div>
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-gray-400 text-[10px]">
+                          <th className="text-left font-normal pb-1.5">구분</th>
+                          <th className="text-right font-normal pb-1.5">건수</th>
+                          <th className="text-right font-normal pb-1.5">금액</th>
+                          <th className="w-4"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {card.rows.map((r) => (
+                          <tr
+                            key={r.key}
+                            onClick={() => setReportModal({ type: "probBucket", key: `${card.key}:${r.key}` })}
+                            className="border-t border-[#F4F6F9] dark:border-gray-800 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
+                          >
+                            <td className="py-2 font-semibold text-navy dark:text-gray-100">{r.label}</td>
+                            <td className="py-2 text-right">{r.count}</td>
+                            <td className={"py-2 text-right font-semibold " + card.amountClass}>{formatEok(r.amount)}</td>
+                            <td className="py-2 text-right text-gray-300">›</td>
+                          </tr>
                         ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: 11 }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                        <tr
+                          onClick={() => setReportModal({ type: "probBucket", key: `${card.key}:total` })}
+                          className={"border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer " + card.totalRowClass}
+                        >
+                          <td className="py-2 text-navy dark:text-gray-100">총합</td>
+                          <td className="py-2 text-right text-navy dark:text-gray-100">{card.totalCount}</td>
+                          <td className={"py-2 text-right " + card.amountClass}>{formatEok(card.totalAmount)}</td>
+                          <td className="py-2 text-right text-gray-300">›</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
               </div>
 
               <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
@@ -2766,6 +2841,20 @@ export default function Dashboard() {
           title = `계약가능성: ${reportModal.key}`;
           const known = ["상", "중", "하", "완료"];
           items = activeDeals.filter((d) => (known.includes(reportModal.key) ? d.probability === reportModal.key : !known.includes(d.probability)));
+        } else if (reportModal.type === "probBucket") {
+          const [bucket, sub] = reportModal.key.split(":");
+          const labelMap = { quote: "견적", contract: "계약", drop: "드랍" };
+          title = sub === "total" ? `${labelMap[bucket]} · 총합` : `${labelMap[bucket]} · ${sub}`;
+          if (bucket === "quote") {
+            items = sub === "total"
+              ? activeDeals.filter((d) => ["상", "중", "하"].includes(d.probability))
+              : activeDeals.filter((d) => d.probability === sub);
+          } else if (bucket === "contract") {
+            items = activeDeals.filter((d) => d.probability === "완료");
+          } else if (bucket === "drop") {
+            items = activeDeals.filter((d) => !["상", "중", "하", "완료"].includes(d.probability || ""));
+          }
+          items = items.sort((a, b) => (b.expectedPerformance || 0) - (a.expectedPerformance || 0));
         } else if (reportModal.type === "month") {
           title = `${reportModal.key} 활동 내역`;
           const dealsById = {};
@@ -2818,6 +2907,11 @@ export default function Dashboard() {
                           </div>
                           {reportModal.type === "group" && (
                             <span className="text-[10px] text-navy dark:text-gray-100 font-bold shrink-0 ml-2">{formatWon(d.contractAmount)}</span>
+                          )}
+                          {reportModal.type === "probBucket" && (
+                            <span className="text-[10px] text-navy dark:text-gray-100 font-bold shrink-0 ml-2">
+                              {formatWon(reportModal.key.startsWith("contract") ? d.contractAmount : d.expectedPerformance)}
+                            </span>
                           )}
                         </div>
                       ))}
