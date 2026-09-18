@@ -2167,91 +2167,158 @@ export default function Dashboard() {
 
           {view === "report" && (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {[
-                  {
-                    key: "quote",
-                    icon: FileText,
-                    color: "text-blue-600 bg-blue-50",
-                    title: "견적",
-                    desc: "고객사에 제안한 견적 건을 기준으로 집계한 현황입니다.",
-                    totalCount: probSummary.quote.totalCount,
-                    totalAmount: probSummary.quote.totalAmount,
-                    rows: probSummary.quote.rows,
-                    totalRowClass: "bg-blue-50/60 dark:bg-blue-950/30",
-                    amountClass: "text-blue-600",
-                  },
-                  {
-                    key: "contract",
-                    icon: UserCheck,
-                    color: "text-green-600 bg-green-50",
-                    title: "계약",
-                    desc: "협의가 완료되어 실제 계약으로 확정된 건의 현황입니다.",
-                    totalCount: probSummary.contract.totalCount,
-                    totalAmount: probSummary.contract.totalAmount,
-                    rows: [],
-                    totalRowClass: "bg-green-50/60 dark:bg-green-950/30",
-                    amountClass: "text-green-600",
-                  },
-                  {
-                    key: "drop",
-                    icon: X,
-                    color: "text-red-600 bg-red-50",
-                    title: "드랍",
-                    desc: "검토 후 진행이 중단되었거나 계약으로 이어지지 않은 건의 현황입니다.",
-                    totalCount: probSummary.drop.totalCount,
-                    totalAmount: probSummary.drop.totalAmount,
-                    rows: [],
-                    totalRowClass: "bg-red-50/60 dark:bg-red-950/30",
-                    amountClass: "text-red-600",
-                  },
-                ].map((card) => (
-                  <div key={card.key} className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4">
-                    <div className="flex items-center gap-2.5 mb-1">
-                      <div className={"w-8 h-8 rounded-lg flex items-center justify-center shrink-0 " + card.color}>
-                        <card.icon className="w-4 h-4" />
-                      </div>
-                      <div className="text-sm font-extrabold text-navy dark:text-gray-100">{card.title}</div>
-                      <div className="ml-auto text-[11px] text-gray-400 text-right">
-                        총 {card.totalCount}건 <span className="text-gray-300">|</span> {formatEok(card.totalAmount)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* 견적 (왼쪽, 크게, 도넛 포함) */}
+                <div className="md:row-span-2 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-blue-600 bg-blue-50">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="text-xl font-extrabold text-navy dark:text-gray-100">견적</div>
+                    <div className="ml-auto text-sm text-gray-400 text-right">
+                      총 {probSummary.quote.totalCount}건 <span className="text-gray-300">|</span> {formatEok(probSummary.quote.totalAmount)}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-400 mb-4">고객사에 제안한 견적 건을 기준으로 집계한 현황입니다.</div>
+
+                  <div className="flex items-center gap-6 mb-5">
+                    <div className="relative w-[180px] h-[180px] shrink-0 mx-auto">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={probSummary.quote.rows.filter((r) => r.count > 0).length > 0
+                              ? probSummary.quote.rows.filter((r) => r.count > 0).map((r) => ({ name: r.label, value: r.count }))
+                              : [{ name: "없음", value: 1 }]}
+                            dataKey="value"
+                            innerRadius="68%"
+                            outerRadius="100%"
+                            startAngle={90}
+                            endAngle={-270}
+                            stroke="none"
+                            paddingAngle={3}
+                            cornerRadius={8}
+                            isAnimationActive={false}
+                          >
+                            {(probSummary.quote.rows.filter((r) => r.count > 0).length > 0
+                              ? probSummary.quote.rows.filter((r) => r.count > 0)
+                              : [{ key: "없음" }]
+                            ).map((r, i) => (
+                              <Cell key={i} fill={{ 상: "#16A34A", 중: "#D97706", 하: "#DC2626" }[r.key] || "#E5E7EB"} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-3xl font-extrabold text-navy dark:text-gray-100 leading-none">{probSummary.quote.totalCount}</span>
+                        <span className="text-xs text-gray-400 mt-1">총 견적건</span>
                       </div>
                     </div>
-                    <div className="text-[11px] text-gray-400 mb-3">{card.desc}</div>
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-gray-400 text-[10px]">
-                          <th className="text-left font-normal pb-1.5">구분</th>
-                          <th className="text-right font-normal pb-1.5">건수</th>
-                          <th className="text-right font-normal pb-1.5">금액</th>
-                          <th className="w-4"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {card.rows.map((r) => (
-                          <tr
-                            key={r.key}
-                            onClick={() => setReportModal({ type: "probBucket", key: `${card.key}:${r.key}` })}
-                            className="border-t border-[#F4F6F9] dark:border-gray-800 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
-                          >
-                            <td className="py-2 font-semibold text-navy dark:text-gray-100">{r.label}</td>
-                            <td className="py-2 text-right">{r.count}</td>
-                            <td className={"py-2 text-right font-semibold " + card.amountClass}>{formatEok(r.amount)}</td>
-                            <td className="py-2 text-right text-gray-300">›</td>
-                          </tr>
-                        ))}
-                        <tr
-                          onClick={() => setReportModal({ type: "probBucket", key: `${card.key}:total` })}
-                          className={"border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer " + card.totalRowClass}
-                        >
-                          <td className="py-2 text-navy dark:text-gray-100">총합</td>
-                          <td className="py-2 text-right text-navy dark:text-gray-100">{card.totalCount}</td>
-                          <td className={"py-2 text-right " + card.amountClass}>{formatEok(card.totalAmount)}</td>
-                          <td className="py-2 text-right text-gray-300">›</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="flex-1 space-y-3">
+                      {[
+                        { key: "상", color: "#16A34A" },
+                        { key: "중", color: "#D97706" },
+                        { key: "하", color: "#DC2626" },
+                      ].map(({ key, color }) => {
+                        const r = probSummary.quote.rows.find((x) => x.key === key);
+                        return (
+                          <div key={key} className="flex items-center gap-2 text-sm">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+                            <span className="font-semibold text-gray-500">{key}</span>
+                            <span className="ml-auto font-extrabold text-navy dark:text-gray-100">{r ? r.count : 0}건</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                ))}
+
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-gray-400 text-xs">
+                        <th className="text-left font-normal pb-2">구분</th>
+                        <th className="text-right font-normal pb-2">건수</th>
+                        <th className="text-right font-normal pb-2">금액</th>
+                        <th className="w-4"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {probSummary.quote.rows.map((r) => (
+                        <tr
+                          key={r.key}
+                          onClick={() => setReportModal({ type: "probBucket", key: `quote:${r.key}` })}
+                          className="border-t border-[#F4F6F9] dark:border-gray-800 cursor-pointer hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
+                        >
+                          <td className="py-2.5 font-semibold text-navy dark:text-gray-100">{r.label}</td>
+                          <td className="py-2.5 text-right">{r.count}</td>
+                          <td className="py-2.5 text-right font-semibold text-blue-600">{formatEok(r.amount)}</td>
+                          <td className="py-2.5 text-right text-gray-300">›</td>
+                        </tr>
+                      ))}
+                      <tr
+                        onClick={() => setReportModal({ type: "probBucket", key: "quote:total" })}
+                        className="border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer bg-blue-50/60 dark:bg-blue-950/30"
+                      >
+                        <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.quote.totalCount}</td>
+                        <td className="py-2.5 text-right text-blue-600">{formatEok(probSummary.quote.totalAmount)}</td>
+                        <td className="py-2.5 text-right text-gray-300">›</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 계약 (오른쪽 위) */}
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-green-600 bg-green-50">
+                      <UserCheck className="w-5 h-5" />
+                    </div>
+                    <div className="text-xl font-extrabold text-navy dark:text-gray-100">계약</div>
+                    <div className="ml-auto text-sm text-gray-400 text-right">
+                      총 {probSummary.contract.totalCount}건 <span className="text-gray-300">|</span> {formatEok(probSummary.contract.totalAmount)}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-400 mb-3">협의가 완료되어 실제 계약으로 확정된 건의 현황입니다.</div>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr
+                        onClick={() => setReportModal({ type: "probBucket", key: "contract:total" })}
+                        className="border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer bg-green-50/60 dark:bg-green-950/30"
+                      >
+                        <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.contract.totalCount}건</td>
+                        <td className="py-2.5 text-right text-green-600">{formatEok(probSummary.contract.totalAmount)}</td>
+                        <td className="py-2.5 text-right text-gray-300 w-4">›</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 드랍 (오른쪽 아래) */}
+                <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-red-600 bg-red-50">
+                      <X className="w-5 h-5" />
+                    </div>
+                    <div className="text-xl font-extrabold text-navy dark:text-gray-100">드랍</div>
+                    <div className="ml-auto text-sm text-gray-400 text-right">
+                      총 {probSummary.drop.totalCount}건 <span className="text-gray-300">|</span> {formatEok(probSummary.drop.totalAmount)}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-400 mb-3">검토 후 진행이 중단되었거나 계약으로 이어지지 않은 건의 현황입니다.</div>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      <tr
+                        onClick={() => setReportModal({ type: "probBucket", key: "drop:total" })}
+                        className="border-t border-[#E7EAF0] dark:border-gray-700 font-extrabold cursor-pointer bg-red-50/60 dark:bg-red-950/30"
+                      >
+                        <td className="py-2.5 text-navy dark:text-gray-100">총합</td>
+                        <td className="py-2.5 text-right text-navy dark:text-gray-100">{probSummary.drop.totalCount}건</td>
+                        <td className="py-2.5 text-right text-red-600">{formatEok(probSummary.drop.totalAmount)}</td>
+                        <td className="py-2.5 text-right text-gray-300 w-4">›</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-6">
