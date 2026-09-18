@@ -807,6 +807,11 @@ export default function Dashboard() {
       .sort((a, b) => (dealKpiCat[a.id]?.futureDate || "").localeCompare(dealKpiCat[b.id]?.futureDate || ""));
   }, [activeDeals, dealKpiCat]);
 
+  const todayActionDueDeals = useMemo(() => {
+    const todayStr = todayLocalStr();
+    return actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
+  }, [actionDueDeals, dealKpiCat]);
+
   const orgRows = useMemo(() => {
     const map = {};
     deals.forEach((d) => {
@@ -1380,6 +1385,11 @@ export default function Dashboard() {
                 className="text-gray-400 hover:text-navy p-1.5 relative"
               >
                 <Bell className="w-4 h-4" />
+                {todayActionDueDeals.length > 0 && (
+                  <span className="absolute -top-0.5 -left-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-green-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {todayActionDueDeals.length}
+                  </span>
+                )}
                 {actionDueDeals.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
                     {actionDueDeals.length}
@@ -1387,9 +1397,8 @@ export default function Dashboard() {
                 )}
               </button>
               {notifOpen && (() => {
-                const todayStr = todayLocalStr();
-                const todayDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
-                const restDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate !== todayStr);
+                const todayDeals = todayActionDueDeals;
+                const restDeals = actionDueDeals.filter((d) => !todayActionDueDeals.includes(d));
                 const reasonText = (d) =>
                   dealKpiCat[d.id]?.futureReason === "renewal"
                     ? `계약갱신 예정 · ${d.contractRenewalDate}`
