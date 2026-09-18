@@ -91,13 +91,15 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
 .dark .kv, .dark .activity-item { border-bottom-color: var(--line); }
 
 @media print {
+  html, body { margin: 0 !important; padding: 0 !important; }
   body * { visibility: hidden; }
   #quote-print-area, #quote-print-area * { visibility: visible; }
   #quote-print-area {
-    position: absolute !important;
+    position: fixed !important;
     left: 0 !important;
     top: 0 !important;
     margin: 0 !important;
+    padding: 0 !important;
     width: 210mm !important;
     max-width: 210mm !important;
     min-height: 297mm;
