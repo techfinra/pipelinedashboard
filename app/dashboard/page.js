@@ -2224,7 +2224,7 @@ export default function Dashboard() {
                           <div key={key} className="flex items-center gap-2 text-sm">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
                             <span className="font-semibold text-gray-500">{key}</span>
-                            <span className="ml-auto font-extrabold text-navy dark:text-gray-100">{r ? r.count : 0}건</span>
+                            <span className="font-extrabold text-navy dark:text-gray-100">{r ? r.count : 0}건</span>
                           </div>
                         );
                       })}
