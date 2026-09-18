@@ -12,6 +12,8 @@ function getAdminApp() {
   });
 }
 
+const TARGET_ORGS = ["롯데카드", "KB국민카드", "NH카드", "카카오뱅크", "케이뱅크", "하나은행", "토스뱅크"];
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
@@ -20,29 +22,9 @@ export async function GET(request) {
 
   const app = getAdminApp();
   const db = admin.firestore(app);
-  const [dealsSnap, droppedSnap] = await Promise.all([
-    db.collection("deals").get(),
-    db.collection("droppedCompanies").get(),
-  ]);
-  const droppedNames = new Set(droppedSnap.docs.map((d) => d.id));
-  const known = ["상", "중", "하", "완료", "드랍"];
-
-  const batch = db.batch();
-  let toDropped = 0, toHa = 0;
-  dealsSnap.forEach((doc) => {
-    const d = doc.data();
-    const p = d.probability || "";
-    if (known.includes(p)) return;
-    const isDropped = droppedNames.has((d.orgName || "").trim());
-    if (isDropped) {
-      batch.update(doc.ref, { probability: "드랍" });
-      toDropped++;
-    } else {
-      batch.update(doc.ref, { probability: "하" });
-      toHa++;
-    }
-  });
-  await batch.commit();
-
-  return NextResponse.json({ message: "완료", toDropped, toHa });
+  const snap = await db.collection("deals").get();
+  const result = snap.docs
+    .map((d) => ({ id: d.id, orgName: d.data().orgName, targetProduct: d.data().targetProduct, orgGroup: d.data().orgGroup }))
+    .filter((d) => TARGET_ORGS.some((base) => (d.orgName || "").includes(base)));
+  return NextResponse.json(result);
 }
