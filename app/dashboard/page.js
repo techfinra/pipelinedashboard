@@ -1556,7 +1556,7 @@ export default function Dashboard() {
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
               <input
-                className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg pl-8 pr-16 py-2 w-32 sm:w-56"
+                className="text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#111827] dark:text-gray-100 rounded-lg pl-8 pr-24 py-2 w-32 sm:w-56"
                 placeholder="업체명으로 검색..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setSearchOpen(true); }}
@@ -1568,6 +1568,14 @@ export default function Dashboard() {
                   }
                 }}
               />
+              {search && (
+                <button
+                  onClick={() => { setSearch(""); setSearchOpen(false); }}
+                  className="absolute right-[52px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 dark:hover:text-gray-300 p-0.5 z-10"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
               <button
                 onClick={() => { if (searchMatches[0]) { openDeal(searchMatches[0].deals[0]); setSearchOpen(false); } }}
                 className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy text-white text-[10px] px-2 py-1.5 rounded-md"
