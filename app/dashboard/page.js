@@ -1390,9 +1390,9 @@ export default function Dashboard() {
                     {todayActionDueDeals.length}
                   </span>
                 )}
-                {actionDueDeals.length > 0 && (
+                {(actionDueDeals.length - todayActionDueDeals.length) > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-red-600 text-white text-[9px] font-bold flex items-center justify-center">
-                    {actionDueDeals.length}
+                    {actionDueDeals.length - todayActionDueDeals.length}
                   </span>
                 )}
               </button>
@@ -1436,7 +1436,7 @@ export default function Dashboard() {
                     )}
                     <div className="px-4 py-3 border-b border-[#E7EAF0] dark:border-gray-700 flex items-center justify-between">
                       <span className="text-xs font-extrabold text-navy dark:text-gray-100">🟠 액션 도래 (7일 이내)</span>
-                      <span className="text-[10px] text-gray-400">{actionDueDeals.length}건</span>
+                      <span className="text-[10px] text-gray-400">{restDeals.length}건</span>
                     </div>
                     <div>
                       {restDeals.map((d) => (
@@ -2931,7 +2931,11 @@ export default function Dashboard() {
             const c = dealKpiCat[d.id];
             return c?.recency === kpiModalKey || c?.future === kpiModalKey;
           })
-          .sort((a, b) => (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || ""));
+          .sort((a, b) =>
+            ["actionDue", "actionPlanned"].includes(kpiModalKey)
+              ? (dealKpiCat[a.id]?.futureDate || "").localeCompare(dealKpiCat[b.id]?.futureDate || "")
+              : (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || "")
+          );
         return (
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
@@ -2960,7 +2964,11 @@ export default function Dashboard() {
                           <LogoBadge name={d.orgName} />{d.orgName}
                           <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">{lastActionByDeal[d.id] || ""}</span>
+                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                          {["actionDue", "actionPlanned"].includes(kpiModalKey)
+                            ? dealKpiCat[d.id]?.futureDate || ""
+                            : lastActionByDeal[d.id] || ""}
+                        </span>
                       </div>
                       {kpiModalKey === "aiFlag" && d.aiInsight && (
                         <div className="text-[11px] text-pink-600 mt-1 ml-[28px]">✨ {d.aiInsight}</div>
