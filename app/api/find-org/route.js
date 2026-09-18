@@ -25,22 +25,24 @@ export async function GET(request) {
     db.collection("droppedCompanies").get(),
   ]);
   const droppedNames = new Set(droppedSnap.docs.map((d) => d.id));
+  const known = ["상", "중", "하", "완료", "드랍"];
 
-  const counts = { 상: 0, 중: 0, 하: 0, 완료: 0, 드랍: 0, 미상: 0 };
-  const unassessedList = [];
+  const batch = db.batch();
+  let toDropped = 0, toHa = 0;
   dealsSnap.forEach((doc) => {
     const d = doc.data();
     const p = d.probability || "";
-    if (counts[p] !== undefined) counts[p]++;
-    else {
-      counts["미상"]++;
-      unassessedList.push({
-        orgName: d.orgName,
-        targetProduct: d.targetProduct,
-        isDroppedCompany: droppedNames.has((d.orgName || "").trim()),
-      });
+    if (known.includes(p)) return;
+    const isDropped = droppedNames.has((d.orgName || "").trim());
+    if (isDropped) {
+      batch.update(doc.ref, { probability: "드랍" });
+      toDropped++;
+    } else {
+      batch.update(doc.ref, { probability: "하" });
+      toHa++;
     }
   });
+  await batch.commit();
 
-  return NextResponse.json({ counts, unassessedCount: unassessedList.length, unassessedList });
+  return NextResponse.json({ message: "완료", toDropped, toHa });
 }
