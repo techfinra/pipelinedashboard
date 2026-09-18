@@ -349,6 +349,7 @@ const NAV_ITEMS = [
   { key: "orgs", label: "기관현황", icon: Building2 },
   { key: "contracts", label: "계약관리", icon: Handshake },
   { key: "report", label: "리포트", icon: BarChart3 },
+  { key: "quote", label: "견적서 작성", icon: FileText },
   { key: "settings", label: "설정", icon: Settings },
 ];
 
@@ -438,6 +439,44 @@ export default function Dashboard() {
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [contractTab, setContractTab] = useState("all");
   const [contractKpiModal, setContractKpiModal] = useState(null);
+
+  const [quote, setQuote] = useState(() => {
+    const start = new Date();
+    const until = new Date();
+    until.setDate(until.getDate() + 30);
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return {
+      customerName: "",
+      contactName: "",
+      email: "",
+      quoteDate: fmt(start),
+      validUntil: fmt(until),
+      products: [
+        { key: "monitoring", name: "기업모니터링 서비스", desc: "기업의 주요 이슈와 변화를 모니터링하는 서비스입니다.", features: ["실시간 이슈 모니터링", "맞춤형 리포트 제공", "담당자 알림 서비스"], selected: true, plan: "pro", standardPrice: 1000000, proPrice: 1500000 },
+        { key: "dbSearch", name: "기업DB조회플랫폼 서비스", desc: "국내 기업 데이터 조회 및 분석 플랫폼입니다.", features: ["국내 기업 데이터 무제한 조회", "상세 재무/비재무 데이터", "API 연동 지원"], selected: true, plan: "pro", standardPrice: 800000, proPrice: 1200000 },
+      ],
+      discountRate: 33,
+      contractMonths: 12,
+      vatIncluded: true,
+      policies: [
+        { label: "서비스 이용 약관에 동의합니다.", checked: true },
+        { label: "개인정보 수집 및 이용에 동의합니다.", checked: true },
+        { label: "별도 계약서 체결이 필요합니다.", checked: false },
+      ],
+      memo: "",
+    };
+  });
+
+  const quoteCalc = useMemo(() => {
+    const selected = quote.products.filter((p) => p.selected);
+    const listTotal = selected.reduce((a, p) => a + (p.plan === "pro" ? p.proPrice : p.standardPrice), 0);
+    const finalMonthly = Math.round(listTotal * (1 - (quote.discountRate || 0) / 100));
+    const annual = finalMonthly * quote.contractMonths;
+    const discountAnnual = (listTotal - finalMonthly) * quote.contractMonths;
+    return { selected, listTotal, finalMonthly, annual, discountAnnual };
+  }, [quote]);
+
+  const quoteNumber = "CV-" + (quote.quoteDate || "").replace(/-/g, "") + "-001";
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -1430,6 +1469,7 @@ export default function Dashboard() {
                 {view === "mycompanies" && "담당업체"}
                 {view === "orgs" && "기관현황"}
                 {view === "contracts" && "계약·갱신 관리"}
+                {view === "quote" && "견적서 작성"}
                 {view === "report" && "리포트"}
                 {view === "settings" && "설정"}
               </h1>
@@ -2402,6 +2442,224 @@ export default function Dashboard() {
                         <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>만기 60일 전부터 갱신 검토 시작</div>
                         <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>조건 변경 시 내부 승인 후 고객 협의</div>
                         <div className="flex items-start gap-1.5"><span className="text-green-500 shrink-0">✓</span>갱신 완료 시 계약갱신일을 새 만기일로 업데이트</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {view === "quote" && (() => {
+            const updateProduct = (key, patch) => {
+              setQuote((q) => ({ ...q, products: q.products.map((p) => (p.key === key ? { ...p, ...patch } : p)) }));
+            };
+            const updatePolicy = (idx, checked) => {
+              setQuote((q) => ({ ...q, policies: q.policies.map((p, i) => (i === idx ? { ...p, checked } : p)) }));
+            };
+            const resetQuote = () => {
+              setQuote((q) => ({ ...q, customerName: "", contactName: "", email: "", memo: "" }));
+            };
+            const handlePrint = () => window.print();
+
+            return (
+              <div>
+                <div className="text-sm text-blue-700 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-300 rounded-xl px-4 py-3 mb-5 flex items-center justify-between gap-2 no-print">
+                  <span className="flex items-center gap-2">
+                    <span className="font-bold shrink-0">ℹ️</span>
+                    자동 견적 생성 + 상세 편집 기능으로 견적서 작성 시간을 줄여보세요.
+                  </span>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={resetQuote} className="text-xs border border-[#E7EAF0] dark:border-gray-700 bg-white dark:bg-[#111827] text-navy dark:text-gray-100 px-3 py-2 rounded-lg font-semibold">초기화</button>
+                    <button onClick={handlePrint} className="text-xs border border-[#E7EAF0] dark:border-gray-700 bg-white dark:bg-[#111827] text-navy dark:text-gray-100 px-3 py-2 rounded-lg font-semibold">PDF 미리보기</button>
+                    <button onClick={handlePrint} className="text-xs bg-navy text-white px-3 py-2 rounded-lg font-semibold">견적서 생성</button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 no-print-container">
+                  {/* 왼쪽: 입력 폼 */}
+                  <div className="space-y-4 no-print">
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">① 고객 정보</div>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">고객사명 *</label>
+                          <input className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.customerName} onChange={(e) => setQuote({ ...quote, customerName: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">담당자명 *</label>
+                          <input className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.contactName} onChange={(e) => setQuote({ ...quote, contactName: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">이메일</label>
+                          <input className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.email} onChange={(e) => setQuote({ ...quote, email: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">견적일 *</label>
+                          <input type="date" className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.quoteDate} onChange={(e) => setQuote({ ...quote, quoteDate: e.target.value })} />
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">유효기간 *</label>
+                          <input type="date" className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.validUntil} onChange={(e) => setQuote({ ...quote, validUntil: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">② 상품 구성</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {quote.products.map((p) => (
+                          <div
+                            key={p.key}
+                            className={"border rounded-xl p-3 cursor-pointer " + (p.selected ? "border-navy" : "border-[#E7EAF0] dark:border-gray-700 opacity-50")}
+                            onClick={() => updateProduct(p.key, { selected: !p.selected })}
+                          >
+                            <div className="text-xs font-bold text-navy dark:text-gray-100">{p.name}</div>
+                            <div className="text-[10px] text-gray-400 mb-2">{p.desc}</div>
+                            {["standard", "pro"].map((plan) => (
+                              <label key={plan} onClick={(e) => e.stopPropagation()} className="flex items-center justify-between py-1 cursor-pointer">
+                                <span className="flex items-center gap-1.5 text-xs">
+                                  <input type="radio" checked={p.plan === plan} onChange={() => updateProduct(p.key, { plan, selected: true })} />
+                                  <span className="font-semibold capitalize">{plan === "pro" ? "Pro" : "Standard"}</span>
+                                </span>
+                                <span className="text-xs font-bold text-navy dark:text-gray-100">{formatWon(plan === "pro" ? p.proPrice : p.standardPrice)}/월</span>
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">③ 가격 설정</div>
+                      <div className="grid grid-cols-4 gap-3 mb-3">
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">정가(월)</label>
+                          <div className="text-sm font-bold text-navy dark:text-gray-100 border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2 bg-[#F8FAFC] dark:bg-[#0B1220]">{quoteCalc.listTotal.toLocaleString()}원</div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">할인율</label>
+                          <div className="flex items-center border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2">
+                            <input type="number" className="w-full text-sm py-2 outline-none dark:bg-[#111827] dark:text-gray-100" value={quote.discountRate} onChange={(e) => setQuote({ ...quote, discountRate: Number(e.target.value) })} />
+                            <span className="text-xs text-gray-400">%</span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">최종 월 금액</label>
+                          <div className="text-sm font-bold text-blue-600 border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-3 py-2 bg-[#F8FAFC] dark:bg-[#0B1220]">{quoteCalc.finalMonthly.toLocaleString()}원</div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1">계약기간</label>
+                          <select className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-3 py-2" value={quote.contractMonths} onChange={(e) => setQuote({ ...quote, contractMonths: Number(e.target.value) })}>
+                            {[6, 12, 24, 36].map((m) => <option key={m} value={m}>{m}개월</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+                        <input type="checkbox" checked={quote.vatIncluded} onChange={(e) => setQuote({ ...quote, vatIncluded: e.target.checked })} /> VAT 포함
+                      </label>
+                      <div className="bg-[#F8FAFC] dark:bg-[#0B1220] rounded-xl p-3 flex items-center gap-6">
+                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" />자동 계산 결과</div>
+                        <div className="text-xs"><span className="text-gray-400">월 이용료(VAT{quote.vatIncluded ? "포함" : "별도"}) </span><span className="font-bold text-navy dark:text-gray-100">{quoteCalc.finalMonthly.toLocaleString()}원</span></div>
+                        <div className="text-xs"><span className="text-gray-400">연간금액 </span><span className="font-bold text-navy dark:text-gray-100">{quoteCalc.annual.toLocaleString()}원</span></div>
+                        <div className="text-xs"><span className="text-gray-400">할인금액(연간) </span><span className="font-bold text-green-600">{quoteCalc.discountAnnual.toLocaleString()}원</span></div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">④ 이용정책 / 메모</div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1.5">이용정책</label>
+                          <div className="space-y-1.5">
+                            {quote.policies.map((p, i) => (
+                              <label key={i} className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                                <input type="checkbox" checked={p.checked} onChange={(e) => updatePolicy(i, e.target.checked)} /> {p.label}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[11px] text-gray-400 block mb-1.5">특이사항</label>
+                          <textarea maxLength={500} rows={4} className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-2 py-1.5" value={quote.memo} onChange={(e) => setQuote({ ...quote, memo: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 오른쪽: 실시간 미리보기 */}
+                  <div>
+                    <div id="quote-print-area" className="bg-white text-[#1E293B] rounded-2xl shadow-lg overflow-hidden" style={{ width: "100%", maxWidth: "700px", margin: "0 auto" }}>
+                      <div className="px-8 py-7" style={{ background: "linear-gradient(135deg, #0D1F4E, #16306E)" }}>
+                        <div className="flex items-center justify-between">
+                          <div className="text-white text-2xl font-extrabold italic">crediview</div>
+                          <div className="text-right">
+                            <div className="text-white/60 text-[10px] tracking-widest">QUOTATION</div>
+                            <div className="text-white text-lg font-extrabold">견적서</div>
+                          </div>
+                        </div>
+                        <div className="text-white/70 text-[11px] mt-1">by ㈜테크핀레이팅스 | Corporate Monitoring & Data Service</div>
+                      </div>
+
+                      <div className="px-8 py-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <div className="text-lg font-extrabold">{quote.customerName || "고객사명"} 귀중</div>
+                            <div className="text-xs text-gray-500 mt-1">귀사의 무궁한 발전을 기원합니다.<br />아래와 같이 크레디뷰 서비스에 대한 견적서를 제출합니다.</div>
+                          </div>
+                          <div className="text-right text-[11px] text-gray-500 shrink-0 ml-4">
+                            <div>견적번호 <b className="text-navy">{quoteNumber}</b></div>
+                            <div>견적일 <b>{(quote.quoteDate || "").replace(/-/g, "년 ").replace(/(\d+)$/, "$1일").replace("년 ", "년 ").replace(/^(\d+)년/, "$1년") }</b></div>
+                            <div>유효기간 <b>{quote.validUntil}</b></div>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F4F6F9] rounded-xl p-3 mb-4">
+                          <div className="text-xs font-bold text-navy mb-1 flex items-center gap-1"><span className="w-1.5 h-3.5 bg-navy inline-block rounded-sm" />서비스 개요</div>
+                          <div className="text-[11px] text-gray-600 leading-relaxed">crediview는 국내 최대 기업 데이터와 정교한 분석 기술을 바탕으로, 기업의 리스크를 사전에 파악하고 비즈니스 기회를 확장할 수 있는 인사이트를 제공합니다.</div>
+                        </div>
+
+                        <div className="text-xs font-bold text-navy mb-2 flex items-center gap-1"><span className="w-1.5 h-3.5 bg-navy inline-block rounded-sm" />제공 서비스 및 가격</div>
+                        <table className="w-full text-[11px] mb-3" style={{ borderCollapse: "collapse" }}>
+                          <thead>
+                            <tr className="bg-[#F4F6F9] text-gray-500">
+                              <th className="text-left font-semibold py-2 px-2">서비스명</th>
+                              <th className="text-center font-semibold py-2 px-2">선택 상품</th>
+                              <th className="text-left font-semibold py-2 px-2">주요 제공 내용</th>
+                              <th className="text-right font-semibold py-2 px-2">월 이용료(VAT{quote.vatIncluded ? "포함" : "별도"})</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {quoteCalc.selected.map((p) => (
+                              <tr key={p.key} className="border-b border-[#F0F2F5]">
+                                <td className="py-2 px-2 font-semibold">{p.name}</td>
+                                <td className="py-2 px-2 text-center">
+                                  <span className="bg-navy text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">{p.plan === "pro" ? "Pro" : "Standard"}</span>
+                                </td>
+                                <td className="py-2 px-2 text-gray-500">
+                                  {p.features.map((f, i) => <div key={i}>· {f}</div>)}
+                                </td>
+                                <td className="py-2 px-2 text-right font-bold">{(p.plan === "pro" ? p.proPrice : p.standardPrice).toLocaleString()}원</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        <div className="bg-[#EAF1FF] rounded-xl px-4 py-3 flex items-center justify-between mb-4">
+                          <span className="text-xs font-extrabold text-navy">최종 견적금액 (VAT{quote.vatIncluded ? "포함" : "별도"})</span>
+                          <span className="text-xs text-gray-600">월 이용료 <b className="text-blue-600 text-sm">{quoteCalc.finalMonthly.toLocaleString()}원</b>{"  "}연간금액({quote.contractMonths}개월) <b className="text-blue-600 text-sm">{quoteCalc.annual.toLocaleString()}원</b></span>
+                        </div>
+
+                        <div className="text-xs font-bold text-navy mb-2 flex items-center gap-1"><span className="w-1.5 h-3.5 bg-navy inline-block rounded-sm" />이용 정책</div>
+                        <ol className="text-[11px] text-gray-600 space-y-1 mb-4 list-decimal list-inside">
+                          <li>본 견적서는 발행일로부터 {Math.round((new Date(quote.validUntil) - new Date(quote.quoteDate)) / 86400000) || 30}일간 유효합니다.</li>
+                          <li>서비스 이용은 ㈜테크핀레이팅스의 이용약관에 따릅니다.</li>
+                          <li>계약 체결 후 서비스 개시까지 영업일 기준 최대 5일이 소요될 수 있습니다.</li>
+                          {quote.memo && <li>{quote.memo}</li>}
+                        </ol>
+
+                        <div className="text-right text-navy italic font-extrabold text-lg mt-6">crediview</div>
+                        <div className="text-right text-[10px] text-gray-400">by ㈜테크핀레이팅스</div>
                       </div>
                     </div>
                   </div>
