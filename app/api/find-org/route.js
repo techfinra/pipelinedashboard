@@ -12,6 +12,16 @@ function getAdminApp() {
   });
 }
 
+const UPDATES = [
+  { id: "p2MPqEe0xdxCY9n8Xqlb", org: "신한은행", product: "Raw Data(CPS)", contractStartDate: "2026-08-31", contractRenewalDate: "2027-08-31" },
+  { id: "ZA5AVtkO5oQN6FJCa9w5", org: "신한은행", product: "Raw Data(월별매입매출)-부가세", contractStartDate: "2026-12-24", contractRenewalDate: "2027-12-24" },
+  { id: "grXmKc5uqaQmY2rF4vYO", org: "신한은행", product: "Raw Data(월별재무제표)", contractStartDate: "2026-12-23", contractRenewalDate: "2027-12-23" },
+  { id: "jV28xq6QqsbKQmEhfK27", org: "신한카드", product: "Raw Data(월별매입매출)-부가세", contractStartDate: "2026-09-30", contractRenewalDate: "2027-09-30" },
+  { id: "2cFGboNOheo9oo9tt28g", org: "제주은행", product: "Raw Data(CPS)", contractStartDate: "2026-02-09", contractRenewalDate: "2027-02-09" },
+  { id: "48rVYPSkxhET4HOmwwz5", org: "PACM", product: "패키지(기업모니터링 포함)", contractStartDate: "2026-08-01", contractRenewalDate: "2026-12-01" },
+  { id: "DcHuU2aU0Qhlcja0DZkp", org: "신한캐피탈", product: "패키지(기업DB조회, 기업모니터링)", contractStartDate: "2026-07-01", contractRenewalDate: "2027-07-01" },
+];
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = (searchParams.get("code") || "").trim();
@@ -21,16 +31,17 @@ export async function GET(request) {
   try {
     const app = getAdminApp();
     const db = admin.firestore(app);
-    const snap = await db.collection("deals").get();
-    const queries = ["신한은행", "신한카드", "제주은행", "PACM", "신한캐피탈"];
-    const result = {};
-    queries.forEach((q) => {
-      result[q] = snap.docs
-        .map((d) => ({ id: d.id, orgName: d.data().orgName, targetProduct: d.data().targetProduct, contractStartDate: d.data().contractStartDate, contractRenewalDate: d.data().contractRenewalDate }))
-        .filter((d) => (d.orgName || "").includes(q));
+    const batch = db.batch();
+    UPDATES.forEach((u) => {
+      batch.update(db.collection("deals").doc(u.id), {
+        contractStartDate: u.contractStartDate,
+        contractRenewalDate: u.contractRenewalDate,
+        contractRenewalInferredByAI: false,
+      });
     });
-    return NextResponse.json(result);
+    await batch.commit();
+    return NextResponse.json({ message: "완료", updated: UPDATES.map((u) => ({ org: u.org, product: u.product })) });
   } catch (e) {
-    return NextResponse.json({ error: String(e && e.stack ? e.stack : e) }, { status: 500 });
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
