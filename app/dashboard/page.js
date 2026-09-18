@@ -38,6 +38,11 @@ function parseGoalMonth(text) {
   return m ? parseInt(m[1], 10) : null;
 }
 
+function todayLocalStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function parseAmountKR(text) {
   if (!text) return null;
   const t = text.trim();
@@ -523,6 +528,14 @@ export default function Dashboard() {
 
   const dealKpiCat = useMemo(() => {
     const now = new Date();
+    const todayLocal = new Date();
+    todayLocal.setHours(0, 0, 0, 0);
+    const daysUntil = (dateStr) => {
+      if (!dateStr) return null;
+      const target = new Date(dateStr + "T00:00:00");
+      if (isNaN(target)) return null;
+      return Math.round((target - todayLocal) / 86400000);
+    };
     const map = {};
     activeDeals.forEach((d) => {
       const lastDate = lastActionByDeal[d.id];
@@ -537,17 +550,17 @@ export default function Dashboard() {
       let futureReason = null;
       let futureDate = null;
       if (d.nextMeetingDate) {
-        const diffFuture = Math.floor((new Date(d.nextMeetingDate) - now) / 86400000);
-        if (diffFuture >= 0 && diffFuture <= 7) { future = "actionDue"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
-        else if (diffFuture > 7) { future = "actionPlanned"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
+        const diffFuture = daysUntil(d.nextMeetingDate);
+        if (diffFuture !== null && diffFuture >= 0 && diffFuture <= 7) { future = "actionDue"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
+        else if (diffFuture !== null && diffFuture > 7) { future = "actionPlanned"; futureReason = "meeting"; futureDate = d.nextMeetingDate; }
       }
       if (d.nextActionDate) {
-        const diffAction = Math.floor((new Date(d.nextActionDate) - now) / 86400000);
+        const diffAction = daysUntil(d.nextActionDate);
         let actionCat = null;
-        if (diffAction >= 0 && diffAction <= 7) actionCat = "actionDue";
-        else if (diffAction > 7) actionCat = "actionPlanned";
+        if (diffAction !== null && diffAction >= 0 && diffAction <= 7) actionCat = "actionDue";
+        else if (diffAction !== null && diffAction > 7) actionCat = "actionPlanned";
         if (actionCat) {
-          if (!future || (actionCat === "actionDue" && future !== "actionDue") || (actionCat === future && diffAction < Math.floor((new Date(futureDate) - now) / 86400000))) {
+          if (!future || (actionCat === "actionDue" && future !== "actionDue") || (actionCat === future && diffAction < daysUntil(futureDate))) {
             future = actionCat;
             futureReason = "nextAction";
             futureDate = d.nextActionDate;
@@ -555,13 +568,13 @@ export default function Dashboard() {
         }
       }
       if (d.contractRenewalDate) {
-        const diffRenewal = Math.floor((new Date(d.contractRenewalDate) - now) / 86400000);
+        const diffRenewal = daysUntil(d.contractRenewalDate);
         let renewalCat = null;
-        if (diffRenewal >= 0 && diffRenewal <= 30) renewalCat = "actionDue";
-        else if (diffRenewal > 30 && diffRenewal <= 60) renewalCat = "actionPlanned";
+        if (diffRenewal !== null && diffRenewal >= 0 && diffRenewal <= 30) renewalCat = "actionDue";
+        else if (diffRenewal !== null && diffRenewal > 30 && diffRenewal <= 60) renewalCat = "actionPlanned";
         if (renewalCat) {
           // 갱신 임박이 더 급하면(actionDue) 우선, 같은 등급이면 더 이른 날짜 우선
-          if (!future || (renewalCat === "actionDue" && future !== "actionDue") || (renewalCat === future && diffRenewal < Math.floor((new Date(futureDate) - now) / 86400000))) {
+          if (!future || (renewalCat === "actionDue" && future !== "actionDue") || (renewalCat === future && diffRenewal < daysUntil(futureDate))) {
             future = renewalCat;
             futureReason = "renewal";
             futureDate = d.contractRenewalDate;
@@ -836,7 +849,7 @@ export default function Dashboard() {
   function buildMemoPatch(oldMemo, newMemo, existingHistory) {
     const history = existingHistory || [];
     const updatedHistory = (oldMemo && oldMemo.trim() && oldMemo.trim() !== (newMemo || "").trim())
-      ? [...history, { text: oldMemo.trim(), date: new Date().toISOString().slice(0, 10) }]
+      ? [...history, { text: oldMemo.trim(), date: todayLocalStr() }]
       : history;
     return { memo: newMemo, memoHistory: updatedHistory };
   }
@@ -1374,7 +1387,7 @@ export default function Dashboard() {
                 )}
               </button>
               {notifOpen && (() => {
-                const todayStr = new Date().toISOString().slice(0, 10);
+                const todayStr = todayLocalStr();
                 const todayDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
                 const restDeals = actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate !== todayStr);
                 const reasonText = (d) =>
@@ -2378,7 +2391,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
                           {row.editable && editingField !== row.field && (
-                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || new Date().toISOString().slice(0, 10)); }}>수정</button>
+                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || todayLocalStr()); }}>수정</button>
                           )}
                         </div>
                       </div>
