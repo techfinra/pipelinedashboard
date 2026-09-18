@@ -441,6 +441,10 @@ export default function Dashboard() {
   const [contractTab, setContractTab] = useState("all");
   const [contractKpiModal, setContractKpiModal] = useState(null);
 
+  const [quoteEditMode, setQuoteEditMode] = useState(false);
+  const [editedQuoteHtml, setEditedQuoteHtml] = useState(null);
+  const quotePrintRef = useRef(null);
+
   const [quote, setQuote] = useState(() => {
     const start = new Date();
     const until = new Date();
@@ -478,6 +482,59 @@ export default function Dashboard() {
   }, [quote]);
 
   const quoteNumber = "CV-" + (quote.quoteDate || "").replace(/-/g, "") + "-001";
+
+  function enterQuoteEditMode() {
+    if (editedQuoteHtml === null && quotePrintRef.current) {
+      setEditedQuoteHtml(quotePrintRef.current.innerHTML);
+    }
+    setQuoteEditMode(true);
+  }
+  function exitQuoteEditMode() {
+    if (quotePrintRef.current) setEditedQuoteHtml(quotePrintRef.current.innerHTML);
+    setQuoteEditMode(false);
+  }
+  function resetQuoteToAuto() {
+    setEditedQuoteHtml(null);
+    setQuoteEditMode(false);
+  }
+  function quoteExec(cmd, value) {
+    quotePrintRef.current?.focus();
+    document.execCommand(cmd, false, value);
+  }
+  function quoteInsertHtml(html) {
+    quotePrintRef.current?.focus();
+    document.execCommand("insertHTML", false, html);
+  }
+  function quoteInsertTable() {
+    quoteInsertHtml(
+      '<table style="width:100%;border-collapse:collapse;margin:8px 0;font-size:11px" border="1">' +
+      '<tr><td style="padding:6px;border:1px solid #ccc">항목1</td><td style="padding:6px;border:1px solid #ccc">항목2</td></tr>' +
+      '<tr><td style="padding:6px;border:1px solid #ccc">항목3</td><td style="padding:6px;border:1px solid #ccc">항목4</td></tr>' +
+      "</table>"
+    );
+  }
+  function quoteInsertShape(shape) {
+    const style = shape === "circle"
+      ? "display:inline-block;width:80px;height:80px;background:#EAF1FF;border:1px solid #0D1F4E;border-radius:50%;margin:4px;vertical-align:middle;"
+      : "display:inline-block;width:120px;height:60px;background:#EAF1FF;border:1px solid #0D1F4E;margin:4px;vertical-align:middle;";
+    quoteInsertHtml(`<div style="${style}"></div>`);
+  }
+  function quoteInsertLine() {
+    quoteInsertHtml('<hr style="border:none;border-top:1px solid #ccc;margin:10px 0;">');
+  }
+  function quoteInsertText() {
+    quoteInsertHtml('<div style="display:inline-block;min-width:100px;padding:4px;border:1px dashed #9CA3AF;margin:4px;">새 텍스트</div>');
+  }
+  function quoteInsertImage(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      quoteInsertHtml(`<img src="${reader.result}" style="max-width:200px;display:block;margin:8px 0;">`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  }
   const [selectedOrgName, setSelectedOrgName] = useState(null);
   const [selectedOrgCategory, setSelectedOrgCategory] = useState("Raw Data");
   const [panelOrigin, setPanelOrigin] = useState(null);
@@ -814,9 +871,11 @@ export default function Dashboard() {
 
   const monthlyActivity = useMemo(() => {
     const map = {};
+    const currentYm = todayLocalStr().slice(0, 7);
     allActivity.forEach((a) => {
       if (!a.date) return;
       const ym = a.date.slice(0, 7);
+      if (ym > currentYm) return;
       map[ym] = (map[ym] || 0) + 1;
     });
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-12).map(([month, count]) => ({ month, count }));
@@ -2593,7 +2652,69 @@ export default function Dashboard() {
 
                   {/* 오른쪽: 실시간 미리보기 */}
                   <div>
-                    <div id="quote-print-area" className="bg-white text-[#1E293B] rounded-2xl shadow-lg overflow-hidden" style={{ width: "100%", maxWidth: "700px", margin: "0 auto" }}>
+                    <div className="flex items-center justify-between mb-2 no-print">
+                      <div className="text-xs text-gray-400">{quoteEditMode ? "요소를 클릭해서 직접 수정하세요." : "자동 생성된 견적서입니다."}</div>
+                      <div className="flex gap-2">
+                        {editedQuoteHtml !== null && (
+                          <button onClick={resetQuoteToAuto} className="text-[11px] text-gray-400 underline">자동생성으로 되돌리기</button>
+                        )}
+                        {quoteEditMode ? (
+                          <button onClick={exitQuoteEditMode} className="text-[11px] bg-navy text-white px-3 py-1.5 rounded-lg font-semibold">편집 완료</button>
+                        ) : (
+                          <button onClick={enterQuoteEditMode} className="text-[11px] border border-navy text-navy dark:text-gray-100 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />상세 편집
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {quoteEditMode && (
+                      <div className="flex flex-wrap items-center gap-1 mb-2 p-2 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl no-print">
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("undo")} className="p-1.5 rounded hover:bg-[#F0F2F5]" title="실행취소"><span className="text-sm">↶</span></button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("redo")} className="p-1.5 rounded hover:bg-[#F0F2F5]" title="다시실행"><span className="text-sm">↷</span></button>
+                        <span className="w-px h-4 bg-[#E7EAF0] mx-1" />
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("bold")} className="px-2 py-1 rounded hover:bg-[#F0F2F5] font-bold text-xs">B</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("italic")} className="px-2 py-1 rounded hover:bg-[#F0F2F5] italic text-xs">I</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("underline")} className="px-2 py-1 rounded hover:bg-[#F0F2F5] underline text-xs">U</button>
+                        <span className="w-px h-4 bg-[#E7EAF0] mx-1" />
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("justifyLeft")} className="p-1.5 rounded hover:bg-[#F0F2F5] text-xs">왼쪽</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("justifyCenter")} className="p-1.5 rounded hover:bg-[#F0F2F5] text-xs">가운데</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteExec("justifyRight")} className="p-1.5 rounded hover:bg-[#F0F2F5] text-xs">오른쪽</button>
+                        <span className="w-px h-4 bg-[#E7EAF0] mx-1" />
+                        <select onMouseDown={(e) => e.preventDefault()} onChange={(e) => quoteExec("fontSize", e.target.value)} className="text-xs border border-[#E7EAF0] rounded px-1 py-1" defaultValue="">
+                          <option value="" disabled>글자크기</option>
+                          <option value="2">작게</option>
+                          <option value="3">보통</option>
+                          <option value="5">크게</option>
+                          <option value="7">아주크게</option>
+                        </select>
+                        <input onMouseDown={(e) => e.preventDefault()} type="color" onChange={(e) => quoteExec("foreColor", e.target.value)} className="w-7 h-7 border border-[#E7EAF0] rounded cursor-pointer" title="글자색" />
+                        <span className="w-px h-4 bg-[#E7EAF0] mx-1" />
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={quoteInsertText} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs">+텍스트</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={quoteInsertTable} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs">+표</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteInsertShape("rect")} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs">+사각형</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={() => quoteInsertShape("circle")} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs">+원</button>
+                        <button onMouseDown={(e) => e.preventDefault()} onClick={quoteInsertLine} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs">+선</button>
+                        <label onMouseDown={(e) => e.preventDefault()} className="px-2 py-1 rounded hover:bg-[#F0F2F5] text-xs cursor-pointer">
+                          +이미지
+                          <input type="file" accept="image/*" className="hidden" onChange={quoteInsertImage} />
+                        </label>
+                      </div>
+                    )}
+
+                    {editedQuoteHtml !== null ? (
+                      <div
+                        id="quote-print-area"
+                        ref={quotePrintRef}
+                        contentEditable={quoteEditMode}
+                        suppressContentEditableWarning
+                        onBlur={() => { if (quotePrintRef.current) setEditedQuoteHtml(quotePrintRef.current.innerHTML); }}
+                        className={"bg-white text-[#1E293B] rounded-2xl shadow-lg overflow-hidden " + (quoteEditMode ? "ring-2 ring-navy" : "")}
+                        style={{ width: "100%", maxWidth: "700px", margin: "0 auto", outline: "none" }}
+                        dangerouslySetInnerHTML={{ __html: editedQuoteHtml }}
+                      />
+                    ) : (
+                    <div id="quote-print-area" ref={quotePrintRef} className="bg-white text-[#1E293B] rounded-2xl shadow-lg overflow-hidden" style={{ width: "100%", maxWidth: "700px", margin: "0 auto" }}>
                       <div className="px-8 py-7" style={{ background: "linear-gradient(135deg, #0D1F4E, #16306E)" }}>
                         <div className="flex items-center justify-between">
                           <div className="text-white text-2xl font-extrabold italic">crediview</div>
@@ -2666,6 +2787,7 @@ export default function Dashboard() {
                         <div className="text-right text-[10px] text-gray-400">by ㈜테크핀레이팅스</div>
                       </div>
                     </div>
+                    )}
                   </div>
                 </div>
               </div>
