@@ -761,8 +761,8 @@ export default function Dashboard() {
 
   const contractKpis = useMemo(() => {
     const total = contractRenewalList.length;
-    const within60 = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60).length;
     const within30 = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 30).length;
+    const within60 = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft > 30 && d._daysLeft <= 60).length;
     const thisMonth = todayLocalStr().slice(0, 7);
     const thisMonthAmount = contractRenewalList
       .filter((d) => (d.contractRenewalDate || "").slice(0, 7) === thisMonth)
@@ -2330,7 +2330,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-1 mb-3 border-b border-[#E7EAF0] dark:border-gray-700">
                       {[
                         { key: "all", label: `전체 (${contractRenewalList.length})` },
-                        { key: "pending", label: `갱신 예정 (${contractKpis.within60})` },
+                        { key: "pending", label: `갱신 예정 (${contractKpis.within30 + contractKpis.within60})` },
                         { key: "done", label: "갱신 완료 (0)" },
                       ].map((t) => (
                         <button
@@ -3351,7 +3351,7 @@ export default function Dashboard() {
         const thisMonth = todayLocalStr().slice(0, 7);
         const titleMap = { total: "전체 계약", within60: "60일 이내 갱신 예정", within30: "30일 이내 우선 확인", thisMonth: "이번 달 예상 갱신금액" };
         let items = contractRenewalList;
-        if (contractKpiModal === "within60") items = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 60);
+        if (contractKpiModal === "within60") items = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft > 30 && d._daysLeft <= 60);
         else if (contractKpiModal === "within30") items = contractRenewalList.filter((d) => d._daysLeft !== null && d._daysLeft >= 0 && d._daysLeft <= 30);
         else if (contractKpiModal === "thisMonth") items = contractRenewalList.filter((d) => (d.contractRenewalDate || "").slice(0, 7) === thisMonth);
         return (
