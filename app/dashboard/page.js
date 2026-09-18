@@ -2100,7 +2100,9 @@ export default function Dashboard() {
             <>
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-sm font-extrabold text-navy dark:text-gray-100">산업군별 주요 기관</h2>
+                  <h2 className="text-sm font-extrabold text-navy dark:text-gray-100">
+                    산업군별 주요 기관 <span className="text-xs font-normal text-gray-400">(총 {new Set(activeDeals.map((d) => (d.orgName || "").trim())).size}개 업체)</span>
+                  </h2>
                   <p className="text-xs text-gray-400 mt-0.5">각 카드를 선택하면 해당 그룹 딜만 아래 목록에서 확인할 수 있습니다.</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -2144,7 +2146,7 @@ export default function Dashboard() {
                       </div>
                       <span className="text-gray-300">›</span>
                     </div>
-                    <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 기업</div>
+                    <div className="text-[11px] text-gray-400 mb-3 ml-10">총 {g.orgCount}개 업체</div>
                     <div className="flex items-center gap-1 mb-4 -ml-1">
                       <GroupDonut active7={g.active7} followUp={g.followUp} stale={g.stale} />
                       <div className="flex-1 space-y-2.5 pl-2">
