@@ -109,3 +109,11 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
   @page { size: A4; margin: 0; }
 }
 
+@keyframes tebi-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-5px) rotate(3deg); }
+}
+.tebi-bob {
+  animation: tebi-bob 1.8s ease-in-out infinite;
+}
+
