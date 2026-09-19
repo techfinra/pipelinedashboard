@@ -447,6 +447,7 @@ export default function Dashboard() {
   const [groupRecencyModal, setGroupRecencyModal] = useState(null);
   const [tebiModalOpen, setTebiModalOpen] = useState(false);
   const [tebiPos, setTebiPos] = useState({ x: 50, y: 50 });
+  const [tebiDir, setTebiDir] = useState("right");
 
   const [quoteEditMode, setQuoteEditMode] = useState(false);
   const [editedQuoteHtml, setEditedQuoteHtml] = useState(null);
@@ -612,8 +613,12 @@ export default function Dashboard() {
 
   useEffect(() => {
     const iv = setInterval(() => {
-      setTebiPos({ x: 12 + Math.random() * 76, y: 25 + Math.random() * 50 });
-    }, 3200);
+      setTebiPos((prev) => {
+        const nextX = 12 + Math.random() * 76;
+        setTebiDir(nextX >= prev.x ? "right" : "left");
+        return { x: nextX, y: 25 + Math.random() * 50 };
+      });
+    }, 2600);
     return () => clearInterval(iv);
   }, []);
 
@@ -1820,14 +1825,23 @@ export default function Dashboard() {
               style={{
                 left: `${tebiPos.x}%`,
                 top: `${tebiPos.y}%`,
-                width: 36,
-                height: 36,
-                marginLeft: -18,
-                marginTop: -18,
-                transition: "left 2.8s ease-in-out, top 2.8s ease-in-out, transform 0.15s ease-out",
+                width: 32,
+                height: 40,
+                marginLeft: -16,
+                marginTop: -20,
+                transition: "left 2.6s linear, top 2.6s linear, transform 0.15s ease-out",
               }}
             >
-              <img src="/tebi-mascot.png" alt="테비" className="w-full h-full object-contain tebi-bob" />
+              <span
+                style={{
+                  display: "block",
+                  width: "100%",
+                  height: "100%",
+                  transform: tebiDir === "left" ? "scaleX(-1)" : "none",
+                }}
+              >
+                <img src="/tebi-walk.png" alt="테비" className="w-full h-full object-contain tebi-walk" />
+              </span>
             </button>
           </div>
         )}
