@@ -446,8 +446,6 @@ export default function Dashboard() {
   const [contractKpiModal, setContractKpiModal] = useState(null);
   const [groupRecencyModal, setGroupRecencyModal] = useState(null);
   const [tebiModalOpen, setTebiModalOpen] = useState(false);
-  const [tebiPos, setTebiPos] = useState({ x: 50, y: 50 });
-  const [tebiDir, setTebiDir] = useState("right");
 
   const [quoteEditMode, setQuoteEditMode] = useState(false);
   const [editedQuoteHtml, setEditedQuoteHtml] = useState(null);
@@ -610,17 +608,6 @@ export default function Dashboard() {
     setEditMeetingNote(selected.nextMeetingNote || "");
     setActiveProductCat(classifyTargetProduct(selected.targetProduct));
   }, [selected]);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setTebiPos((prev) => {
-        const nextX = 12 + Math.random() * 76;
-        setTebiDir(nextX >= prev.x ? "right" : "left");
-        return { x: nextX, y: 25 + Math.random() * 50 };
-      });
-    }, 2600);
-    return () => clearInterval(iv);
-  }, []);
 
   const activeDeals = useMemo(() => {
     return deals.filter((d) => !droppedOrgNames.has((d.orgName || "").trim()));
@@ -1817,31 +1804,14 @@ export default function Dashboard() {
         </nav>
 
         {!sidebarCollapsed && (
-          <div className="relative h-16 mx-2 mb-1 border-t border-[#ECEEF1] dark:border-gray-700 overflow-hidden">
+          <div className="flex justify-start pl-3 py-1 mx-2 mb-1 border-t border-[#ECEEF1] dark:border-gray-700">
             <button
               onClick={() => setTebiModalOpen(true)}
               title="테비에게 빠른 등록/취소 요청하기"
-              className="absolute cursor-pointer hover:scale-110"
-              style={{
-                left: `${tebiPos.x}%`,
-                top: `${tebiPos.y}%`,
-                width: 32,
-                height: 40,
-                marginLeft: -16,
-                marginTop: -20,
-                transition: "left 2.6s linear, top 2.6s linear, transform 0.15s ease-out",
-              }}
+              className="cursor-pointer hover:scale-110 transition-transform"
+              style={{ width: 64, height: 80 }}
             >
-              <span
-                style={{
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  transform: tebiDir === "left" ? "scaleX(-1)" : "none",
-                }}
-              >
-                <img src="/tebi-walk.png" alt="테비" className="w-full h-full object-contain tebi-walk" />
-              </span>
+              <img src="/tebi-walk.png" alt="테비" className="w-full h-full object-contain" />
             </button>
           </div>
         )}
