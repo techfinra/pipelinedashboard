@@ -452,7 +452,7 @@ export default function Dashboard() {
   const [groupViewMode, setGroupViewMode] = useState("card");
   const [listFilterGroup, setListFilterGroup] = useState("전체");
   const [listFilterRecency, setListFilterRecency] = useState("전체");
-  const [myCompaniesFilter, setMyCompaniesFilter] = useState("mine");
+  const [myCompaniesFilter, setMyCompaniesFilter] = useState("all");
   const [darkMode, setDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeGroup, setActiveGroup] = useState("전체");
