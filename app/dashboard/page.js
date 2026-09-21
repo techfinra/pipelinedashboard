@@ -203,9 +203,30 @@ const LOGO_DOMAINS = {
   "한국투자저축은행": "sb.koreainvestment.com",
 };
 
+// 직접 등록한 로고 이미지 (LOGO_DOMAINS보다 우선)
+const LOGO_FILES = {
+  "신한캐피탈": "/logos/shinhan-capital.png",
+  "신한투자증권": "/logos/shinhan-securities.png",
+  "신한SOL증권": "/logos/shinhan-securities.png",
+  "신한저축은행": "/logos/shinhan-savings-bank.png",
+  "저축은행중앙회": "/logos/fsb.png",
+  "KB캐피탈": "/logos/kb-capital.png",
+};
+
 function LogoBadge({ name }) {
-  const domain = LOGO_DOMAINS[(name || "").trim()];
+  const key = (name || "").trim();
+  const file = LOGO_FILES[key];
+  const domain = LOGO_DOMAINS[key];
   const [broken, setBroken] = useState(false);
+  if (file) {
+    return (
+      <img
+        src={file}
+        alt=""
+        className="w-[22px] h-[22px] rounded-[5px] mr-1.5 inline-block align-middle object-contain bg-white"
+      />
+    );
+  }
   if (domain && !broken) {
     return (
       <img
