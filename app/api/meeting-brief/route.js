@@ -43,6 +43,51 @@ function fmtDate(d) {
   return d || "미상";
 }
 
+function decodeXmlEntities(s) {
+  return (s || "")
+    .replace(/<!\[CDATA\[/g, "")
+    .replace(/\]\]>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+// 구글 뉴스 RSS 검색 — 별도 API 키 없이 실제 뉴스 헤드라인을 가져온다.
+async function fetchCompanyNews(orgName) {
+  try {
+    const query = encodeURIComponent(`${orgName} when:30d`);
+    const url = `https://news.google.com/rss/search?q=${query}&hl=ko&gl=KR&ceid=KR:ko`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; TechFinRatingsBot/1.0)" },
+      // 뉴스 조회가 느려져도 보고서 생성 자체는 막히지 않도록 타임아웃을 짧게 둔다.
+      signal: AbortSignal.timeout(6000),
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 6);
+    return items
+      .map((m) => {
+        const block = m[1];
+        const rawTitle = (block.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || "";
+        const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || "";
+        const rawSource = (block.match(/<source[^>]*>([\s\S]*?)<\/source>/) || [])[1] || "";
+        const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || "";
+        return {
+          title: decodeXmlEntities(rawTitle),
+          source: decodeXmlEntities(rawSource),
+          date: pubDate ? new Date(pubDate) : null,
+          link: decodeXmlEntities(link),
+        };
+      })
+      .filter((n) => n.title);
+  } catch (e) {
+    return [];
+  }
+}
+
 export async function POST(request) {
   const body = await request.json().catch(() => ({}));
   const orgName = (body.orgName || "").trim();
@@ -57,9 +102,10 @@ export async function POST(request) {
     const app = getAdminApp();
     const db = admin.firestore(app);
 
-    const [dealsSnap, activitySnap] = await Promise.all([
+    const [dealsSnap, activitySnap, newsItems] = await Promise.all([
       db.collection("deals").get(),
       db.collection("activityLog").get(),
+      fetchCompanyNews(orgName),
     ]);
 
     const allDeals = dealsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -131,6 +177,15 @@ export async function POST(request) {
 
     const today = new Date().toISOString().slice(0, 10);
 
+    const newsText = newsItems.length
+      ? newsItems
+          .map((n) => `- ${n.date ? n.date.toISOString().slice(0, 10) : "날짜미상"} ${n.title}${n.source ? ` (${n.source})` : ""}`)
+          .join("\n")
+      : "";
+    const newsSection = newsText
+      ? `아래는 "${orgName}" 관련 최근 30일 이내 뉴스 검색 결과(Google 뉴스)이다. 실제 기사 헤드라인이며, 미팅과 관련 있는 것만 선별해서 5번 섹션에 반영하라. 이 목록에 없는 내용은 지어내지 마라.\n${newsText}`
+      : `"${orgName}" 관련 최근 30일 이내 검색된 뉴스가 없다. 5번 섹션은 이 사실을 그대로 밝히고 추측성 내용을 만들지 마라. (담당자가 위 미팅 목적란에 관련 뉴스나 배경을 직접 적었다면 그 내용만 참고하라.)`;
+
     const prompt = `너는 B2B 금융·기업데이터 서비스 영업 담당자를 지원하는 '미팅 사전 준비 AI'다.
 
 아래 정보를 종합하여 담당자가 미팅 직전 5분 이내에 읽고 바로 활용할 수 있는 미팅 사전 보고서를 작성하라.
@@ -163,7 +218,7 @@ ${meetingNotes}
 ${openItems}
 
 [최근 뉴스 및 외부 정보]
-제공된 외부 뉴스 데이터 없음. 5번 섹션은 이 사실을 그대로 밝히고 추측성 내용을 만들지 마라. (담당자가 위 미팅 목적란에 관련 뉴스나 배경을 직접 적었다면 그 내용만 참고하라.)
+${newsSection}
 
 보고서 작성 원칙:
 1. 단순히 과거 이력을 나열하지 말고 현재 미팅에 중요한 정보만 선별한다.
@@ -173,7 +228,7 @@ ${openItems}
 5. 고객사가 실제로 언급한 니즈와 AI가 추정한 니즈를 구분한다.
 6. 타겟 제품별로 이번 미팅에서 어떤 이야기를 해야 하는지 제시한다.
 7. 이미 이전 미팅에서 확인한 내용을 다시 질문하지 않도록 한다.
-8. 외부 뉴스 데이터가 없으면 5번 섹션에서 그 사실만 간단히 밝히고 없는 내용을 지어내지 않는다.
+8. 뉴스 검색 결과가 없으면 5번 섹션에서 그 사실만 간단히 밝히고, 있으면 실제 헤드라인에 근거해서만 작성하며 없는 내용을 지어내지 않는다.
 9. 너무 일반적인 영업 조언은 제외하고 해당 고객사에 특화된 내용만 작성한다.
 10. 전체 보고서는 미팅 직전 빠르게 읽을 수 있도록 간결하게 작성한다.
 
@@ -204,7 +259,7 @@ ${openItems}
 - 예상 장애요인
 
 ## 5. 최근 뉴스 / 환경 변화
-외부 뉴스 데이터가 제공되지 않았으면 그 사실만 밝힌다. 담당자가 입력한 배경정보가 있으면 그 내용의 의미만 분석한다.
+뉴스 검색 결과가 있으면 미팅과 관련 있는 항목만 선별해 무슨 의미인지 분석한다 (출처와 대략적인 시점 표기). 검색 결과가 없으면 그 사실만 밝힌다. 담당자가 입력한 배경정보가 있으면 그 내용의 의미도 함께 분석한다.
 
 ## 6. 미팅에서 반드시 확인할 질문
 우선순위 순으로 5~7개 작성. 과거에 이미 답변받은 질문은 제외.

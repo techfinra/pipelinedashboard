@@ -428,8 +428,8 @@ const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
   { key: "mycompanies", label: "업체현황", icon: UserCheck },
   { key: "contracts", label: "계약관리", icon: Handshake },
+  { key: "meetingPrep", label: "기업상세", icon: Sparkles },
   { key: "report", label: "리포트", icon: BarChart3 },
-  { key: "meetingPrep", label: "미팅 사전 자료", icon: Sparkles },
   { key: "settings", label: "설정", icon: Settings },
 ];
 
@@ -2024,7 +2024,7 @@ export default function Dashboard() {
                 {view === "contracts" && "계약·갱신 관리"}
                 {view === "quote" && "견적서 작성"}
                 {view === "report" && "리포트"}
-                {view === "meetingPrep" && "미팅 사전 자료"}
+                {view === "meetingPrep" && "기업상세"}
                 {view === "settings" && "설정"}
               </h1>
               <p className="hidden sm:block text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
@@ -3229,7 +3229,7 @@ export default function Dashboard() {
               </div>
 
               {!meetingPrepOrg ? (
-                <div className="text-center text-sm text-gray-300 py-20">기업을 검색해서 선택하면 미팅 사전 자료를 준비할 수 있습니다.</div>
+                <div className="text-center text-sm text-gray-300 py-20">기업을 검색해서 선택하면 기업상세 정보를 확인할 수 있습니다.</div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
                   {/* 왼쪽: 기업정보 / 제품현황 / 히스토리 */}
