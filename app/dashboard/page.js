@@ -19,6 +19,11 @@ import {
   Pencil, Trash2, Check,
 } from "lucide-react";
 
+function matchesSearch(text, query) {
+  if (!query) return true;
+  return (text || "").toLowerCase().includes(query.trim().toLowerCase());
+}
+
 function formatWon(n) {
   if (n === null || n === undefined) return "-";
   if (n >= 100000000) return (n / 100000000).toFixed(1).replace(/\.0$/, "") + "억원";
@@ -736,7 +741,7 @@ export default function Dashboard() {
     return activeDeals.filter((d) => {
       const g = mapGroupName(d.orgGroup);
       if (activeGroup !== "전체" && g !== activeGroup) return false;
-      if (search && !(d.orgName || "").includes(search)) return false;
+      if (search && !matchesSearch(d.orgName, search)) return false;
       if (activeKpi) {
         const cat = dealKpiCat[d.id] || {};
         if (cat.recency !== activeKpi && cat.future !== activeKpi) return false;
@@ -979,7 +984,7 @@ export default function Dashboard() {
 
   const searchMatches = useMemo(() => {
     if (!search.trim()) return [];
-    return companyRows.filter((o) => o.name.includes(search.trim())).slice(0, 8);
+    return companyRows.filter((o) => matchesSearch(o.name, search)).slice(0, 8);
   }, [search, companyRows]);
 
   const quickEntries = useMemo(() => {
@@ -1054,7 +1059,7 @@ export default function Dashboard() {
       if ((d.expectedPerformance || 0) > (map[key].bestDeal.expectedPerformance || 0)) map[key].bestDeal = d;
     });
     return Object.values(map)
-      .filter((o) => !search || o.name.includes(search))
+      .filter((o) => matchesSearch(o.name, search))
       .sort((a, b) => b.expected - a.expected);
   }, [deals, search]);
 
@@ -1557,7 +1562,7 @@ export default function Dashboard() {
                       value={nlCompanySearch}
                       onChange={(e) => { setNlCompanySearch(e.target.value); setNlSelectedOrg(""); setNlOverrideDealId(""); }}
                     />
-                    {nlCompanySearch && companyRows.filter((o) => o.name.includes(nlCompanySearch)).slice(0, 6).map((o) => (
+                    {nlCompanySearch && companyRows.filter((o) => matchesSearch(o.name, nlCompanySearch)).slice(0, 6).map((o) => (
                       <button
                         key={o.name}
                         className="text-xs text-left px-2 py-1.5 rounded-lg bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 col-span-2"
@@ -1617,7 +1622,7 @@ export default function Dashboard() {
                 />
                 {nlCompanySearch && !nlSelectedOrg && (
                   <div className="space-y-1 mb-2 max-h-28 overflow-y-auto">
-                    {companyRows.filter((o) => o.name.includes(nlCompanySearch)).slice(0, 6).map((o) => (
+                    {companyRows.filter((o) => matchesSearch(o.name, nlCompanySearch)).slice(0, 6).map((o) => (
                       <button
                         key={o.name}
                         className="w-full text-xs text-left px-2 py-1.5 rounded-lg bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700"
@@ -1626,7 +1631,7 @@ export default function Dashboard() {
                         {o.name}
                       </button>
                     ))}
-                    {companyRows.filter((o) => o.name.includes(nlCompanySearch)).length === 0 && (
+                    {companyRows.filter((o) => matchesSearch(o.name, nlCompanySearch)).length === 0 && (
                       <div className="text-[11px] text-gray-300 px-2">일치하는 회사가 없습니다.</div>
                     )}
                   </div>
@@ -2256,7 +2261,7 @@ export default function Dashboard() {
                       {allOrgFlat
                         .filter((o) => listFilterGroup === "전체" || o.groupName === listFilterGroup)
                         .filter((o) => listFilterRecency === "전체" || dealKpiCat[o.deal.id]?.recency === listFilterRecency)
-                        .filter((o) => !search || o.name.includes(search))
+                        .filter((o) => matchesSearch(o.name, search))
                         .map((o) => {
                           const cat = dealKpiCat[o.deal.id]?.recency;
                           const info = cat ? RECENCY_LABEL[cat] : null;
@@ -2400,7 +2405,7 @@ export default function Dashboard() {
           {view === "orgs" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {companyRows
-                .filter((o) => !search || o.name.includes(search))
+                .filter((o) => matchesSearch(o.name, search))
                 .map((o) => (
                   <div
                     key={o.name}
