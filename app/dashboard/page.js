@@ -426,8 +426,7 @@ const SHORTCUT_LINKS = [
 
 const NAV_ITEMS = [
   { key: "dashboard", label: "대시보드", icon: LayoutDashboard },
-  { key: "mycompanies", label: "담당업체", icon: UserCheck },
-  { key: "orgs", label: "기관현황", icon: Building2 },
+  { key: "mycompanies", label: "업체현황", icon: UserCheck },
   { key: "contracts", label: "계약관리", icon: Handshake },
   { key: "report", label: "리포트", icon: BarChart3 },
   { key: "meetingPrep", label: "미팅 사전 자료", icon: Sparkles },
@@ -524,6 +523,7 @@ export default function Dashboard() {
   const [kpiModalKey, setKpiModalKey] = useState(null);
   const [showDroppedModal, setShowDroppedModal] = useState(false);
   const [editNextActionDate, setEditNextActionDate] = useState("");
+  const [editActivityDate, setEditActivityDate] = useState("");
   const [showMemoHistory, setShowMemoHistory] = useState(false);
   const [confirmDropCompany, setConfirmDropCompany] = useState(false);
   const [contractTab, setContractTab] = useState("all");
@@ -1142,20 +1142,10 @@ export default function Dashboard() {
     return candidates[0];
   }, [nlResult, nlOverrideDealId, allActivity]);
 
-  const aiFlaggedDeals = useMemo(() => {
-    if (!profile?.name) return [];
-    return activeDeals.filter((d) => d.aiFlag && (d.rm === profile.name || d.so === profile.name));
-  }, [activeDeals, profile]);
-
   const myCompanyGroups = useMemo(() => {
     let filtered;
     if (myCompaniesFilter === "favorites") {
       filtered = companyRows.filter((o) => favorites.includes(o.name));
-    } else if (myCompaniesFilter === "ai") {
-      const aiOrgNames = new Set(aiFlaggedDeals.map((d) => d.orgName));
-      filtered = companyRows
-        .filter((o) => aiOrgNames.has(o.name))
-        .map((o) => ({ ...o, aiInsights: aiFlaggedDeals.filter((d) => d.orgName === o.name) }));
     } else if (myCompaniesFilter === "mine") {
       filtered = companyRows.filter((o) => o.deals.some((d) => d.rm === profile?.name || d.so === profile?.name));
     } else {
@@ -1174,7 +1164,7 @@ export default function Dashboard() {
       if (ib === -1) return -1;
       return ia - ib;
     });
-  }, [companyRows, myCompaniesFilter, profile, favorites, aiFlaggedDeals]);
+  }, [companyRows, myCompaniesFilter, profile, favorites]);
 
   const actionDueDeals = useMemo(() => {
     return activeDeals
@@ -1249,11 +1239,12 @@ export default function Dashboard() {
     }
   }
 
-  async function saveActivityText(activityId) {
+  async function saveActivityText(activityId, date) {
     setSaving(true);
     try {
-      await updateDoc(doc(db, "activityLog", activityId), { text: editValue });
-      setActivity((prev) => prev.map((a) => (a.id === activityId ? { ...a, text: editValue } : a)));
+      const patch = date !== undefined ? { text: editValue, date: date || null } : { text: editValue };
+      await updateDoc(doc(db, "activityLog", activityId), patch);
+      setActivity((prev) => prev.map((a) => (a.id === activityId ? { ...a, ...patch } : a)));
       setEditingField(null);
     } catch (e) {
       alert("저장 실패: " + (e.message || e));
@@ -2029,8 +2020,7 @@ export default function Dashboard() {
               <h1 className="text-base md:text-lg font-extrabold text-navy dark:text-gray-100">
                 {view === "dashboard" && "금융기관 세일즈 파이프라인"}
                 {view === "pipeline" && "파이프라인 전체 목록"}
-                {view === "mycompanies" && "담당업체"}
-                {view === "orgs" && "기관현황"}
+                {view === "mycompanies" && "업체현황"}
                 {view === "contracts" && "계약·갱신 관리"}
                 {view === "quote" && "견적서 작성"}
                 {view === "report" && "리포트"}
@@ -2456,10 +2446,9 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2 mb-5 flex-wrap">
                 {[
+                  { key: "all", label: "전체 업체" },
                   { key: "mine", label: "담당 업체" },
                   { key: "favorites", label: "관심 업체" },
-                  { key: "all", label: "전체 업체" },
-                  { key: "ai", label: "액션 추천 업체 (AI기반)" },
                 ].map((t) => (
                   <button
                     key={t.key}
@@ -2467,13 +2456,7 @@ export default function Dashboard() {
                     className={"text-xs px-3 py-1.5 rounded-lg font-semibold border flex items-center gap-1 " + (myCompaniesFilter === t.key ? "bg-navy text-white border-navy" : "bg-white dark:bg-[#111827] text-gray-500 border-[#E7EAF0] dark:border-gray-700")}
                   >
                     {t.key === "favorites" && <Star className="w-3 h-3" />}
-                    {t.key === "ai" && <Sparkles className="w-3 h-3" />}
                     {t.label}
-                    {t.key === "ai" && aiFlaggedDeals.length > 0 && (
-                      <span className={"rounded-full px-1.5 text-[10px] " + (myCompaniesFilter === "ai" ? "bg-white/20" : "bg-pink-100 text-pink-600")}>
-                        {aiFlaggedDeals.length}
-                      </span>
-                    )}
                   </button>
                 ))}
                 {!profile?.name && myCompaniesFilter === "mine" && (
@@ -2496,7 +2479,7 @@ export default function Dashboard() {
                       return (
                         <div
                           key={o.name}
-                          onClick={() => openDeal(o.aiInsights ? o.aiInsights[0] : o.deals[0])}
+                          onClick={() => openDeal(o.deals[0])}
                           className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-3 cursor-pointer hover:border-navy/40"
                         >
                           <div className="flex items-center justify-between mb-1">
@@ -2515,16 +2498,6 @@ export default function Dashboard() {
                               </span>
                             ))}
                           </div>
-                          {o.aiInsights && (
-                            <div className="mt-2 ml-[28px] space-y-1">
-                              {o.aiInsights.map((d) => (
-                                <div key={d.id} className="text-[10px] text-pink-600 bg-pink-50 dark:bg-pink-950/30 rounded-md px-2 py-1 flex items-start gap-1">
-                                  <Sparkles className="w-3 h-3 shrink-0 mt-0.5" />
-                                  <span>{d.aiInsight}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       );
                     })}
@@ -2536,41 +2509,9 @@ export default function Dashboard() {
                 <div className="text-center text-xs text-gray-300 py-16">
                   {myCompaniesFilter === "mine" && "담당 중인 업체가 없습니다."}
                   {myCompaniesFilter === "favorites" && "별표로 등록한 관심업체가 없습니다."}
-                  {myCompaniesFilter === "ai" && "지금은 AI가 추천할 액션이 없습니다."}
                   {myCompaniesFilter === "all" && "표시할 업체가 없습니다."}
                 </div>
               )}
-            </div>
-          )}
-
-          {view === "orgs" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {companyRows
-                .filter((o) => matchesSearch(o.name, search))
-                .map((o) => (
-                  <div
-                    key={o.name}
-                    onClick={() => openDeal(o.deals[0])}
-                    className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-4 cursor-pointer hover:border-navy/40"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center text-sm font-bold text-navy dark:text-gray-100">
-                        <LogoBadge name={o.name} />{o.name}
-                      </div>
-                      <span className={"text-[10px] px-2 py-0.5 rounded-md font-semibold " + RECENCY_LABEL[o.dominant][1]}>
-                        {RECENCY_LABEL[o.dominant][0]}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-gray-400 mb-2 ml-[28px]">{o.group}</div>
-                    <div className="flex items-center gap-1.5 ml-[28px]">
-                      {Object.entries(o.counts).filter(([, v]) => v > 0).map(([cat, v]) => (
-                        <span key={cat} className="text-[10px] bg-[#F0F2F5] text-gray-600 dark:text-gray-300 px-2 py-1 rounded-md font-semibold">
-                          {cat} {v}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
             </div>
           )}
 
@@ -3636,7 +3577,16 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
                           {row.editable && editingField !== row.field && (
-                            <button className="text-[10px] text-navy dark:text-gray-100 underline" onClick={() => { startEdit(row.field, row.text); setEditNextActionDate(selected.nextActionDate || todayLocalStr()); }}>수정</button>
+                            <button
+                              className="text-[10px] text-navy dark:text-gray-100 underline"
+                              onClick={() => {
+                                startEdit(row.field, row.text);
+                                setEditNextActionDate(selected.nextActionDate || todayLocalStr());
+                                setEditActivityDate(row.date || todayLocalStr());
+                              }}
+                            >
+                              수정
+                            </button>
                           )}
                         </div>
                       </div>
@@ -3660,6 +3610,17 @@ export default function Dashboard() {
                               />
                             </div>
                           )}
+                          {row.field === "currentAction" && (
+                            <div>
+                              <label className="text-[9px] text-gray-400 block mb-0.5">액션 날짜</label>
+                              <input
+                                type="date"
+                                className="text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
+                                value={editActivityDate}
+                                onChange={(e) => setEditActivityDate(e.target.value)}
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2 justify-end">
                             <button className="text-[10px] text-gray-400" onClick={cancelEdit}>취소</button>
                             <button
@@ -3668,7 +3629,9 @@ export default function Dashboard() {
                               onClick={() =>
                                 row.field === "nextAction"
                                   ? saveDealField({ nextAction: editValue, nextActionDate: editNextActionDate || null })
-                                  : saveActivityText(activity[row.field === "prevAction" ? 1 : 0].id)
+                                  : row.field === "currentAction"
+                                  ? saveActivityText(activity[0].id, editActivityDate)
+                                  : saveActivityText(activity[1].id)
                               }
                             >
                               {saving ? "저장 중..." : "저장"}
@@ -3849,7 +3812,7 @@ export default function Dashboard() {
                     {confirmDropCompany ? (
                       <div className="bg-red-50 dark:bg-red-950/30 rounded-lg p-3">
                         <div className="text-xs text-red-600 mb-2">
-                          "{selected.orgName}"을(를) 삭제하면 산업군·기관현황·담당업체 등 모든 화면에서 제외됩니다. (드랍기업 목록에서 언제든 복구 가능)
+                          "{selected.orgName}"을(를) 삭제하면 산업군·업체현황 등 모든 화면에서 제외됩니다. (드랍기업 목록에서 언제든 복구 가능)
                         </div>
                         <div className="flex justify-end gap-2">
                           <button className="text-[11px] text-gray-400" onClick={() => setConfirmDropCompany(false)}>취소</button>
@@ -4329,7 +4292,7 @@ export default function Dashboard() {
                 </button>
               </div>
               <div className="p-3">
-                <div className="text-[11px] text-gray-400 px-2 mb-1">{droppedCompanyList.length}개 기업 — 산업군·기관현황·담당업체 등 모든 화면에서 제외되어 있습니다.</div>
+                <div className="text-[11px] text-gray-400 px-2 mb-1">{droppedCompanyList.length}개 기업 — 산업군·업체현황 등 모든 화면에서 제외되어 있습니다.</div>
                 {droppedCompanyList.map((o) => (
                   <div
                     key={o.name}
