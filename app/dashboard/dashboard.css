@@ -106,6 +106,19 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
     box-shadow: none !important;
     border-radius: 0 !important;
   }
+  #brief-print-area, #brief-print-area * { visibility: visible; }
+  #brief-print-area {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    margin: 0 !important;
+    padding: 16mm !important;
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
   @page { size: A4; margin: 0; }
 }
 

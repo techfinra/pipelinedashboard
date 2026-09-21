@@ -16,12 +16,72 @@ import {
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
   Sun, Moon, Sparkles, UserCheck, Newspaper, BookOpen, ExternalLink, Menu,
-  Pencil, Trash2, Check,
+  Pencil, Trash2, Check, Copy, Printer,
 } from "lucide-react";
 
 function matchesSearch(text, query) {
   if (!query) return true;
   return (text || "").toLowerCase().includes(query.trim().toLowerCase());
+}
+
+function renderInlineMd(line, keyPrefix) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={`${keyPrefix}-${i}`}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={`${keyPrefix}-${i}`}>{part}</span>;
+  });
+}
+
+function renderBriefMarkdown(md) {
+  if (!md) return null;
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const blocks = [];
+  let listBuf = [];
+  const flushList = () => {
+    if (listBuf.length) {
+      blocks.push(
+        <ul key={`ul-${blocks.length}`} className="list-disc pl-5 space-y-1 mb-2">
+          {listBuf.map((item, i) => (
+            <li key={i} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{renderInlineMd(item, `li-${blocks.length}-${i}`)}</li>
+          ))}
+        </ul>
+      );
+      listBuf = [];
+    }
+  };
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trimEnd();
+    const trimmed = line.trim();
+    if (!trimmed) { flushList(); return; }
+
+    if (trimmed.startsWith("# ")) {
+      flushList();
+      blocks.push(<h1 key={idx} className="text-base font-extrabold text-navy dark:text-gray-100 mt-1 mb-2">{trimmed.slice(2)}</h1>);
+    } else if (trimmed.startsWith("## ")) {
+      flushList();
+      blocks.push(<h2 key={idx} className="text-sm font-extrabold text-navy dark:text-gray-100 mt-4 mb-1.5 pb-1 border-b border-[#E7EAF0] dark:border-gray-700">{trimmed.slice(3)}</h2>);
+    } else if (trimmed.startsWith("### ")) {
+      flushList();
+      blocks.push(<h3 key={idx} className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-2 mb-1">{trimmed.slice(4)}</h3>);
+    } else if (/^[-*]\s+/.test(trimmed)) {
+      listBuf.push(trimmed.replace(/^[-*]\s+/, ""));
+    } else if (/^".*"$/.test(trimmed)) {
+      flushList();
+      blocks.push(
+        <div key={idx} className="mt-3 text-xs font-bold text-navy dark:text-gray-100 bg-[#F0F4FA] dark:bg-blue-950/30 rounded-lg px-3 py-2">
+          {trimmed}
+        </div>
+      );
+    } else {
+      flushList();
+      blocks.push(<p key={idx} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed mb-1.5">{renderInlineMd(trimmed, `p-${idx}`)}</p>);
+    }
+  });
+  flushList();
+  return blocks;
 }
 
 function formatWon(n) {
@@ -349,6 +409,15 @@ const RECENCY_LABEL = {
   dropped: ["드랍", "text-gray-500 bg-gray-100"],
 };
 
+const MEETING_PURPOSE_OPTIONS = [
+  { key: "first", label: "첫 미팅 준비" },
+  { key: "followup", label: "후속 미팅 준비" },
+  { key: "proposal", label: "제품 제안 미팅" },
+  { key: "poc", label: "PoC 협의" },
+  { key: "contract", label: "계약/예산 협의" },
+  { key: "reactivate", label: "관계 재활성화" },
+];
+
 const SHORTCUT_LINKS = [
   { label: "경쟁사 다이제스트", url: "https://daily-digest-techfinratings.netlify.app/", icon: Newspaper },
   { label: "세일즈 대시보드", url: "https://techfin-sales-kpi.vercel.app/", icon: BarChart3 },
@@ -361,6 +430,7 @@ const NAV_ITEMS = [
   { key: "orgs", label: "기관현황", icon: Building2 },
   { key: "contracts", label: "계약관리", icon: Handshake },
   { key: "report", label: "리포트", icon: BarChart3 },
+  { key: "meetingPrep", label: "미팅 사전 자료", icon: Sparkles },
   { key: "settings", label: "설정", icon: Settings },
 ];
 
@@ -392,6 +462,14 @@ export default function Dashboard() {
   const [selected, setSelected] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loadError, setLoadError] = useState("");
+
+  const [meetingPrepSearch, setMeetingPrepSearch] = useState("");
+  const [meetingPrepOrg, setMeetingPrepOrg] = useState("");
+  const [meetingPrepPurpose, setMeetingPrepPurpose] = useState("first");
+  const [meetingPrepFreeText, setMeetingPrepFreeText] = useState("");
+  const [meetingPrepLoading, setMeetingPrepLoading] = useState(false);
+  const [meetingPrepReport, setMeetingPrepReport] = useState("");
+  const [meetingPrepError, setMeetingPrepError] = useState("");
 
   const [editMode, setEditMode] = useState(false);
   const [editingField, setEditingField] = useState(null);
@@ -968,6 +1046,68 @@ export default function Dashboard() {
       })
       .sort((a, b) => b.totalCount - a.totalCount);
   }, [activeDeals, dealKpiCat]);
+
+  const meetingPrepMatches = useMemo(() => {
+    if (!meetingPrepSearch.trim()) return [];
+    return companyRows.filter((o) => matchesSearch(o.name, meetingPrepSearch)).slice(0, 8);
+  }, [meetingPrepSearch, companyRows]);
+
+  const meetingPrepDeals = useMemo(() => {
+    if (!meetingPrepOrg) return [];
+    return activeDeals.filter((d) => (d.orgName || "").trim() === meetingPrepOrg);
+  }, [activeDeals, meetingPrepOrg]);
+
+  const meetingPrepActivity = useMemo(() => {
+    const dealIds = new Set(meetingPrepDeals.map((d) => d.id));
+    return allActivity
+      .filter((a) => dealIds.has(a.dealId))
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  }, [allActivity, meetingPrepDeals]);
+
+  const meetingPrepNextMeeting = useMemo(() => {
+    return meetingPrepDeals
+      .filter((d) => d.nextMeetingDate)
+      .sort((a, b) => (a.nextMeetingDate || "").localeCompare(b.nextMeetingDate || ""))[0] || null;
+  }, [meetingPrepDeals]);
+
+  const meetingPrepDealById = useMemo(() => {
+    const map = {};
+    meetingPrepDeals.forEach((d) => { map[d.id] = d; });
+    return map;
+  }, [meetingPrepDeals]);
+
+  const meetingPrepLastContact = useMemo(() => {
+    const dates = meetingPrepDeals.map((d) => lastActionByDeal[d.id]).filter(Boolean).sort();
+    return dates.length ? dates[dates.length - 1] : null;
+  }, [meetingPrepDeals, lastActionByDeal]);
+
+  async function handleGenerateMeetingBrief() {
+    if (!meetingPrepOrg) return;
+    setMeetingPrepLoading(true);
+    setMeetingPrepError("");
+    setMeetingPrepReport("");
+    try {
+      const res = await fetch("/api/meeting-brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orgName: meetingPrepOrg,
+          purpose: meetingPrepPurpose,
+          freeText: meetingPrepFreeText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMeetingPrepError(data.error || "보고서 생성에 실패했습니다.");
+        return;
+      }
+      setMeetingPrepReport(data.report || "");
+    } catch (e) {
+      setMeetingPrepError("보고서 생성 중 오류가 발생했습니다: " + (e.message || e));
+    } finally {
+      setMeetingPrepLoading(false);
+    }
+  }
 
   const uniqueTargetProducts = useMemo(() => {
     return [...new Set(deals.map((d) => (d.targetProduct || "").replace(/\n/g, " ").trim()).filter(Boolean))].sort();
@@ -1894,6 +2034,7 @@ export default function Dashboard() {
                 {view === "contracts" && "계약·갱신 관리"}
                 {view === "quote" && "견적서 작성"}
                 {view === "report" && "리포트"}
+                {view === "meetingPrep" && "미팅 사전 자료"}
                 {view === "settings" && "설정"}
               </h1>
               <p className="hidden sm:block text-xs text-gray-500 mt-0.5">주요 금융기관과의 협업 현황을 한눈에 확인하세요.</p>
@@ -3101,6 +3242,200 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </>
+          )}
+
+          {view === "meetingPrep" && (
+            <div>
+              <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-4 mb-4">
+                <label className="text-xs font-semibold text-gray-500 block mb-1.5">기업 선택</label>
+                <div className="relative max-w-md">
+                  <Search className="w-4 h-4 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg pl-9 pr-3 py-2.5"
+                    placeholder="기업명 검색"
+                    value={meetingPrepOrg || meetingPrepSearch}
+                    onChange={(e) => {
+                      setMeetingPrepSearch(e.target.value);
+                      setMeetingPrepOrg("");
+                      setMeetingPrepReport("");
+                      setMeetingPrepError("");
+                    }}
+                  />
+                  {meetingPrepSearch && !meetingPrepOrg && (
+                    <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+                      {meetingPrepMatches.map((o) => (
+                        <button
+                          key={o.name}
+                          className="w-full text-left text-xs px-3 py-2 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 flex items-center gap-2"
+                          onClick={() => {
+                            setMeetingPrepOrg(o.name);
+                            setMeetingPrepSearch("");
+                            setMeetingPrepReport("");
+                            setMeetingPrepError("");
+                          }}
+                        >
+                          <LogoBadge name={o.name} />
+                          <span className="font-semibold">{o.name}</span>
+                          <span className="text-gray-300">· {o.deals.length}건</span>
+                        </button>
+                      ))}
+                      {meetingPrepMatches.length === 0 && (
+                        <div className="text-xs text-gray-300 px-3 py-2">일치하는 기업이 없습니다.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {!meetingPrepOrg ? (
+                <div className="text-center text-sm text-gray-300 py-20">기업을 검색해서 선택하면 미팅 사전 자료를 준비할 수 있습니다.</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                  {/* 왼쪽: 기업정보 / 제품현황 / 히스토리 */}
+                  <div className="lg:col-span-7 space-y-4">
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-sm font-extrabold text-navy dark:text-gray-100">선택한 기업 정보</div>
+                        <button
+                          onClick={() => { setMeetingPrepOrg(""); setMeetingPrepReport(""); setMeetingPrepError(""); }}
+                          className="text-[11px] text-navy dark:text-gray-100 border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2.5 py-1 font-semibold"
+                        >
+                          기업 변경
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <LogoBadge name={meetingPrepOrg} />
+                        <div>
+                          <div className="text-base font-extrabold text-navy dark:text-gray-100">{meetingPrepOrg}</div>
+                          <div className="text-[11px] text-gray-400">{mapGroupName(meetingPrepDeals[0]?.orgGroup)}</div>
+                        </div>
+                      </div>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex gap-2">
+                          <span className="w-20 text-gray-400 shrink-0">담당자</span>
+                          <span className="text-gray-700 dark:text-gray-300">{[...new Set(meetingPrepDeals.map((d) => d.contactPerson).filter(Boolean))].join(", ") || "-"}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="w-20 text-gray-400 shrink-0">최근 접촉일</span>
+                          <span className="text-gray-700 dark:text-gray-300">{meetingPrepLastContact || "-"}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="w-20 text-gray-400 shrink-0">다음 미팅일</span>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {meetingPrepNextMeeting ? `${meetingPrepNextMeeting.nextMeetingDate} (${meetingPrepNextMeeting.targetProduct || ""})` : "예정된 미팅 없음"}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="w-20 text-gray-400 shrink-0">관심 제품</span>
+                          <span className="text-gray-700 dark:text-gray-300">{meetingPrepDeals.map((d) => d.targetProduct).filter(Boolean).join(", ") || "-"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">타겟 제품별 현황 ({meetingPrepDeals.length})</div>
+                      <div className="space-y-2">
+                        {meetingPrepDeals.map((d) => (
+                          <div key={d.id} className="border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-navy dark:text-gray-100">{(d.targetProduct || "제품 미상").replace(/\n/g, " ")}</span>
+                              <span className={probPillClass(d.probability)}>{d.probability || "-"}</span>
+                            </div>
+                            <div className="text-[11px] text-gray-400">{d.stage || "단계 미상"} · 최근 액션 {lastActionByDeal[d.id] || "-"}</div>
+                          </div>
+                        ))}
+                        {meetingPrepDeals.length === 0 && <div className="text-xs text-gray-300">등록된 딜이 없습니다.</div>}
+                      </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">과거 히스토리 / 액션 ({meetingPrepActivity.length})</div>
+                      <div className="relative pl-4 space-y-3 border-l-2 border-[#E7EAF0] dark:border-gray-700 max-h-[380px] overflow-y-auto">
+                        {meetingPrepActivity.slice(0, 20).map((a, i) => (
+                          <div key={a.id || i} className="relative">
+                            <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-navy border-2 border-white ring-1 ring-[#E7EAF0]" />
+                            <div className="text-[10px] text-gray-400 mb-0.5">
+                              {a.date || "날짜 미상"} · {(meetingPrepDealById[a.dealId]?.targetProduct || "").replace(/\n/g, " ")}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{a.text}</div>
+                          </div>
+                        ))}
+                        {meetingPrepActivity.length === 0 && <div className="text-xs text-gray-300">등록된 이력이 없습니다.</div>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 오른쪽: 보고서 생성 / 미리보기 */}
+                  <div className="lg:col-span-5 space-y-4">
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">미팅 사전 보고서 생성</div>
+                      <div className="text-[11px] text-gray-400 mb-2">이번 미팅 목적을 선택하세요.</div>
+                      <div className="grid grid-cols-2 gap-1.5 mb-3">
+                        {MEETING_PURPOSE_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.key}
+                            onClick={() => setMeetingPrepPurpose(opt.key)}
+                            className={
+                              "text-[11px] px-2.5 py-2 rounded-lg border text-left font-semibold " +
+                              (meetingPrepPurpose === opt.key
+                                ? "border-navy bg-blue-50 dark:bg-blue-950/30 text-navy dark:text-gray-100"
+                                : "border-[#E7EAF0] dark:border-gray-700 text-gray-500 dark:text-gray-400")
+                            }
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <label className="text-[11px] text-gray-400 block mb-1">이번 미팅 목적 또는 알고 싶은 내용 (선택)</label>
+                      <textarea
+                        rows={3}
+                        className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg px-2.5 py-2 mb-3"
+                        placeholder="예: 지난 미팅에서 조합원사 데이터 커버리지를 궁금해했음. 이번에는 기업DB조회와 기업모니터링 도입 가능성을 중심으로 미팅 준비"
+                        value={meetingPrepFreeText}
+                        onChange={(e) => setMeetingPrepFreeText(e.target.value)}
+                      />
+                      <button
+                        onClick={handleGenerateMeetingBrief}
+                        disabled={meetingPrepLoading}
+                        className="w-full bg-navy text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-1.5 disabled:opacity-60"
+                      >
+                        {meetingPrepLoading ? "생성 중..." : (<><Sparkles className="w-3.5 h-3.5" />미팅 사전 보고서 생성</>)}
+                      </button>
+                      {meetingPrepError && <div className="text-[11px] text-red-500 mt-2">{meetingPrepError}</div>}
+                    </div>
+
+                    {(meetingPrepReport || meetingPrepLoading) && (
+                      <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                          <div className="text-sm font-extrabold text-navy dark:text-gray-100">미팅 사전 보고서</div>
+                          {meetingPrepReport && (
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => navigator.clipboard?.writeText(meetingPrepReport)}
+                                className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 px-2 py-1 rounded-lg flex items-center gap-1 text-navy dark:text-gray-100"
+                              >
+                                <Copy className="w-3 h-3" />복사
+                              </button>
+                              <button
+                                onClick={() => window.print()}
+                                className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 px-2 py-1 rounded-lg flex items-center gap-1 text-navy dark:text-gray-100"
+                              >
+                                <Printer className="w-3 h-3" />PDF 출력
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div id="brief-print-area" className="px-5 pb-5 max-h-[600px] overflow-y-auto bg-white">
+                          {meetingPrepLoading ? (
+                            <div className="text-xs text-gray-400 py-16 text-center">AI가 미팅 사전 보고서를 작성하고 있습니다...</div>
+                          ) : renderBriefMarkdown(meetingPrepReport)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {view === "settings" && (
