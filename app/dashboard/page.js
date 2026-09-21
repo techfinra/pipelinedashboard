@@ -3219,7 +3219,7 @@ export default function Dashboard() {
                 <div className="relative max-w-md">
                   <Search className="w-4 h-4 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
-                    className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg pl-9 pr-3 py-2.5"
+                    className="w-full text-sm border border-[#E7EAF0] dark:border-gray-700 dark:bg-[#0B1220] dark:text-gray-100 rounded-lg pl-9 pr-24 py-2.5"
                     placeholder="기업명 검색"
                     value={meetingPrepOrg || meetingPrepSearch}
                     onChange={(e) => {
@@ -3228,7 +3228,41 @@ export default function Dashboard() {
                       setMeetingPrepReport("");
                       setMeetingPrepError("");
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && meetingPrepMatches[0]) {
+                        setMeetingPrepOrg(meetingPrepMatches[0].name);
+                        setMeetingPrepSearch("");
+                        setMeetingPrepReport("");
+                        setMeetingPrepError("");
+                      }
+                    }}
                   />
+                  {(meetingPrepOrg || meetingPrepSearch) && (
+                    <button
+                      onClick={() => {
+                        setMeetingPrepSearch("");
+                        setMeetingPrepOrg("");
+                        setMeetingPrepReport("");
+                        setMeetingPrepError("");
+                      }}
+                      className="absolute right-[52px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 dark:hover:text-gray-300 p-0.5"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (meetingPrepMatches[0]) {
+                        setMeetingPrepOrg(meetingPrepMatches[0].name);
+                        setMeetingPrepSearch("");
+                        setMeetingPrepReport("");
+                        setMeetingPrepError("");
+                      }
+                    }}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 bg-navy text-white text-[10px] px-2 py-1.5 rounded-md"
+                  >
+                    검색
+                  </button>
                   {meetingPrepSearch && !meetingPrepOrg && (
                     <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
                       {meetingPrepMatches.map((o) => (
