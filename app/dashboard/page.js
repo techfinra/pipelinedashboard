@@ -445,7 +445,6 @@ export default function Dashboard() {
   const [contractTab, setContractTab] = useState("all");
   const [contractKpiModal, setContractKpiModal] = useState(null);
   const [groupRecencyModal, setGroupRecencyModal] = useState(null);
-  const [tebiModalOpen, setTebiModalOpen] = useState(false);
 
   const [quoteEditMode, setQuoteEditMode] = useState(false);
   const [editedQuoteHtml, setEditedQuoteHtml] = useState(null);
@@ -1802,19 +1801,6 @@ export default function Dashboard() {
             </div>
           ))}
         </nav>
-
-        {!sidebarCollapsed && (
-          <div className="flex justify-start pl-3 py-1 mx-2 mb-1 border-t border-[#ECEEF1] dark:border-gray-700">
-            <button
-              onClick={() => setTebiModalOpen(true)}
-              title="테비에게 빠른 등록/취소 요청하기"
-              className="cursor-pointer hover:scale-110 transition-transform"
-              style={{ width: 64, height: 80 }}
-            >
-              <img src="/tebi-walk.png" alt="테비" className="w-full h-full object-contain" />
-            </button>
-          </div>
-        )}
 
         <div className={"border-t border-[#ECEEF1] dark:border-gray-700 " + (sidebarCollapsed ? "py-3" : "px-3 py-3")}>
           {!sidebarCollapsed && (
@@ -3874,25 +3860,6 @@ export default function Dashboard() {
           </>
         );
       })()}
-
-      {tebiModalOpen && (
-        <>
-          <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setTebiModalOpen(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-transparent w-full max-w-md max-h-[85vh] overflow-y-auto pointer-events-auto">
-              <div className="flex items-center justify-end mb-1.5">
-                <button
-                  onClick={() => setTebiModalOpen(false)}
-                  className="w-7 h-7 rounded-full bg-white dark:bg-[#111827] shadow flex items-center justify-center text-gray-400 hover:text-navy"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              {quickEntryCard}
-            </div>
-          </div>
-        </>
-      )}
 
       {groupRecencyModal && (() => {
         const items = activeDeals
