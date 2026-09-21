@@ -183,7 +183,8 @@ function toYMD(d) {
 const LOGO_DOMAINS = {
   "KB국민은행": "kbstar.com", "KB국민카드": "kbcard.com",
   "KB캐피탈": "kbcapital.com", "신한은행": "shinhan.com", "신한카드": "shinhancard.com",
-  "신한캐피탈": "shinhancapital.com", "신한투자증권": "shinhansec.com", "신한지주": "shinhangroup.com",
+  "신한캐피탈": "shinhancapital.com", "신한투자증권": "shinhansec.com", "신한SOL증권": "shinhansec.com",
+  "신한지주": "shinhangroup.com", "신한저축은행": "shinhansavings.com", "MG캐피탈": "mgcap.co.kr",
   "하나은행": "hanabank.com", "하나카드": "hanacard.co.kr",
   "하나캐피탈": "hanacapital.co.kr", "우리은행": "wooribank.com", "우리카드": "wooricard.com",
   "NH농협은행": "nonghyup.com", "NH농협캐피탈": "nhcapital.co.kr", "NH카드": "card.nonghyup.com",
