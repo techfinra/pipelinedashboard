@@ -16,6 +16,7 @@ import {
   Percent, Layers, ClipboardList, PlayCircle, Clock3, AlertTriangle,
   LayoutDashboard, Workflow, BarChart3, Settings, PanelLeftClose, PanelLeftOpen,
   Sun, Moon, Sparkles, UserCheck, Newspaper, BookOpen, ExternalLink, Menu,
+  Pencil, Trash2, Check,
 } from "lucide-react";
 
 function formatWon(n) {
@@ -1124,6 +1125,8 @@ export default function Dashboard() {
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [addingLink, setAddingLink] = useState(false);
+  const [editingFileIdx, setEditingFileIdx] = useState(null);
+  const [editFileLabel, setEditFileLabel] = useState("");
 
   async function handleAddLink() {
     if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
@@ -1132,6 +1135,32 @@ export default function Dashboard() {
     setNewLinkLabel("");
     setNewLinkUrl("");
     setAddingLink(false);
+  }
+
+  function startEditFileLabel(idx, currentLabel) {
+    setEditingFileIdx(idx);
+    setEditFileLabel(currentLabel || "");
+  }
+
+  async function handleSaveFileLabel(idx) {
+    if (!editFileLabel.trim()) return;
+    const files = [...(selected.relatedFiles || [])];
+    const f = files[idx];
+    const url = typeof f === "string" ? null : f.url;
+    files[idx] = url ? { label: editFileLabel.trim(), url } : { label: editFileLabel.trim() };
+    await saveDealField({ relatedFiles: files });
+    setEditingFileIdx(null);
+    setEditFileLabel("");
+  }
+
+  async function handleDeleteFile(idx) {
+    if (!confirm("이 관련파일을 삭제할까요?")) return;
+    const files = (selected.relatedFiles || []).filter((_, i) => i !== idx);
+    await saveDealField({ relatedFiles: files });
+    if (editingFileIdx === idx) {
+      setEditingFileIdx(null);
+      setEditFileLabel("");
+    }
   }
 
   async function handleCreateDeal() {
@@ -3527,17 +3556,65 @@ export default function Dashboard() {
                     {(selected.relatedFiles || []).map((f, i) => {
                       const label = typeof f === "string" ? f : f.label;
                       const url = typeof f === "string" ? null : f.url;
-                      const content = (
-                        <div className="text-xs text-gray-700 dark:text-gray-300 bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 break-words flex items-center gap-2">
-                          <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
+
+                      if (editingFileIdx === i) {
+                        return (
+                          <div key={i} className="flex items-center gap-1.5 bg-[#F8FAFC] dark:bg-gray-800 rounded-lg px-3 py-2">
+                            <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            <input
+                              autoFocus
+                              className="flex-1 text-xs bg-white dark:bg-gray-700 border border-[#E7EAF0] dark:border-gray-600 rounded px-2 py-1"
+                              value={editFileLabel}
+                              onChange={(e) => setEditFileLabel(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") handleSaveFileLabel(i); if (e.key === "Escape") setEditingFileIdx(null); }}
+                            />
+                            <button
+                              onClick={() => handleSaveFileLabel(i)}
+                              className="shrink-0 text-navy dark:text-gray-100 hover:opacity-70"
+                              title="저장"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setEditingFileIdx(null)}
+                              className="shrink-0 text-gray-400 hover:text-gray-600"
+                              title="취소"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={i}
+                          className="group text-xs text-gray-700 dark:text-gray-300 bg-[#F8FAFC] dark:bg-gray-800 hover:bg-[#EEF2F7] dark:hover:bg-gray-700 rounded-lg px-3 py-2 flex items-center gap-2"
+                        >
+                          {url ? (
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0 break-words">
+                              <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
+                            </a>
+                          ) : (
+                            <div className="flex items-center gap-2 flex-1 min-w-0 break-words">
+                              <FileText className="w-3.5 h-3.5 text-gray-300 shrink-0" />{label}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => startEditFileLabel(i, label)}
+                            className="shrink-0 text-gray-300 hover:text-navy dark:hover:text-gray-100 opacity-0 group-hover:opacity-100"
+                            title="파일명 수정"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFile(i)}
+                            className="shrink-0 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                            title="삭제"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      );
-                      return url ? (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                          {content}
-                        </a>
-                      ) : (
-                        <div key={i}>{content}</div>
                       );
                     })}
                     {(!selected.relatedFiles || selected.relatedFiles.length === 0) && (
