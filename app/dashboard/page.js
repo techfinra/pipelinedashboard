@@ -203,18 +203,35 @@ const LOGO_DOMAINS = {
   "한국투자저축은행": "sb.koreainvestment.com",
 };
 
+// 자동으로 가져오는 img.logo.dev 결과가 실제 브랜드 로고와 다른 경우를 대비해
+// 직접 등록한 로고 이미지가 있으면 우선 사용한다.
+const LOGO_IMAGES = {
+  "신한캐피탈": "/logos/shinhan-capital.png",
+  "신한투자증권": "/logos/shinhan-sol-securities.png",
+  "신한SOL증권": "/logos/shinhan-sol-securities.png",
+  "신한저축은행": "/logos/shinhan-savings.png",
+  "저축은행중앙회": "/logos/savings-bank-federation.png",
+  "KB캐피탈": "/logos/kb-capital.png",
+  "MG캐피탈": "/logos/mg-capital.png",
+};
+
 function LogoBadge({ name }) {
-  const domain = LOGO_DOMAINS[(name || "").trim()];
+  const key = (name || "").trim();
+  const customSrc = LOGO_IMAGES[key];
+  const domain = LOGO_DOMAINS[key];
   const [broken, setBroken] = useState(false);
-  if (domain && !broken) {
-    return (
-      <img
-        src={`https://img.logo.dev/${domain}?token=pk_dj9Yvu0VRguqwmAbY-tGzg&size=64&format=png&fallback=404`}
-        alt=""
-        onError={() => setBroken(true)}
-        className="w-[22px] h-[22px] rounded-[5px] mr-1.5 inline-block align-middle"
-      />
-    );
+  if (!broken) {
+    const src = customSrc || (domain ? `https://img.logo.dev/${domain}?token=pk_dj9Yvu0VRguqwmAbY-tGzg&size=64&format=png&fallback=404` : null);
+    if (src) {
+      return (
+        <img
+          src={src}
+          alt=""
+          onError={() => setBroken(true)}
+          className="w-[22px] h-[22px] rounded-[5px] mr-1.5 inline-block align-middle object-contain bg-white"
+        />
+      );
+    }
   }
   const initials = (name || "-").trim().slice(0, 2);
   return (
