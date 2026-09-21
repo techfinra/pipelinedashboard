@@ -112,12 +112,21 @@ table.deals tr:hover td { background: #F8FAFC; cursor: pointer; }
     left: 0 !important;
     top: 0 !important;
     margin: 0 !important;
-    padding: 16mm !important;
+    padding: 0 !important;
     width: 210mm !important;
     max-width: 210mm !important;
     min-height: 297mm;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
     box-shadow: none !important;
     border-radius: 0 !important;
+  }
+  /* 스크롤 미리보기용 wrapper가 인쇄 영역을 잘라내지 않도록 */
+  #brief-print-area, #brief-print-area * ,
+  #quote-print-area, #quote-print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   @page { size: A4; margin: 0; }
 }

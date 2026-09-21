@@ -34,6 +34,9 @@ function renderInlineMd(line, keyPrefix) {
   });
 }
 
+// 미팅 사전 보고서 전용 렌더러. 화면/다크모드와 무관하게 항상 흰 배경의
+// "레터헤드 문서"로 보이도록 라이트 톤으로 고정하고, 인쇄 시 섹션 제목이
+// 내용과 분리되어 페이지가 끊기지 않도록 break-after/break-inside를 지정한다.
 function renderBriefMarkdown(md) {
   if (!md) return null;
   const lines = md.replace(/\r\n/g, "\n").split("\n");
@@ -42,9 +45,12 @@ function renderBriefMarkdown(md) {
   const flushList = () => {
     if (listBuf.length) {
       blocks.push(
-        <ul key={`ul-${blocks.length}`} className="list-disc pl-5 space-y-1 mb-2">
+        <ul key={`ul-${blocks.length}`} className="list-none pl-0 space-y-1.5 mb-3.5">
           {listBuf.map((item, i) => (
-            <li key={i} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{renderInlineMd(item, `li-${blocks.length}-${i}`)}</li>
+            <li key={i} className="text-[11.5px] text-[#374151] leading-relaxed flex gap-2">
+              <span className="text-navy font-bold shrink-0">·</span>
+              <span>{renderInlineMd(item, `li-${blocks.length}-${i}`)}</span>
+            </li>
           ))}
         </ul>
       );
@@ -59,29 +65,57 @@ function renderBriefMarkdown(md) {
 
     if (trimmed.startsWith("# ")) {
       flushList();
-      blocks.push(<h1 key={idx} className="text-base font-extrabold text-navy dark:text-gray-100 mt-1 mb-2">{trimmed.slice(2)}</h1>);
+      blocks.push(
+        <h1 key={idx} className="text-[15px] font-extrabold text-navy mt-1 mb-3" style={{ breakAfter: "avoid" }}>
+          {trimmed.slice(2)}
+        </h1>
+      );
     } else if (trimmed.startsWith("## ")) {
       flushList();
-      blocks.push(<h2 key={idx} className="text-sm font-extrabold text-navy dark:text-gray-100 mt-4 mb-1.5 pb-1 border-b border-[#E7EAF0] dark:border-gray-700">{trimmed.slice(3)}</h2>);
+      blocks.push(
+        <h2
+          key={idx}
+          className="text-[13px] font-extrabold text-navy mt-6 mb-2.5 pb-2 border-b-2 border-[#E7EAF0] flex items-center gap-1.5 first:mt-0"
+          style={{ breakAfter: "avoid", breakInside: "avoid" }}
+        >
+          <span className="w-1.5 h-3.5 bg-navy inline-block rounded-sm shrink-0" />
+          {trimmed.slice(3)}
+        </h2>
+      );
     } else if (trimmed.startsWith("### ")) {
       flushList();
-      blocks.push(<h3 key={idx} className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-2 mb-1">{trimmed.slice(4)}</h3>);
+      blocks.push(
+        <h3 key={idx} className="text-[11.5px] font-bold text-gray-500 mt-3 mb-1.5" style={{ breakAfter: "avoid" }}>
+          {trimmed.slice(4)}
+        </h3>
+      );
     } else if (/^[-*]\s+/.test(trimmed)) {
       listBuf.push(trimmed.replace(/^[-*]\s+/, ""));
     } else if (/^".*"$/.test(trimmed)) {
       flushList();
       blocks.push(
-        <div key={idx} className="mt-3 text-xs font-bold text-navy dark:text-gray-100 bg-[#F0F4FA] dark:bg-blue-950/30 rounded-lg px-3 py-2">
+        <div
+          key={idx}
+          className="mt-3 mb-3.5 text-[11.5px] font-bold text-navy bg-[#F0F4FA] rounded-lg px-3.5 py-2.5 border-l-[3px] border-navy"
+          style={{ breakInside: "avoid" }}
+        >
           {trimmed}
         </div>
       );
     } else {
       flushList();
-      blocks.push(<p key={idx} className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed mb-1.5">{renderInlineMd(trimmed, `p-${idx}`)}</p>);
+      blocks.push(<p key={idx} className="text-[11.5px] text-[#374151] leading-relaxed mb-2">{renderInlineMd(trimmed, `p-${idx}`)}</p>);
     }
   });
   flushList();
   return blocks;
+}
+
+function formatReportDate(d) {
+  if (!d) return "-";
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} (${days[d.getDay()]}) ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function formatWon(n) {
@@ -486,6 +520,7 @@ export default function Dashboard() {
   const [meetingPrepFreeText, setMeetingPrepFreeText] = useState("");
   const [meetingPrepLoading, setMeetingPrepLoading] = useState(false);
   const [meetingPrepReport, setMeetingPrepReport] = useState("");
+  const [meetingPrepReportAt, setMeetingPrepReportAt] = useState(null);
   const [meetingPrepError, setMeetingPrepError] = useState("");
   const [meetingPrepNews, setMeetingPrepNews] = useState([]);
   const [meetingPrepNewsLoading, setMeetingPrepNewsLoading] = useState(false);
@@ -1105,7 +1140,7 @@ export default function Dashboard() {
     if (!meetingPrepOrg) return;
     setMeetingPrepLoading(true);
     setMeetingPrepError("");
-    setMeetingPrepReport("");
+    setMeetingPrepReport(""); setMeetingPrepReportAt(null);
     try {
       const res = await fetch("/api/meeting-brief", {
         method: "POST",
@@ -1122,6 +1157,7 @@ export default function Dashboard() {
         return;
       }
       setMeetingPrepReport(data.report || "");
+      setMeetingPrepReportAt(new Date());
     } catch (e) {
       setMeetingPrepError("보고서 생성 중 오류가 발생했습니다: " + (e.message || e));
     } finally {
@@ -3243,14 +3279,14 @@ export default function Dashboard() {
                     onChange={(e) => {
                       setMeetingPrepSearch(e.target.value);
                       setMeetingPrepOrg("");
-                      setMeetingPrepReport("");
+                      setMeetingPrepReport(""); setMeetingPrepReportAt(null);
                       setMeetingPrepError("");
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && meetingPrepMatches[0]) {
                         setMeetingPrepOrg(meetingPrepMatches[0].name);
                         setMeetingPrepSearch("");
-                        setMeetingPrepReport("");
+                        setMeetingPrepReport(""); setMeetingPrepReportAt(null);
                         setMeetingPrepError("");
                       }
                     }}
@@ -3260,7 +3296,7 @@ export default function Dashboard() {
                       onClick={() => {
                         setMeetingPrepSearch("");
                         setMeetingPrepOrg("");
-                        setMeetingPrepReport("");
+                        setMeetingPrepReport(""); setMeetingPrepReportAt(null);
                         setMeetingPrepError("");
                       }}
                       className="absolute right-[52px] top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 dark:hover:text-gray-300 p-0.5"
@@ -3273,7 +3309,7 @@ export default function Dashboard() {
                       if (meetingPrepMatches[0]) {
                         setMeetingPrepOrg(meetingPrepMatches[0].name);
                         setMeetingPrepSearch("");
-                        setMeetingPrepReport("");
+                        setMeetingPrepReport(""); setMeetingPrepReportAt(null);
                         setMeetingPrepError("");
                       }
                     }}
@@ -3290,7 +3326,7 @@ export default function Dashboard() {
                           onClick={() => {
                             setMeetingPrepOrg(o.name);
                             setMeetingPrepSearch("");
-                            setMeetingPrepReport("");
+                            setMeetingPrepReport(""); setMeetingPrepReportAt(null);
                             setMeetingPrepError("");
                           }}
                         >
@@ -3317,7 +3353,7 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="text-sm font-extrabold text-navy dark:text-gray-100">선택한 기업 정보</div>
                         <button
-                          onClick={() => { setMeetingPrepOrg(""); setMeetingPrepReport(""); setMeetingPrepError(""); }}
+                          onClick={() => { setMeetingPrepOrg(""); setMeetingPrepReport(""); setMeetingPrepReportAt(null); setMeetingPrepError(""); }}
                           className="text-[11px] text-navy dark:text-gray-100 border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2.5 py-1 font-semibold"
                         >
                           기업 변경
@@ -3462,7 +3498,7 @@ export default function Dashboard() {
 
                     {(meetingPrepReport || meetingPrepLoading) && (
                       <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl overflow-hidden">
-                        <div className="flex items-center justify-between px-5 pt-4 pb-2">
+                        <div className="flex items-center justify-between px-5 pt-4 pb-3 no-print">
                           <div className="text-sm font-extrabold text-navy dark:text-gray-100">미팅 사전 보고서</div>
                           {meetingPrepReport && (
                             <div className="flex gap-1.5">
@@ -3474,17 +3510,89 @@ export default function Dashboard() {
                               </button>
                               <button
                                 onClick={() => window.print()}
-                                className="text-[11px] border border-[#E7EAF0] dark:border-gray-700 px-2 py-1 rounded-lg flex items-center gap-1 text-navy dark:text-gray-100"
+                                className="text-[11px] border border-navy bg-navy text-white px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold"
                               >
                                 <Printer className="w-3 h-3" />PDF 출력
                               </button>
                             </div>
                           )}
                         </div>
-                        <div id="brief-print-area" className="px-5 pb-5 max-h-[600px] overflow-y-auto bg-white">
-                          {meetingPrepLoading ? (
-                            <div className="text-xs text-gray-400 py-16 text-center">AI가 미팅 사전 보고서를 작성하고 있습니다...</div>
-                          ) : renderBriefMarkdown(meetingPrepReport)}
+
+                        <div className="px-5 pb-5">
+                          <div className="max-h-[640px] overflow-y-auto print:max-h-none print:overflow-visible rounded-xl border border-[#E7EAF0] dark:border-gray-700 print:border-0 print:rounded-none">
+                            <div id="brief-print-area" className="bg-white text-[#1E293B]">
+                              {meetingPrepLoading ? (
+                                <div className="text-xs text-gray-400 py-16 text-center">AI가 미팅 사전 보고서를 작성하고 있습니다...</div>
+                              ) : (
+                                <>
+                                  {/* 레터헤드 헤더 */}
+                                  <div className="px-8 py-7" style={{ background: "linear-gradient(135deg, #0D1F4E, #16306E)" }}>
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-white text-2xl font-extrabold italic">crediview</div>
+                                      <div className="text-right">
+                                        <div className="text-white/60 text-[10px] tracking-widest">MEETING BRIEF</div>
+                                        <div className="text-white text-lg font-extrabold">미팅 사전 보고서</div>
+                                      </div>
+                                    </div>
+                                    <div className="text-white/70 text-[11px] mt-1">by ㈜테크핀레이팅스 | Corporate Sales Intelligence</div>
+                                  </div>
+
+                                  {/* 기업 · 미팅 메타 정보 */}
+                                  <div className="px-8 py-5 border-b border-[#E7EAF0]">
+                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                      <div className="flex items-center gap-2.5">
+                                        <span className="inline-flex w-9 h-9 rounded-lg border border-[#E7EAF0] items-center justify-center overflow-hidden bg-white shrink-0">
+                                          <LogoBadge name={meetingPrepOrg} />
+                                        </span>
+                                        <div>
+                                          <div className="text-base font-extrabold text-navy leading-tight">{meetingPrepOrg}</div>
+                                          <div className="text-[10.5px] text-gray-400">{mapGroupName(meetingPrepDeals[0]?.orgGroup)}</div>
+                                        </div>
+                                      </div>
+                                      <div className="text-right text-[10.5px] text-gray-500 space-y-0.5 shrink-0">
+                                        <div>보고서 생성일 <b className="text-navy">{formatReportDate(meetingPrepReportAt)}</b></div>
+                                        <div>미팅 목적 <b className="text-navy">{MEETING_PURPOSE_OPTIONS.find((o) => o.key === meetingPrepPurpose)?.label || "-"}</b></div>
+                                        <div>작성자 <b className="text-navy">{profile?.name || "-"}{profile?.division ? ` · ${profile.division}` : ""}</b></div>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2.5 mt-4" style={{ breakInside: "avoid" }}>
+                                      <div className="bg-[#F4F6F9] rounded-lg px-3 py-2">
+                                        <div className="text-[9.5px] text-gray-400">담당자</div>
+                                        <div className="text-[11px] font-bold text-navy mt-0.5 truncate">
+                                          {[...new Set(meetingPrepDeals.map((d) => d.contactPerson).filter(Boolean))].join(", ") || "-"}
+                                        </div>
+                                      </div>
+                                      <div className="bg-[#F4F6F9] rounded-lg px-3 py-2">
+                                        <div className="text-[9.5px] text-gray-400">최근 접촉일</div>
+                                        <div className="text-[11px] font-bold text-navy mt-0.5">{meetingPrepLastContact || "-"}</div>
+                                      </div>
+                                      <div className="bg-[#F4F6F9] rounded-lg px-3 py-2">
+                                        <div className="text-[9.5px] text-gray-400">다음 미팅일</div>
+                                        <div className="text-[11px] font-bold text-navy mt-0.5">{meetingPrepNextMeeting?.nextMeetingDate || "미정"}</div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* AI 생성 본문 */}
+                                  <div className="px-8 py-6">
+                                    {renderBriefMarkdown(meetingPrepReport)}
+                                  </div>
+
+                                  {/* 푸터 */}
+                                  <div className="px-8 pb-7 pt-4 flex items-end justify-between border-t border-[#E7EAF0] mt-2" style={{ breakInside: "avoid" }}>
+                                    <div className="text-[9px] text-gray-400 leading-relaxed max-w-[68%]">
+                                      본 보고서는 사내 세일즈 파이프라인 데이터와 AI 분석을 기반으로 자동 생성되었으며, 실제 미팅 준비를 위한 참고 자료입니다.
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <div className="text-navy italic font-extrabold text-base leading-none">crediview</div>
+                                      <div className="text-[9px] text-gray-400 mt-0.5">by ㈜테크핀레이팅스</div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
