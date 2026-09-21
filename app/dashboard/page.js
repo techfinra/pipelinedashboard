@@ -469,6 +469,8 @@ export default function Dashboard() {
   const [meetingPrepLoading, setMeetingPrepLoading] = useState(false);
   const [meetingPrepReport, setMeetingPrepReport] = useState("");
   const [meetingPrepError, setMeetingPrepError] = useState("");
+  const [meetingPrepNews, setMeetingPrepNews] = useState([]);
+  const [meetingPrepNewsLoading, setMeetingPrepNewsLoading] = useState(false);
 
   const [editMode, setEditMode] = useState(false);
   const [editingField, setEditingField] = useState(null);
@@ -1108,6 +1110,31 @@ export default function Dashboard() {
       setMeetingPrepLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!meetingPrepOrg) {
+      setMeetingPrepNews([]);
+      setMeetingPrepNewsLoading(false);
+      return;
+    }
+    let ignore = false;
+    setMeetingPrepNewsLoading(true);
+    setMeetingPrepNews([]);
+    fetch(`/api/company-news?orgName=${encodeURIComponent(meetingPrepOrg)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore) setMeetingPrepNews(data.news || []);
+      })
+      .catch(() => {
+        if (!ignore) setMeetingPrepNews([]);
+      })
+      .finally(() => {
+        if (!ignore) setMeetingPrepNewsLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [meetingPrepOrg]);
 
   const uniqueTargetProducts = useMemo(() => {
     return [...new Set(deals.map((d) => (d.targetProduct || "").replace(/\n/g, " ").trim()).filter(Boolean))].sort();
@@ -3308,6 +3335,42 @@ export default function Dashboard() {
 
                   {/* 오른쪽: 보고서 생성 / 미리보기 */}
                   <div className="lg:col-span-5 space-y-4">
+                    <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <Newspaper className="w-3.5 h-3.5 text-navy dark:text-gray-100" />
+                        <div className="text-sm font-extrabold text-navy dark:text-gray-100">최근 뉴스 ({meetingPrepNews.length})</div>
+                      </div>
+                      {meetingPrepNewsLoading && (
+                        <div className="text-xs text-gray-300 py-4 text-center">뉴스를 불러오는 중...</div>
+                      )}
+                      {!meetingPrepNewsLoading && meetingPrepNews.length === 0 && (
+                        <div className="text-xs text-gray-300 py-4 text-center">최근 30일 이내 검색된 뉴스가 없습니다.</div>
+                      )}
+                      {!meetingPrepNewsLoading && meetingPrepNews.length > 0 && (
+                        <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                          {meetingPrepNews.map((n, i) => (
+                            <a
+                              key={i}
+                              href={n.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group block border border-[#E7EAF0] dark:border-gray-700 rounded-xl p-2.5 hover:border-navy/40 hover:bg-[#F8FAFC] dark:hover:bg-gray-800"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-xs font-semibold text-gray-700 dark:text-gray-200 leading-snug group-hover:text-navy dark:group-hover:text-white">
+                                  {n.title}
+                                </div>
+                                <ExternalLink className="w-3 h-3 text-gray-300 shrink-0 mt-0.5 group-hover:text-navy" />
+                              </div>
+                              <div className="text-[10px] text-gray-400 mt-1">
+                                {n.source || "출처 미상"}{n.date ? ` · ${n.date.slice(0, 10)}` : ""}
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="bg-white dark:bg-[#111827] border border-[#E7EAF0] dark:border-gray-700 rounded-2xl p-5">
                       <div className="text-sm font-extrabold text-navy dark:text-gray-100 mb-3">미팅 사전 보고서 생성</div>
                       <div className="text-[11px] text-gray-400 mb-2">이번 미팅 목적을 선택하세요.</div>
