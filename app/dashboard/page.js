@@ -1307,6 +1307,31 @@ export default function Dashboard() {
     return actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
   }, [actionDueDeals, dealKpiCat]);
 
+  // "다음 액션"의 실행일이 오늘 도래해 자동으로 "현재 액션"으로 승격된 딜의 안내 문구.
+  // 승격되는 순간 nextAction/nextActionDate가 비워지므로 futureReason 기반 판단으로는 더 이상 잡히지 않는다.
+  // 그래서 activityLog에서 오늘 자동 승격된(source: "next-action-auto") 항목을 별도로 찾아 종모양 알림에 포함시킨다.
+  const todayPromotedInfo = useMemo(() => {
+    const todayStr = todayLocalStr();
+    const map = {};
+    allActivity.forEach((a) => {
+      if (a.dealId && a.date === todayStr && a.source === "next-action-auto") {
+        map[a.dealId] = a.text || "다음 액션";
+      }
+    });
+    return map;
+  }, [allActivity]);
+
+  const todayPromotedDeals = useMemo(() => {
+    return activeDeals.filter(
+      (d) => todayPromotedInfo[d.id] && !todayActionDueDeals.some((x) => x.id === d.id)
+    );
+  }, [activeDeals, todayPromotedInfo, todayActionDueDeals]);
+
+  const todayBellDeals = useMemo(
+    () => [...todayActionDueDeals, ...todayPromotedDeals],
+    [todayActionDueDeals, todayPromotedDeals]
+  );
+
   const orgRows = useMemo(() => {
     const map = {};
     deals.forEach((d) => {
@@ -2229,9 +2254,9 @@ export default function Dashboard() {
                 className="text-gray-400 hover:text-navy p-1.5 relative"
               >
                 <Bell className="w-4 h-4" />
-                {todayActionDueDeals.length > 0 && (
+                {todayBellDeals.length > 0 && (
                   <span className="absolute -top-0.5 -left-0.5 min-w-[15px] h-[15px] px-[3px] rounded-full bg-green-500 text-white text-[9px] font-bold flex items-center justify-center">
-                    {todayActionDueDeals.length}
+                    {todayBellDeals.length}
                   </span>
                 )}
                 {(actionDueDeals.length - todayActionDueDeals.length) > 0 && (
@@ -2241,14 +2266,16 @@ export default function Dashboard() {
                 )}
               </button>
               {notifOpen && (() => {
-                const todayDeals = todayActionDueDeals;
+                const todayDeals = todayBellDeals;
                 const restDeals = actionDueDeals.filter((d) => !todayActionDueDeals.includes(d));
-                const reasonText = (d) =>
-                  dealKpiCat[d.id]?.futureReason === "renewal"
-                    ? `계약갱신 예정 · ${d.contractRenewalDate}`
-                    : dealKpiCat[d.id]?.futureReason === "nextAction"
-                    ? `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`
-                    : `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`;
+                const reasonText = (d) => {
+                  const reason = dealKpiCat[d.id]?.futureReason;
+                  if (reason === "renewal") return `계약갱신 예정 · ${d.contractRenewalDate}`;
+                  if (reason === "nextAction") return `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`;
+                  if (reason === "meeting") return `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`;
+                  if (todayPromotedInfo[d.id]) return `오늘 실행 · ${todayPromotedInfo[d.id]}`;
+                  return "";
+                };
                 return (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
