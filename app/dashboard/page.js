@@ -1307,19 +1307,27 @@ export default function Dashboard() {
     return actionDueDeals.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr);
   }, [actionDueDeals, dealKpiCat]);
 
-  // "다음 액션"의 실행일이 오늘 도래해 자동으로 "현재 액션"으로 승격된 딜의 안내 문구.
-  // 승격되는 순간 nextAction/nextActionDate가 비워지므로 futureReason 기반 판단으로는 더 이상 잡히지 않는다.
-  // 그래서 activityLog에서 오늘 자동 승격된(source: "next-action-auto") 항목을 별도로 찾아 종모양 알림에 포함시킨다.
-  const todayPromotedInfo = useMemo(() => {
-    const todayStr = todayLocalStr();
+  // "현재 액션"(activityLog상 가장 최근 항목)이 오늘 날짜인 딜의 안내 문구.
+  // "다음 액션"이 오늘 도래해 자동 승격된 경우든, 오늘 직접 활동을 기록한 경우든 상관없이
+  // 현재 액션 날짜가 오늘이면 futureReason(nextMeetingDate/nextActionDate/contractRenewalDate) 여부와 무관하게
+  // 종모양 알림 "오늘 진행"에 포함시킨다.
+  const latestActivityByDeal = useMemo(() => {
     const map = {};
     allActivity.forEach((a) => {
-      if (a.dealId && a.date === todayStr && a.source === "next-action-auto") {
-        map[a.dealId] = a.text || "다음 액션";
-      }
+      if (!a.dealId || !a.date) return;
+      if (!map[a.dealId] || a.date >= map[a.dealId].date) map[a.dealId] = a;
     });
     return map;
   }, [allActivity]);
+
+  const todayPromotedInfo = useMemo(() => {
+    const todayStr = todayLocalStr();
+    const map = {};
+    Object.values(latestActivityByDeal).forEach((a) => {
+      if (a.date === todayStr) map[a.dealId] = a.text || "현재 액션";
+    });
+    return map;
+  }, [latestActivityByDeal]);
 
   const todayPromotedDeals = useMemo(() => {
     return activeDeals.filter(
@@ -2273,7 +2281,7 @@ export default function Dashboard() {
                   if (reason === "renewal") return `계약갱신 예정 · ${d.contractRenewalDate}`;
                   if (reason === "nextAction") return `${d.nextActionDate} · ${d.nextAction || "다음 액션"}`;
                   if (reason === "meeting") return `${d.nextMeetingDate} ${d.nextMeetingNote || ""}`;
-                  if (todayPromotedInfo[d.id]) return `오늘 실행 · ${todayPromotedInfo[d.id]}`;
+                  if (todayPromotedInfo[d.id]) return `현재 액션 · ${todayPromotedInfo[d.id]}`;
                   return "";
                 };
                 return (
