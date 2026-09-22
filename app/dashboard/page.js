@@ -739,6 +739,49 @@ export default function Dashboard() {
     })();
   }, [authChecked]);
 
+  // "다음 액션"의 실행 예정일(nextActionDate)이 당일(또는 지난 날짜)에 도달하면,
+  // 그 내용을 액션 히스토리(activityLog)에 새 항목으로 추가해 "현재 액션"으로 승격시키고
+  // (기존 "현재 액션"은 자동으로 "지난번 액션" → 히스토리로 밀려남), "다음 액션"은 비운다.
+  useEffect(() => {
+    if (loading || !deals.length) return;
+    const todayStr = todayLocalStr();
+    const due = deals.filter(
+      (d) => d.nextAction && d.nextAction.trim() && d.nextActionDate && d.nextActionDate <= todayStr
+    );
+    if (due.length === 0) return;
+    (async () => {
+      try {
+        const batch = writeBatch(db);
+        const newActivityEntries = [];
+        due.forEach((d) => {
+          const activityRef = doc(collection(db, "activityLog"));
+          batch.set(activityRef, {
+            dealId: d.id,
+            date: d.nextActionDate,
+            text: d.nextAction,
+            source: "next-action-auto",
+            createdAt: serverTimestamp(),
+          });
+          newActivityEntries.push({ id: activityRef.id, dealId: d.id, date: d.nextActionDate, text: d.nextAction, source: "next-action-auto" });
+          batch.update(doc(db, "deals", d.id), { nextAction: "", nextActionDate: "", updatedAt: serverTimestamp() });
+        });
+        await batch.commit();
+        setAllActivity((prev) => [...prev, ...newActivityEntries]);
+        setDeals((prev) =>
+          prev.map((d) => (due.some((x) => x.id === d.id) ? { ...d, nextAction: "", nextActionDate: "" } : d))
+        );
+        setActivity((prev) => {
+          if (!selected || !due.some((x) => x.id === selected.id)) return prev;
+          const added = newActivityEntries.filter((a) => a.dealId === selected.id);
+          return [...added, ...prev].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        });
+        setSelected((prev) => (prev && due.some((x) => x.id === prev.id) ? { ...prev, nextAction: "", nextActionDate: "" } : prev));
+      } catch (e) {
+        console.error("다음 액션 자동 전환 실패", e);
+      }
+    })();
+  }, [loading, deals]);
+
   useEffect(() => {
     if (!selected) return;
     setEditingField(null);
@@ -824,11 +867,17 @@ export default function Dashboard() {
       } else if (d.probability === "드랍") {
         // 계약가능성을 명시적으로 "드랍"으로 표시한 딜은 활발진행/후속필요/장기정체 집계에서 제외
         recency = "dropped";
-      } else if (lastDate) {
-        const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
-        recency = diffDays <= 7 ? "active7" : diffDays <= 30 ? "followUp" : "stale";
       } else {
-        recency = "stale";
+        if (lastDate) {
+          const diffDays = Math.floor((now - new Date(lastDate)) / 86400000);
+          recency = diffDays <= 7 ? "active7" : diffDays <= 30 ? "followUp" : "stale";
+        } else {
+          recency = "stale";
+        }
+        // 다음 액션이 입력되어 있으면 "후속 필요"로 분류한다. 단, 이미 "활발 진행"인 딜은 그대로 둔다.
+        if (d.nextAction && d.nextAction.trim() && recency !== "active7") {
+          recency = "followUp";
+        }
       }
       let future = null;
       let futureReason = null;
