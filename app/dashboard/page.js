@@ -2422,7 +2422,13 @@ export default function Dashboard() {
                 <div className={"w-9 h-9 rounded-xl flex items-center justify-center mb-2 " + k.bg}>
                   <k.icon className={"w-[18px] h-[18px] " + k.color} strokeWidth={2.2} />
                 </div>
-                <div className={"text-2xl font-extrabold " + k.color}>{k.key === "dropped" ? droppedCompanyList.length : kpis[k.key]}</div>
+                <div className={"text-2xl font-extrabold " + k.color}>
+                  {k.key === "dropped"
+                    ? droppedCompanyList.length
+                    : k.key === "actionDue"
+                    ? kpis.actionDue + todayPromotedDeals.length
+                    : kpis[k.key]}
+                </div>
                 <div className="text-xs text-gray-500 mt-1">{k.label} <span className="text-gray-300">({k.meta})</span></div>
               </div>
             ))}
@@ -4629,17 +4635,34 @@ export default function Dashboard() {
 
       {kpiModalKey && (() => {
         const def = KPI_DEFS.find((k) => k.key === kpiModalKey);
-        const matched = deals
-          .filter((d) => {
-            if (kpiModalKey === "aiFlag") return !!d.aiFlag;
-            const c = dealKpiCat[d.id];
-            return c?.recency === kpiModalKey || c?.future === kpiModalKey;
-          })
-          .sort((a, b) =>
-            ["actionDue", "actionPlanned"].includes(kpiModalKey)
-              ? (dealKpiCat[a.id]?.futureDate || "").localeCompare(dealKpiCat[b.id]?.futureDate || "")
-              : (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || "")
-          );
+        let matched = deals.filter((d) => {
+          if (kpiModalKey === "aiFlag") return !!d.aiFlag;
+          const c = dealKpiCat[d.id];
+          return c?.recency === kpiModalKey || c?.future === kpiModalKey;
+        });
+        // "액션 도래" 모달에는 오늘 다음 액션이 도래해 현재 액션으로 승격된 딜(더 이상 future==="actionDue"로 안 잡힘)도 포함시킨다.
+        if (kpiModalKey === "actionDue") {
+          todayPromotedDeals.forEach((d) => {
+            if (!matched.some((x) => x.id === d.id)) matched.push(d);
+          });
+        }
+        matched = matched.sort((a, b) =>
+          ["actionDue", "actionPlanned"].includes(kpiModalKey)
+            ? (dealKpiCat[a.id]?.futureDate || "").localeCompare(dealKpiCat[b.id]?.futureDate || "")
+            : (lastActionByDeal[b.id] || "").localeCompare(lastActionByDeal[a.id] || "")
+        );
+        const todayStr = todayLocalStr();
+        const todayItems =
+          kpiModalKey === "actionDue"
+            ? matched.filter((d) => dealKpiCat[d.id]?.futureDate === todayStr || todayPromotedInfo[d.id])
+            : [];
+        const restItems = kpiModalKey === "actionDue" ? matched.filter((d) => !todayItems.some((x) => x.id === d.id)) : matched;
+        const itemReasonText = (d) => {
+          if (["actionDue", "actionPlanned"].includes(kpiModalKey)) {
+            return dealKpiCat[d.id]?.futureDate || (todayPromotedInfo[d.id] ? `오늘 · ${todayPromotedInfo[d.id]}` : "");
+          }
+          return lastActionByDeal[d.id] || "";
+        };
         return (
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
@@ -4656,8 +4679,34 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="p-3">
-                  <div className="text-[11px] text-gray-400 px-2 mb-1">{matched.length}건</div>
-                  {matched.map((d) => (
+                  {todayItems.length > 0 && (
+                    <div className="mb-2 rounded-lg overflow-hidden border border-green-100 dark:border-green-900">
+                      <div className="px-3 py-2 bg-green-50/50 dark:bg-green-950/20 flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-green-600 flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />오늘 진행
+                        </span>
+                        <span className="text-[10px] text-gray-400">{todayItems.length}건</span>
+                      </div>
+                      {todayItems.map((d) => (
+                        <div
+                          key={d.id}
+                          onClick={() => { openDeal(d); setKpiModalKey(null); }}
+                          className="px-3 py-2.5 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer border-t border-[#F4F6F9] dark:border-gray-800"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1.5 shrink-0" />
+                              <LogoBadge name={d.orgName} />{d.orgName}
+                              <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                            </div>
+                            <span className="text-[10px] text-green-600 shrink-0 ml-2">{itemReasonText(d)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-[11px] text-gray-400 px-2 mb-1">{restItems.length}건</div>
+                  {restItems.map((d) => (
                     <div
                       key={d.id}
                       onClick={() => { openDeal(d); setKpiModalKey(null); }}
@@ -4668,11 +4717,7 @@ export default function Dashboard() {
                           <LogoBadge name={d.orgName} />{d.orgName}
                           <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                          {["actionDue", "actionPlanned"].includes(kpiModalKey)
-                            ? dealKpiCat[d.id]?.futureDate || ""
-                            : lastActionByDeal[d.id] || ""}
-                        </span>
+                        <span className="text-[10px] text-gray-400 shrink-0 ml-2">{itemReasonText(d)}</span>
                       </div>
                       {kpiModalKey === "aiFlag" && d.aiInsight && (
                         <div className="text-[11px] text-pink-600 mt-1 ml-[28px]">✨ {d.aiInsight}</div>
