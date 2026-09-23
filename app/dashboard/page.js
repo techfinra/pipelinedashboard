@@ -361,13 +361,18 @@ function mapGroupName(raw) {
   return GROUP_MAP[key] || (key === "" ? "미분류" : key);
 }
 
-function EditableLine({ label, meta, value, editing, editable, multiline, highlight, icon: Icon, editValue, setEditValue, onEdit, onCancel, onSave, saving }) {
+function EditableLine({ label, meta, value, editing, editable, multiline, highlight, icon: Icon, editValue, setEditValue, onEdit, onAdd, onCancel, onSave, saving }) {
   return (
     <div className={highlight ? "bg-orange-50 border border-orange-100 rounded-lg px-2.5 py-2" : ""}>
       <div className="flex items-center justify-between">
         <span className="text-gray-400 flex items-center gap-1">{Icon && <Icon className="w-3 h-3" />}{label}{meta ? ` (${meta})` : ""}</span>
         {editable && !editing && (
-          <button className="text-navy dark:text-gray-100 underline" onClick={onEdit}>수정</button>
+          <div className="flex items-center gap-2">
+            <button className="text-navy dark:text-gray-100 underline" onClick={onEdit}>수정</button>
+            {onAdd && (
+              <button className="text-navy dark:text-gray-100 underline" onClick={onAdd}>추가</button>
+            )}
+          </div>
         )}
       </div>
       {!editing ? (
@@ -4098,6 +4103,7 @@ export default function Dashboard() {
                       editValue={editValue}
                       setEditValue={setEditValue}
                       onEdit={() => startEdit("memo", selected.memo)}
+                      onAdd={() => startEdit("memo", "")}
                       onCancel={cancelEdit}
                       onSave={() => saveDealField(buildMemoPatch(selected.memo, editValue, selected.memoHistory))}
                       saving={saving}
@@ -4738,11 +4744,12 @@ export default function Dashboard() {
                           onClick={() => { openDeal(d); setKpiModalKey(null); }}
                           className="px-3 py-2.5 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer border-t border-[#F4F6F9] dark:border-gray-800"
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center min-w-0 flex-1 text-xs font-semibold text-navy dark:text-gray-100">
                               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1.5 shrink-0" />
-                              <LogoBadge name={d.orgName} />{d.orgName}
-                              <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                              <LogoBadge name={d.orgName} />
+                              <span className="truncate">{d.orgName}</span>
+                              <span className="text-gray-300 font-normal ml-1.5 shrink-0 truncate max-w-[40%]">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                             </div>
                             <span className="text-[10px] text-green-600 shrink-0 ml-2">{itemReasonText(d)}</span>
                           </div>
@@ -4757,10 +4764,11 @@ export default function Dashboard() {
                       onClick={() => { openDeal(d); setKpiModalKey(null); }}
                       className="px-3 py-2.5 rounded-lg hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center text-xs font-semibold text-navy dark:text-gray-100">
-                          <LogoBadge name={d.orgName} />{d.orgName}
-                          <span className="text-gray-300 font-normal ml-1.5">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center min-w-0 flex-1 text-xs font-semibold text-navy dark:text-gray-100">
+                          <LogoBadge name={d.orgName} />
+                          <span className="truncate">{d.orgName}</span>
+                          <span className="text-gray-300 font-normal ml-1.5 shrink-0 truncate max-w-[40%]">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
                         </div>
                         <span className="text-[10px] text-gray-400 shrink-0 ml-2">{itemReasonText(d)}</span>
                       </div>
