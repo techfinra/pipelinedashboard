@@ -1421,6 +1421,33 @@ export default function Dashboard() {
     setEditingField(null);
   }
 
+  // "현재 액션" 카드의 "추가" 버튼: 기존 현재 액션을 수정하는 대신 새 활동을 activityLog에 추가한다.
+  // "현재 액션"은 activityLog상 가장 최근 항목으로 자동 결정되므로, 새 항목을 추가하면
+  // 기존 현재 액션은 자동으로 지난번 액션(히스토리)으로 밀려나고 새 항목이 현재 액션이 된다.
+  async function addCurrentAction() {
+    if (!selected || !editValue.trim()) return;
+    setSaving(true);
+    try {
+      const date = editActivityDate || todayLocalStr();
+      const text = editValue.trim();
+      const ref = await addDoc(collection(db, "activityLog"), {
+        dealId: selected.id,
+        date,
+        text,
+        source: "manual-add",
+        createdAt: serverTimestamp(),
+      });
+      const newEntry = { id: ref.id, dealId: selected.id, date, text, source: "manual-add" };
+      setActivity((prev) => [newEntry, ...prev].sort((a, b) => (b.date || "").localeCompare(a.date || "")));
+      setAllActivity((prev) => [...prev, newEntry]);
+      setEditingField(null);
+    } catch (e) {
+      alert("저장 실패: " + (e.message || e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const [newLinkLabel, setNewLinkLabel] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [addingLink, setAddingLink] = useState(false);
@@ -3889,7 +3916,7 @@ export default function Dashboard() {
                         <span className="text-[11px] font-bold text-gray-500">{row.label}</span>
                         <div className="flex items-center gap-2">
                           {row.date && <span className="text-[10px] text-gray-400">{row.date}</span>}
-                          {row.editable && editingField !== row.field && (
+                          {row.editable && editingField !== row.field && editingField !== "currentActionAdd" && (
                             <button
                               className="text-[10px] text-navy dark:text-gray-100 underline"
                               onClick={() => {
@@ -3901,16 +3928,32 @@ export default function Dashboard() {
                               수정
                             </button>
                           )}
+                          {row.field === "currentAction" && editingField !== row.field && editingField !== "currentActionAdd" && (
+                            <button
+                              className="text-[10px] text-navy dark:text-gray-100 underline"
+                              onClick={() => {
+                                setEditingField("currentActionAdd");
+                                setEditValue("");
+                                setEditActivityDate(todayLocalStr());
+                              }}
+                            >
+                              추가
+                            </button>
+                          )}
                         </div>
                       </div>
-                      {editingField !== row.field ? (
+                      {editingField !== row.field && !(row.field === "currentAction" && editingField === "currentActionAdd") ? (
                         <div className="text-xs text-gray-700 dark:text-gray-300 mt-0.5">{row.text || "미입력"}</div>
                       ) : (
                         <div className="mt-1.5 space-y-1.5">
+                          {row.field === "currentAction" && editingField === "currentActionAdd" && (
+                            <div className="text-[10px] text-gray-400">새 액션을 입력하면 지금 현재 액션은 지난번 액션(히스토리)으로 이동합니다.</div>
+                          )}
                           <input
                             className="w-full text-xs border border-[#E7EAF0] dark:border-gray-700 rounded-lg px-2 py-1.5"
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
+                            placeholder={row.field === "currentAction" && editingField === "currentActionAdd" ? "새 현재 액션 내용" : ""}
                           />
                           {row.field === "nextAction" && (
                             <div>
@@ -3942,12 +3985,14 @@ export default function Dashboard() {
                               onClick={() =>
                                 row.field === "nextAction"
                                   ? saveDealField({ nextAction: editValue, nextActionDate: editNextActionDate || null })
+                                  : editingField === "currentActionAdd"
+                                  ? addCurrentAction()
                                   : row.field === "currentAction"
                                   ? saveActivityText(activity[0].id, editActivityDate)
                                   : saveActivityText(activity[1].id)
                               }
                             >
-                              {saving ? "저장 중..." : "저장"}
+                              {saving ? "저장 중..." : editingField === "currentActionAdd" ? "추가" : "저장"}
                             </button>
                           </div>
                         </div>
