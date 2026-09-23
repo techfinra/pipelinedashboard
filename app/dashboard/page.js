@@ -2316,6 +2316,14 @@ export default function Dashboard() {
                   if (todayPromotedInfo[d.id]) return `현재 액션 · ${todayPromotedInfo[d.id]}`;
                   return "";
                 };
+                // "오늘 진행"은 다음 액션 예고가 아니라 오늘 실제로 실행 중인 현재 액션 내용을 보여줘야 한다.
+                const todayReasonText = (d) => {
+                  if (todayPromotedInfo[d.id]) return `현재 액션 · ${todayPromotedInfo[d.id]}`;
+                  const reason = dealKpiCat[d.id]?.futureReason;
+                  if (reason === "renewal") return `계약갱신 예정 · ${d.contractRenewalDate}`;
+                  if (reason === "meeting") return `${d.nextMeetingNote || "오늘 미팅"}`;
+                  return "오늘 실행 예정";
+                };
                 return (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
@@ -2339,7 +2347,7 @@ export default function Dashboard() {
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1.5 shrink-0" />
                                 <LogoBadge name={d.orgName} />{d.orgName}
                               </div>
-                              <div className="text-[10px] text-green-600 mt-0.5 ml-[28px]">{reasonText(d)}</div>
+                              <div className="text-[10px] text-green-600 mt-0.5 ml-[28px]">{todayReasonText(d)}</div>
                             </div>
                           ))}
                         </div>
@@ -4714,6 +4722,14 @@ export default function Dashboard() {
           }
           return lastActionByDeal[d.id] || "";
         };
+        // "오늘 진행"은 다음 액션 예고가 아니라 오늘 실제로 실행 중인 현재 액션 내용을 보여줘야 한다.
+        const todayReasonText = (d) => {
+          if (todayPromotedInfo[d.id]) return `오늘 · ${todayPromotedInfo[d.id]}`;
+          const reason = dealKpiCat[d.id]?.futureReason;
+          if (reason === "renewal") return `계약갱신 예정 · ${d.contractRenewalDate}`;
+          if (reason === "meeting") return `${d.nextMeetingNote || "오늘 미팅"}`;
+          return "오늘 실행 예정";
+        };
         return (
           <>
             <div className="fixed inset-0 bg-navy-deep/40 z-50" onClick={() => setKpiModalKey(null)} />
@@ -4750,7 +4766,7 @@ export default function Dashboard() {
                               <LogoBadge name={d.orgName} />
                               {d.orgName}
                             </div>
-                            <span className="text-[10px] text-green-600 truncate min-w-0 flex-1 text-right ml-2">{itemReasonText(d)}</span>
+                            <span className="text-[10px] text-green-600 truncate min-w-0 flex-1 text-right ml-2">{todayReasonText(d)}</span>
                           </div>
                         </div>
                       ))}
