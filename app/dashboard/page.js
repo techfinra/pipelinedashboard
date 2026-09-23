@@ -4745,13 +4745,12 @@ export default function Dashboard() {
                           className="px-3 py-2.5 hover:bg-[#F8FAFC] dark:hover:bg-gray-800 cursor-pointer border-t border-[#F4F6F9] dark:border-gray-800"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center min-w-0 flex-1 text-xs font-semibold text-navy dark:text-gray-100">
+                            <div className="flex items-center shrink-0 whitespace-nowrap text-xs font-semibold text-navy dark:text-gray-100">
                               <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block mr-1.5 shrink-0" />
                               <LogoBadge name={d.orgName} />
-                              <span className="truncate">{d.orgName}</span>
-                              <span className="text-gray-300 font-normal ml-1.5 shrink-0 truncate max-w-[40%]">{(d.targetProduct || "").replace(/\n/g, " ")}</span>
+                              {d.orgName}
                             </div>
-                            <span className="text-[10px] text-green-600 shrink-0 ml-2">{itemReasonText(d)}</span>
+                            <span className="text-[10px] text-green-600 truncate min-w-0 flex-1 text-right ml-2">{itemReasonText(d)}</span>
                           </div>
                         </div>
                       ))}
